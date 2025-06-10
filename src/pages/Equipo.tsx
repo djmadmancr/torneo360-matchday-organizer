@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, Trash2, Upload, Search, MapPin } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Upload, Search, MapPin, User, Phone, Mail } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface Jugador {
   id: string;
@@ -16,6 +18,14 @@ interface Jugador {
   identificacion: string;
   edad: string;
   seleccionado: boolean;
+}
+
+interface PersonalTecnico {
+  id: string;
+  nombre: string;
+  identificacion: string;
+  telefono: string;
+  rol: "dt" | "asistente";
 }
 
 interface TorneoPublico {
@@ -33,7 +43,17 @@ const Equipo = () => {
   const navigate = useNavigate();
   const [equipoData, setEquipoData] = useState({
     nombre: "",
-    logo: null as File | null
+    logo: null as File | null,
+    contactoPrincipal: {
+      nombre: "",
+      telefono: "",
+      email: ""
+    },
+    fiscalCasa: {
+      nombre: "",
+      identificacion: "",
+      telefono: ""
+    }
   });
 
   const [equipoId] = useState(() => {
@@ -41,16 +61,27 @@ const Equipo = () => {
   });
 
   const [jugadores, setJugadores] = useState<Jugador[]>([]);
+  const [personalTecnico, setPersonalTecnico] = useState<PersonalTecnico[]>([]);
+  
   const [nuevoJugador, setNuevoJugador] = useState({
     nombre: "",
     identificacion: "",
     edad: ""
   });
 
+  const [nuevoPersonal, setNuevoPersonal] = useState({
+    nombre: "",
+    identificacion: "",
+    telefono: "",
+    rol: ""
+  });
+
   const [torneoId, setTorneoId] = useState("");
   const [canchasCasa, setCanchasCasa] = useState<string[]>([]);
   const [nuevaCancha, setNuevaCancha] = useState("");
   const [busquedaTorneo, setBusquedaTorneo] = useState("");
+  const [mostrarSeleccionJugadores, setMostrarSeleccionJugadores] = useState(false);
+  const [torneoSeleccionado, setTorneoSeleccionado] = useState("");
 
   const [torneosPublicos] = useState<TorneoPublico[]>([
     {
@@ -102,9 +133,31 @@ const Equipo = () => {
     toast.success("Jugador agregado exitosamente");
   };
 
+  const agregarPersonal = () => {
+    if (!nuevoPersonal.nombre || !nuevoPersonal.identificacion || !nuevoPersonal.telefono || !nuevoPersonal.rol) {
+      toast.error("Por favor completa todos los campos");
+      return;
+    }
+
+    const personal: PersonalTecnico = {
+      id: Math.random().toString(36).substr(2, 9),
+      ...nuevoPersonal,
+      rol: nuevoPersonal.rol as "dt" | "asistente"
+    };
+
+    setPersonalTecnico([...personalTecnico, personal]);
+    setNuevoPersonal({ nombre: "", identificacion: "", telefono: "", rol: "" });
+    toast.success("Personal técnico agregado exitosamente");
+  };
+
   const eliminarJugador = (id: string) => {
     setJugadores(jugadores.filter(j => j.id !== id));
     toast.success("Jugador eliminado");
+  };
+
+  const eliminarPersonal = (id: string) => {
+    setPersonalTecnico(personalTecnico.filter(p => p.id !== id));
+    toast.success("Personal técnico eliminado");
   };
 
   const toggleSeleccionJugador = (id: string) => {
@@ -119,7 +172,7 @@ const Equipo = () => {
       return;
     }
 
-    console.log("Equipo creado:", { ...equipoData, equipoId, jugadores });
+    console.log("Equipo creado:", { ...equipoData, equipoId, jugadores, personalTecnico, canchasCasa });
     toast.success("¡Equipo creado exitosamente! ID: " + equipoId);
   };
 
@@ -144,6 +197,15 @@ const Equipo = () => {
   };
 
   const aplicarATorneoPublico = (torneoId: string) => {
+    if (jugadores.length === 0) {
+      toast.error("Primero debes agregar jugadores al equipo");
+      return;
+    }
+    setTorneoSeleccionado(torneoId);
+    setMostrarSeleccionJugadores(true);
+  };
+
+  const confirmarAplicacion = () => {
     const jugadoresSeleccionados = jugadores.filter(j => j.seleccionado);
     if (jugadoresSeleccionados.length === 0) {
       toast.error("Por favor selecciona al menos un jugador para el torneo");
@@ -152,10 +214,12 @@ const Equipo = () => {
 
     console.log("Aplicando a torneo público:", { 
       equipoId, 
-      torneoId, 
+      torneoId: torneoSeleccionado, 
       jugadoresSeleccionados 
     });
-    toast.success(`¡Aplicación enviada al torneo ${torneoId}!`);
+    toast.success(`¡Aplicación enviada al torneo con ${jugadoresSeleccionados.length} jugadores!`);
+    setMostrarSeleccionJugadores(false);
+    setTorneoSeleccionado("");
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -194,7 +258,6 @@ const Equipo = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50">
-      {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
@@ -207,21 +270,21 @@ const Equipo = () => {
               Volver
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-primary">🟢 Panel de Equipo</h1>
-              <p className="text-muted-foreground">Gestiona tu equipo y jugadores</p>
+              <h1 className="text-xl md:text-2xl font-bold text-primary">🟢 Panel de Equipo</h1>
+              <p className="text-sm text-muted-foreground">Gestiona tu equipo y jugadores</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-4 md:py-8">
         <Tabs defaultValue="equipo" className="max-w-6xl mx-auto">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 text-xs md:text-sm">
             <TabsTrigger value="equipo">Crear Equipo</TabsTrigger>
-            <TabsTrigger value="jugadores">Gestionar Jugadores</TabsTrigger>
+            <TabsTrigger value="jugadores">Jugadores</TabsTrigger>
             <TabsTrigger value="canchas">Canchas Casa</TabsTrigger>
-            <TabsTrigger value="torneos-publicos">Torneos Públicos</TabsTrigger>
-            <TabsTrigger value="torneo">Aplicar por ID</TabsTrigger>
+            <TabsTrigger value="torneos-publicos">Torneos</TabsTrigger>
+            <TabsTrigger value="torneo">Por ID</TabsTrigger>
           </TabsList>
 
           <TabsContent value="equipo">
@@ -232,7 +295,7 @@ const Equipo = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="nombreEquipo">Nombre del Equipo *</Label>
                     <Input
@@ -254,9 +317,91 @@ const Equipo = () => {
                   </div>
                 </div>
 
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <User className="w-5 h-5" />
+                    Contacto Principal
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Nombre Completo</Label>
+                      <Input
+                        value={equipoData.contactoPrincipal.nombre}
+                        onChange={(e) => setEquipoData({
+                          ...equipoData, 
+                          contactoPrincipal: {...equipoData.contactoPrincipal, nombre: e.target.value}
+                        })}
+                        placeholder="Juan Pérez"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Teléfono</Label>
+                      <Input
+                        value={equipoData.contactoPrincipal.telefono}
+                        onChange={(e) => setEquipoData({
+                          ...equipoData, 
+                          contactoPrincipal: {...equipoData.contactoPrincipal, telefono: e.target.value}
+                        })}
+                        placeholder="+57 300 123 4567"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Email</Label>
+                      <Input
+                        type="email"
+                        value={equipoData.contactoPrincipal.email}
+                        onChange={(e) => setEquipoData({
+                          ...equipoData, 
+                          contactoPrincipal: {...equipoData.contactoPrincipal, email: e.target.value}
+                        })}
+                        placeholder="contacto@equipo.com"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">🔍 Fiscal de Casa</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Nombre Completo</Label>
+                      <Input
+                        value={equipoData.fiscalCasa.nombre}
+                        onChange={(e) => setEquipoData({
+                          ...equipoData, 
+                          fiscalCasa: {...equipoData.fiscalCasa, nombre: e.target.value}
+                        })}
+                        placeholder="María García"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Identificación</Label>
+                      <Input
+                        value={equipoData.fiscalCasa.identificacion}
+                        onChange={(e) => setEquipoData({
+                          ...equipoData, 
+                          fiscalCasa: {...equipoData.fiscalCasa, identificacion: e.target.value}
+                        })}
+                        placeholder="12345678"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Teléfono</Label>
+                      <Input
+                        value={equipoData.fiscalCasa.telefono}
+                        onChange={(e) => setEquipoData({
+                          ...equipoData, 
+                          fiscalCasa: {...equipoData.fiscalCasa, telefono: e.target.value}
+                        })}
+                        placeholder="+57 300 987 6543"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="logo">Logo del Equipo (Opcional)</Label>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <Input
                       id="logo"
                       type="file"
@@ -292,11 +437,11 @@ const Equipo = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Plus className="w-5 h-5" />
-                    Agregar Nuevo Jugador
+                    Agregar Jugador
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="nombreJugador">Nombre Completo</Label>
                       <Input
@@ -338,17 +483,71 @@ const Equipo = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>👥 Lista de Jugadores ({jugadores.length})</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Plus className="w-5 h-5" />
+                    Personal Técnico
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <div className="space-y-2">
+                      <Label>Nombre Completo</Label>
+                      <Input
+                        value={nuevoPersonal.nombre}
+                        onChange={(e) => setNuevoPersonal({...nuevoPersonal, nombre: e.target.value})}
+                        placeholder="Carlos Ruiz"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Identificación</Label>
+                      <Input
+                        value={nuevoPersonal.identificacion}
+                        onChange={(e) => setNuevoPersonal({...nuevoPersonal, identificacion: e.target.value})}
+                        placeholder="87654321"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Teléfono</Label>
+                      <Input
+                        value={nuevoPersonal.telefono}
+                        onChange={(e) => setNuevoPersonal({...nuevoPersonal, telefono: e.target.value})}
+                        placeholder="+57 300 555 1234"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Rol</Label>
+                      <select 
+                        value={nuevoPersonal.rol}
+                        onChange={(e) => setNuevoPersonal({...nuevoPersonal, rol: e.target.value})}
+                        className="w-full p-2 border rounded-md"
+                      >
+                        <option value="">Seleccionar</option>
+                        <option value="dt">Director Técnico</option>
+                        <option value="asistente">Asistente Técnico</option>
+                      </select>
+                    </div>
+                    <div className="flex items-end">
+                      <Button onClick={agregarPersonal} className="w-full">
+                        Agregar
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>👥 Jugadores ({jugadores.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {jugadores.length === 0 ? (
                     <p className="text-center text-muted-foreground py-8">
-                      No hay jugadores registrados. Agrega jugadores usando el formulario de arriba.
+                      No hay jugadores registrados.
                     </p>
                   ) : (
                     <div className="space-y-3">
                       {jugadores.map((jugador) => (
-                        <div key={jugador.id} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div key={jugador.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg gap-4">
                           <div className="flex items-center gap-4">
                             <Checkbox
                               checked={jugador.seleccionado}
@@ -374,6 +573,35 @@ const Equipo = () => {
                   )}
                 </CardContent>
               </Card>
+
+              {personalTecnico.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>👨‍💼 Personal Técnico ({personalTecnico.length})</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {personalTecnico.map((personal) => (
+                        <div key={personal.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg gap-4">
+                          <div>
+                            <p className="font-medium">{personal.nombre}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {personal.rol === "dt" ? "Director Técnico" : "Asistente Técnico"} • {personal.telefono}
+                            </p>
+                          </div>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => eliminarPersonal(personal.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </TabsContent>
 
@@ -386,7 +614,7 @@ const Equipo = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-4">
                   <Input
                     value={nuevaCancha}
                     onChange={(e) => setNuevaCancha(e.target.value)}
@@ -468,7 +696,7 @@ const Equipo = () => {
                     ) : (
                       torneosPublicosFiltrados.map((torneo) => (
                         <div key={torneo.id} className="border rounded-lg p-4">
-                          <div className="flex justify-between items-start mb-3">
+                          <div className="flex flex-col sm:flex-row justify-between items-start mb-3 gap-3">
                             <div>
                               <h4 className="font-semibold text-lg">{torneo.nombre}</h4>
                               <p className="text-sm text-muted-foreground">ID: {torneo.id}</p>
@@ -478,24 +706,16 @@ const Equipo = () => {
                             </Badge>
                           </div>
                           
-                          <div className="grid md:grid-cols-4 gap-4 mb-4 text-sm">
-                            <div>
-                              <span className="font-medium">Tipo:</span> {torneo.tipoFutbol}
-                            </div>
-                            <div>
-                              <span className="font-medium">Categoría:</span> {torneo.categoria}
-                            </div>
-                            <div>
-                              <span className="font-medium">Inicio:</span> {torneo.fechaInicio}
-                            </div>
-                            <div>
-                              <span className="font-medium">Cierre:</span> {torneo.fechaCierre}
-                            </div>
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 text-sm">
+                            <div><span className="font-medium">Tipo:</span> {torneo.tipoFutbol}</div>
+                            <div><span className="font-medium">Categoría:</span> {torneo.categoria}</div>
+                            <div><span className="font-medium">Inicio:</span> {torneo.fechaInicio}</div>
+                            <div><span className="font-medium">Cierre:</span> {torneo.fechaCierre}</div>
                           </div>
 
                           <Button 
                             onClick={() => aplicarATorneoPublico(torneo.id)}
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
                             disabled={torneo.equiposInscritos >= torneo.maxEquipos}
                           >
                             {torneo.equiposInscritos >= torneo.maxEquipos ? "Torneo Lleno" : "Aplicar al Torneo"}
@@ -535,7 +755,7 @@ const Equipo = () => {
                   
                   {jugadores.length === 0 ? (
                     <p className="text-center text-muted-foreground py-4 border rounded-lg">
-                      Primero debes agregar jugadores en la pestaña "Gestionar Jugadores"
+                      Primero debes agregar jugadores en la pestaña "Jugadores"
                     </p>
                   ) : (
                     <div className="grid gap-3">
@@ -574,6 +794,64 @@ const Equipo = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      <Dialog open={mostrarSeleccionJugadores} onOpenChange={setMostrarSeleccionJugadores}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Seleccionar Jugadores para el Torneo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Selecciona los jugadores que participarán en este torneo:
+            </p>
+            
+            {jugadores.length === 0 ? (
+              <p className="text-center text-muted-foreground py-4">
+                No hay jugadores registrados en el equipo
+              </p>
+            ) : (
+              <div className="space-y-3 max-h-60 overflow-y-auto">
+                {jugadores.map((jugador) => (
+                  <div key={jugador.id} className="flex items-center gap-3 p-3 border rounded-lg">
+                    <Checkbox
+                      checked={jugador.seleccionado}
+                      onCheckedChange={() => toggleSeleccionJugador(jugador.id)}
+                    />
+                    <div className="flex-1">
+                      <p className="font-medium">{jugador.nombre}</p>
+                      <p className="text-sm text-muted-foreground">
+                        ID: {jugador.identificacion} • {jugador.edad} años
+                      </p>
+                    </div>
+                    {jugador.seleccionado && (
+                      <Badge variant="default">Seleccionado</Badge>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div className="bg-green-50 p-4 rounded-lg">
+              <p className="text-sm">
+                <strong>Jugadores seleccionados:</strong> {jugadores.filter(j => j.seleccionado).length}
+              </p>
+            </div>
+            
+            <div className="flex gap-4">
+              <Button onClick={confirmarAplicacion} className="flex-1 bg-green-600 hover:bg-green-700">
+                Confirmar Aplicación
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setMostrarSeleccionJugadores(false)}
+                className="flex-1"
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
