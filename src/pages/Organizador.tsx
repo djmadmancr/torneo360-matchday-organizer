@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Upload, Plus, Edit, X } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ArrowLeft, Upload, Plus, Edit, X, BarChart3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -74,6 +74,31 @@ const Organizador = () => {
   });
 
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [mostrarEstadisticas, setMostrarEstadisticas] = useState<string | null>(null);
+
+  // Mock statistics data
+  const estadisticasTorneo = {
+    goleadores: [
+      { nombre: "Carlos Mendez", equipo: "Águilas FC", goles: 8 },
+      { nombre: "Luis García", equipo: "Tigres SC", goles: 6 },
+      { nombre: "Pedro Ruiz", equipo: "Leones United", goles: 5 }
+    ],
+    asistencias: [
+      { nombre: "Roberto Silva", equipo: "Águilas FC", asistencias: 4 },
+      { nombre: "Marco Torres", equipo: "Pumas FC", asistencias: 3 },
+      { nombre: "Diego López", equipo: "Tigres SC", asistencias: 3 }
+    ],
+    tarjetas: [
+      { nombre: "Juan Pérez", equipo: "Leones United", amarillas: 2, rojas: 0 },
+      { nombre: "Antonio Mora", equipo: "Pumas FC", amarillas: 1, rojas: 1 },
+      { nombre: "Felipe Castro", equipo: "Águilas FC", amarillas: 3, rojas: 0 }
+    ],
+    resultados: [
+      { partido: "Águilas FC vs Tigres SC", resultado: "2-1", fecha: "2024-06-15" },
+      { partido: "Leones United vs Pumas FC", resultado: "0-3", fecha: "2024-06-15" },
+      { partido: "Águilas FC vs Pumas FC", resultado: "1-1", fecha: "2024-06-16" }
+    ]
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,6 +191,14 @@ const Organizador = () => {
     }
   };
 
+  const verEstadisticas = (torneoId: string) => {
+    setMostrarEstadisticas(torneoId);
+  };
+
+  const cerrarEstadisticas = () => {
+    setMostrarEstadisticas(null);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       {/* Header */}
@@ -209,6 +242,118 @@ const Organizador = () => {
                   Nuevo Torneo
                 </Button>
               </div>
+
+              {mostrarEstadisticas && (
+                <Card>
+                  <CardHeader>
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="flex items-center gap-2">
+                        <BarChart3 className="w-5 h-5" />
+                        Estadísticas del Torneo
+                      </CardTitle>
+                      <Button variant="ghost" onClick={cerrarEstadisticas}>
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <Tabs defaultValue="resultados" className="w-full">
+                      <TabsList className="grid w-full grid-cols-4">
+                        <TabsTrigger value="resultados">Resultados</TabsTrigger>
+                        <TabsTrigger value="goleadores">Goleadores</TabsTrigger>
+                        <TabsTrigger value="asistencias">Asistencias</TabsTrigger>
+                        <TabsTrigger value="tarjetas">Tarjetas</TabsTrigger>
+                      </TabsList>
+
+                      <TabsContent value="resultados">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Partido</TableHead>
+                              <TableHead>Resultado</TableHead>
+                              <TableHead>Fecha</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {estadisticasTorneo.resultados.map((resultado, index) => (
+                              <TableRow key={index}>
+                                <TableCell>{resultado.partido}</TableCell>
+                                <TableCell className="font-mono">{resultado.resultado}</TableCell>
+                                <TableCell>{resultado.fecha}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TabsContent>
+
+                      <TabsContent value="goleadores">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Jugador</TableHead>
+                              <TableHead>Equipo</TableHead>
+                              <TableHead>Goles</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {estadisticasTorneo.goleadores.map((goleador, index) => (
+                              <TableRow key={index}>
+                                <TableCell className="font-medium">{goleador.nombre}</TableCell>
+                                <TableCell>{goleador.equipo}</TableCell>
+                                <TableCell>{goleador.goles}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TabsContent>
+
+                      <TabsContent value="asistencias">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Jugador</TableHead>
+                              <TableHead>Equipo</TableHead>
+                              <TableHead>Asistencias</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {estadisticasTorneo.asistencias.map((asistencia, index) => (
+                              <TableRow key={index}>
+                                <TableCell className="font-medium">{asistencia.nombre}</TableCell>
+                                <TableCell>{asistencia.equipo}</TableCell>
+                                <TableCell>{asistencia.asistencias}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TabsContent>
+
+                      <TabsContent value="tarjetas">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Jugador</TableHead>
+                              <TableHead>Equipo</TableHead>
+                              <TableHead>Amarillas</TableHead>
+                              <TableHead>Rojas</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {estadisticasTorneo.tarjetas.map((tarjeta, index) => (
+                              <TableRow key={index}>
+                                <TableCell className="font-medium">{tarjeta.nombre}</TableCell>
+                                <TableCell>{tarjeta.equipo}</TableCell>
+                                <TableCell>{tarjeta.amarillas}</TableCell>
+                                <TableCell>{tarjeta.rojas}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TabsContent>
+                    </Tabs>
+                  </CardContent>
+                </Card>
+              )}
 
               {torneos.length === 0 ? (
                 <Card>
@@ -258,10 +403,27 @@ const Organizador = () => {
                         </div>
 
                         <div className="flex gap-2 flex-wrap">
-                          <Button variant="outline" size="sm" className="flex items-center gap-1">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex items-center gap-1"
+                            disabled={torneo.estado === "en_curso"}
+                          >
                             <Edit className="w-3 h-3" />
                             Editar Torneo
                           </Button>
+                          
+                          {torneo.estado === "en_curso" && (
+                            <Button 
+                              variant="secondary" 
+                              size="sm" 
+                              className="flex items-center gap-1"
+                              onClick={() => verEstadisticas(torneo.id)}
+                            >
+                              <BarChart3 className="w-3 h-3" />
+                              Ver Estadísticas
+                            </Button>
+                          )}
                           
                           {torneo.estado === "inscripciones_abiertas" && (
                             <Button 
