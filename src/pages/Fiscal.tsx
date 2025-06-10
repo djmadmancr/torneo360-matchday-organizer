@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Upload, Search, Calendar, Clock } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Upload, Search, Calendar, Clock, Camera } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -20,16 +21,36 @@ interface Partido {
   estado: "pendiente" | "en_curso" | "finalizado";
 }
 
-interface Goleador {
+interface Jugador {
   id: string;
   nombre: string;
-  goles: string;
+  numero: number;
+  equipo: "local" | "visitante";
 }
 
-interface Asistencia {
+interface Goleador {
   id: string;
+  jugadorId: string;
   nombre: string;
-  asistencias: string;
+  goles: number;
+}
+
+interface Tarjeta {
+  id: string;
+  jugadorId: string;
+  nombre: string;
+  tipo: "amarilla" | "doble_amarilla" | "roja_directa";
+  minuto: number;
+}
+
+interface Cambio {
+  id: string;
+  jugadorSaleId: string;
+  jugadorEntraId: string;
+  nombreSale: string;
+  nombreEntra: string;
+  minuto: number;
+  equipo: "local" | "visitante";
 }
 
 const Fiscal = () => {
@@ -56,6 +77,16 @@ const Fiscal = () => {
     }
   ]);
 
+  // Jugadores simulados para el partido seleccionado
+  const [jugadores] = useState<Jugador[]>([
+    { id: "j1", nombre: "Carlos Mendez", numero: 1, equipo: "local" },
+    { id: "j2", nombre: "Roberto Silva", numero: 9, equipo: "local" },
+    { id: "j3", nombre: "Luis García", numero: 10, equipo: "local" },
+    { id: "j4", nombre: "Pedro Ruiz", numero: 7, equipo: "visitante" },
+    { id: "j5", nombre: "Marco Torres", numero: 11, equipo: "visitante" },
+    { id: "j6", nombre: "Diego López", numero: 8, equipo: "visitante" },
+  ]);
+
   const [partidoSeleccionado, setPartidoSeleccionado] = useState<string>("");
   const [resultado, setResultado] = useState({
     golesLocal: "",
@@ -64,51 +95,94 @@ const Fiscal = () => {
   });
 
   const [goleadores, setGoleadores] = useState<Goleador[]>([]);
-  const [nuevoGoleador, setNuevoGoleador] = useState({ nombre: "", goles: "" });
+  const [tarjetas, setTarjetas] = useState<Tarjeta[]>([]);
+  const [cambios, setCambios] = useState<Cambio[]>([]);
 
-  const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
-  const [nuevaAsistencia, setNuevaAsistencia] = useState({ nombre: "", asistencias: "" });
+  // Estados para formularios
+  const [nuevoGoleador, setNuevoGoleador] = useState({ jugadorId: "", goles: 1 });
+  const [nuevaTarjeta, setNuevaTarjeta] = useState({ jugadorId: "", tipo: "", minuto: "" });
+  const [nuevoCambio, setNuevoCambio] = useState({ 
+    jugadorSaleId: "", 
+    jugadorEntraId: "", 
+    minuto: "",
+    equipo: "" 
+  });
 
   const buscarTorneo = () => {
     if (!torneoId) {
       toast.error("Por favor ingresa el ID del torneo");
       return;
     }
-
     console.log("Buscando torneo:", torneoId);
     toast.success(`Torneo ${torneoId} encontrado. Mostrando partidos asignados.`);
   };
 
   const agregarGoleador = () => {
-    if (!nuevoGoleador.nombre || !nuevoGoleador.goles) {
-      toast.error("Por favor completa los datos del goleador");
+    if (!nuevoGoleador.jugadorId) {
+      toast.error("Por favor selecciona un jugador");
       return;
     }
+
+    const jugador = jugadores.find(j => j.id === nuevoGoleador.jugadorId);
+    if (!jugador) return;
 
     const goleador: Goleador = {
       id: Math.random().toString(36).substr(2, 9),
-      ...nuevoGoleador
+      jugadorId: nuevoGoleador.jugadorId,
+      nombre: jugador.nombre,
+      goles: nuevoGoleador.goles
     };
 
     setGoleadores([...goleadores, goleador]);
-    setNuevoGoleador({ nombre: "", goles: "" });
+    setNuevoGoleador({ jugadorId: "", goles: 1 });
     toast.success("Goleador agregado");
   };
 
-  const agregarAsistencia = () => {
-    if (!nuevaAsistencia.nombre || !nuevaAsistencia.asistencias) {
-      toast.error("Por favor completa los datos de la asistencia");
+  const agregarTarjeta = () => {
+    if (!nuevaTarjeta.jugadorId || !nuevaTarjeta.tipo || !nuevaTarjeta.minuto) {
+      toast.error("Por favor completa todos los datos de la tarjeta");
       return;
     }
 
-    const asistencia: Asistencia = {
+    const jugador = jugadores.find(j => j.id === nuevaTarjeta.jugadorId);
+    if (!jugador) return;
+
+    const tarjeta: Tarjeta = {
       id: Math.random().toString(36).substr(2, 9),
-      ...nuevaAsistencia
+      jugadorId: nuevaTarjeta.jugadorId,
+      nombre: jugador.nombre,
+      tipo: nuevaTarjeta.tipo as "amarilla" | "doble_amarilla" | "roja_directa",
+      minuto: parseInt(nuevaTarjeta.minuto)
     };
 
-    setAsistencias([...asistencias, asistencia]);
-    setNuevaAsistencia({ nombre: "", asistencias: "" });
-    toast.success("Asistencia agregada");
+    setTarjetas([...tarjetas, tarjeta]);
+    setNuevaTarjeta({ jugadorId: "", tipo: "", minuto: "" });
+    toast.success("Tarjeta registrada");
+  };
+
+  const agregarCambio = () => {
+    if (!nuevoCambio.jugadorSaleId || !nuevoCambio.jugadorEntraId || !nuevoCambio.minuto || !nuevoCambio.equipo) {
+      toast.error("Por favor completa todos los datos del cambio");
+      return;
+    }
+
+    const jugadorSale = jugadores.find(j => j.id === nuevoCambio.jugadorSaleId);
+    const jugadorEntra = jugadores.find(j => j.id === nuevoCambio.jugadorEntraId);
+    if (!jugadorSale || !jugadorEntra) return;
+
+    const cambio: Cambio = {
+      id: Math.random().toString(36).substr(2, 9),
+      jugadorSaleId: nuevoCambio.jugadorSaleId,
+      jugadorEntraId: nuevoCambio.jugadorEntraId,
+      nombreSale: jugadorSale.nombre,
+      nombreEntra: jugadorEntra.nombre,
+      minuto: parseInt(nuevoCambio.minuto),
+      equipo: nuevoCambio.equipo as "local" | "visitante"
+    };
+
+    setCambios([...cambios, cambio]);
+    setNuevoCambio({ jugadorSaleId: "", jugadorEntraId: "", minuto: "", equipo: "" });
+    toast.success("Cambio registrado");
   };
 
   const subirResultados = () => {
@@ -126,7 +200,8 @@ const Fiscal = () => {
       partidoId: partidoSeleccionado,
       marcador: `${resultado.golesLocal} - ${resultado.golesVisitante}`,
       goleadores,
-      asistencias,
+      tarjetas,
+      cambios,
       informeArbitral: resultado.informeArbitral
     };
 
@@ -137,7 +212,8 @@ const Fiscal = () => {
     setPartidoSeleccionado("");
     setResultado({ golesLocal: "", golesVisitante: "", informeArbitral: null });
     setGoleadores([]);
-    setAsistencias([]);
+    setTarjetas([]);
+    setCambios([]);
   };
 
   const handleInformeUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -160,6 +236,22 @@ const Fiscal = () => {
         return <Badge variant="outline">Desconocido</Badge>;
     }
   };
+
+  const getTarjetaBadge = (tipo: string) => {
+    switch (tipo) {
+      case "amarilla":
+        return <Badge className="bg-yellow-500">Amarilla</Badge>;
+      case "doble_amarilla":
+        return <Badge className="bg-orange-500">Doble Amarilla</Badge>;
+      case "roja_directa":
+        return <Badge className="bg-red-500">Roja Directa</Badge>;
+      default:
+        return <Badge variant="outline">Desconocida</Badge>;
+    }
+  };
+
+  const jugadoresLocales = jugadores.filter(j => j.equipo === "local");
+  const jugadoresVisitantes = jugadores.filter(j => j.equipo === "visitante");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50">
@@ -343,22 +435,30 @@ const Fiscal = () => {
 
                   {/* Goleadores */}
                   <div className="space-y-4">
-                    <Label>Goleadores</Label>
+                    <Label>⚽ Goleadores</Label>
                     <div className="grid md:grid-cols-3 gap-4">
-                      <Input
-                        placeholder="Nombre del jugador"
-                        value={nuevoGoleador.nombre}
-                        onChange={(e) => setNuevoGoleador({...nuevoGoleador, nombre: e.target.value})}
-                      />
+                      <Select value={nuevoGoleador.jugadorId} onValueChange={(value) => setNuevoGoleador({...nuevoGoleador, jugadorId: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar jugador" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Ninguno</SelectItem>
+                          {jugadores.map((jugador) => (
+                            <SelectItem key={jugador.id} value={jugador.id}>
+                              {jugador.nombre} #{jugador.numero} ({jugador.equipo === "local" ? "Local" : "Visitante"})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <Input
                         placeholder="Cantidad de goles"
                         type="number"
                         value={nuevoGoleador.goles}
-                        onChange={(e) => setNuevoGoleador({...nuevoGoleador, goles: e.target.value})}
+                        onChange={(e) => setNuevoGoleador({...nuevoGoleador, goles: parseInt(e.target.value) || 1})}
                         min="1"
                       />
                       <Button onClick={agregarGoleador} variant="outline">
-                        Agregar Goleador
+                        Agregar Gol
                       </Button>
                     </div>
                     
@@ -374,33 +474,118 @@ const Fiscal = () => {
                     )}
                   </div>
 
-                  {/* Asistencias */}
+                  {/* Tarjetas */}
                   <div className="space-y-4">
-                    <Label>Asistencias</Label>
-                    <div className="grid md:grid-cols-3 gap-4">
+                    <Label>🟨🟥 Tarjetas</Label>
+                    <div className="grid md:grid-cols-4 gap-4">
+                      <Select value={nuevaTarjeta.jugadorId} onValueChange={(value) => setNuevaTarjeta({...nuevaTarjeta, jugadorId: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar jugador" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Ninguno</SelectItem>
+                          {jugadores.map((jugador) => (
+                            <SelectItem key={jugador.id} value={jugador.id}>
+                              {jugador.nombre} #{jugador.numero} ({jugador.equipo === "local" ? "Local" : "Visitante"})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select value={nuevaTarjeta.tipo} onValueChange={(value) => setNuevaTarjeta({...nuevaTarjeta, tipo: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Tipo de tarjeta" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="amarilla">Amarilla</SelectItem>
+                          <SelectItem value="doble_amarilla">Doble Amarilla</SelectItem>
+                          <SelectItem value="roja_directa">Roja Directa</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <Input
-                        placeholder="Nombre del jugador"
-                        value={nuevaAsistencia.nombre}
-                        onChange={(e) => setNuevaAsistencia({...nuevaAsistencia, nombre: e.target.value})}
-                      />
-                      <Input
-                        placeholder="Cantidad de asistencias"
+                        placeholder="Minuto"
                         type="number"
-                        value={nuevaAsistencia.asistencias}
-                        onChange={(e) => setNuevaAsistencia({...nuevaAsistencia, asistencias: e.target.value})}
+                        value={nuevaTarjeta.minuto}
+                        onChange={(e) => setNuevaTarjeta({...nuevaTarjeta, minuto: e.target.value})}
                         min="1"
+                        max="120"
                       />
-                      <Button onClick={agregarAsistencia} variant="outline">
-                        Agregar Asistencia
+                      <Button onClick={agregarTarjeta} variant="outline">
+                        Agregar Tarjeta
                       </Button>
                     </div>
                     
-                    {asistencias.length > 0 && (
+                    {tarjetas.length > 0 && (
                       <div className="space-y-2">
-                        {asistencias.map((asistencia) => (
-                          <div key={asistencia.id} className="flex justify-between items-center p-2 bg-orange-50 rounded">
-                            <span>{asistencia.nombre}</span>
-                            <Badge>{asistencia.asistencias} asistencia(s)</Badge>
+                        {tarjetas.map((tarjeta) => (
+                          <div key={tarjeta.id} className="flex justify-between items-center p-2 bg-orange-50 rounded">
+                            <span>{tarjeta.nombre} - Min {tarjeta.minuto}</span>
+                            {getTarjetaBadge(tarjeta.tipo)}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Cambios */}
+                  <div className="space-y-4">
+                    <Label>🔄 Cambios de Jugadores</Label>
+                    <div className="grid md:grid-cols-5 gap-4">
+                      <Select value={nuevoCambio.equipo} onValueChange={(value) => setNuevoCambio({...nuevoCambio, equipo: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Equipo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="local">Local</SelectItem>
+                          <SelectItem value="visitante">Visitante</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select value={nuevoCambio.jugadorSaleId} onValueChange={(value) => setNuevoCambio({...nuevoCambio, jugadorSaleId: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sale" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Ninguno</SelectItem>
+                          {(nuevoCambio.equipo === "local" ? jugadoresLocales : jugadoresVisitantes).map((jugador) => (
+                            <SelectItem key={jugador.id} value={jugador.id}>
+                              {jugador.nombre} #{jugador.numero}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select value={nuevoCambio.jugadorEntraId} onValueChange={(value) => setNuevoCambio({...nuevoCambio, jugadorEntraId: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Entra" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Ninguno</SelectItem>
+                          {(nuevoCambio.equipo === "local" ? jugadoresLocales : jugadoresVisitantes).map((jugador) => (
+                            <SelectItem key={jugador.id} value={jugador.id}>
+                              {jugador.nombre} #{jugador.numero}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        placeholder="Minuto"
+                        type="number"
+                        value={nuevoCambio.minuto}
+                        onChange={(e) => setNuevoCambio({...nuevoCambio, minuto: e.target.value})}
+                        min="1"
+                        max="120"
+                      />
+                      <Button onClick={agregarCambio} variant="outline">
+                        Agregar Cambio
+                      </Button>
+                    </div>
+                    
+                    {cambios.length > 0 && (
+                      <div className="space-y-2">
+                        {cambios.map((cambio) => (
+                          <div key={cambio.id} className="flex justify-between items-center p-2 bg-orange-50 rounded">
+                            <span>
+                              Min {cambio.minuto}: Sale {cambio.nombreSale} → Entra {cambio.nombreEntra}
+                            </span>
+                            <Badge variant="outline">{cambio.equipo === "local" ? "Local" : "Visitante"}</Badge>
                           </div>
                         ))}
                       </div>
@@ -409,7 +594,7 @@ const Fiscal = () => {
 
                   {/* Informe Arbitral */}
                   <div className="space-y-2">
-                    <Label htmlFor="informe">Foto del Informe Arbitral</Label>
+                    <Label htmlFor="informe">📸 Foto del Informe Arbitral</Label>
                     <div className="flex items-center gap-4">
                       <Input
                         id="informe"
@@ -424,8 +609,8 @@ const Fiscal = () => {
                         onClick={() => document.getElementById('informe')?.click()}
                         className="flex items-center gap-2"
                       >
-                        <Upload className="w-4 h-4" />
-                        Subir Informe
+                        <Camera className="w-4 h-4" />
+                        Subir Foto
                       </Button>
                       {resultado.informeArbitral && (
                         <Badge variant="secondary">{resultado.informeArbitral.name}</Badge>
