@@ -23,6 +23,9 @@ interface Torneo {
   fechaCierre: string;
   estado: "inscripciones_abiertas" | "inscripciones_cerradas" | "en_curso" | "finalizado";
   equiposInscritos: number;
+  numeroGrupos?: number;
+  idaVueltaGrupos?: boolean;
+  idaVueltaEliminatoria?: boolean;
 }
 
 const Organizador = () => {
@@ -38,6 +41,9 @@ const Organizador = () => {
     maxJugadores: "",
     fechaInicio: "",
     fechaCierre: "",
+    numeroGrupos: "1",
+    idaVueltaGrupos: false,
+    idaVueltaEliminatoria: false,
     puntoPenales: false,
     torneoPublico: true,
     reglamento: "",
@@ -54,7 +60,10 @@ const Organizador = () => {
       fechaInicio: "2024-07-01",
       fechaCierre: "2024-06-25",
       estado: "inscripciones_abiertas",
-      equiposInscritos: 8
+      equiposInscritos: 8,
+      numeroGrupos: 2,
+      idaVueltaGrupos: true,
+      idaVueltaEliminatoria: false
     },
     {
       id: "TRN-DEF67890",
@@ -65,7 +74,10 @@ const Organizador = () => {
       fechaInicio: "2024-06-20",
       fechaCierre: "2024-06-18",
       estado: "en_curso",
-      equiposInscritos: 16
+      equiposInscritos: 16,
+      numeroGrupos: 1,
+      idaVueltaGrupos: false,
+      idaVueltaEliminatoria: false
     }
   ]);
 
@@ -83,11 +95,6 @@ const Organizador = () => {
       { nombre: "Luis García", equipo: "Tigres SC", goles: 6 },
       { nombre: "Pedro Ruiz", equipo: "Leones United", goles: 5 }
     ],
-    asistencias: [
-      { nombre: "Roberto Silva", equipo: "Águilas FC", asistencias: 4 },
-      { nombre: "Marco Torres", equipo: "Pumas FC", asistencias: 3 },
-      { nombre: "Diego López", equipo: "Tigres SC", asistencias: 3 }
-    ],
     tarjetas: [
       { nombre: "Juan Pérez", equipo: "Leones United", amarillas: 2, rojas: 0 },
       { nombre: "Antonio Mora", equipo: "Pumas FC", amarillas: 1, rojas: 1 },
@@ -97,6 +104,12 @@ const Organizador = () => {
       { partido: "Águilas FC vs Tigres SC", resultado: "2-1", fecha: "2024-06-15" },
       { partido: "Leones United vs Pumas FC", resultado: "0-3", fecha: "2024-06-15" },
       { partido: "Águilas FC vs Pumas FC", resultado: "1-1", fecha: "2024-06-16" }
+    ],
+    tablaGrupos: [
+      { posicion: 1, equipo: "Águilas FC", puntos: 10, pj: 4, pg: 3, pe: 1, pp: 0, gf: 8, gc: 3, dif: 5 },
+      { posicion: 2, equipo: "Tigres SC", puntos: 7, pj: 4, pg: 2, pe: 1, pp: 1, gf: 6, gc: 4, dif: 2 },
+      { posicion: 3, equipo: "Pumas FC", puntos: 6, pj: 4, pg: 2, pe: 0, pp: 2, gf: 5, gc: 5, dif: 0 },
+      { posicion: 4, equipo: "Leones United", puntos: 1, pj: 4, pg: 0, pe: 1, pp: 3, gf: 2, gc: 9, dif: -7 }
     ]
   };
 
@@ -117,7 +130,10 @@ const Organizador = () => {
       fechaInicio: formData.fechaInicio,
       fechaCierre: formData.fechaCierre,
       estado: "inscripciones_abiertas",
-      equiposInscritos: 0
+      equiposInscritos: 0,
+      numeroGrupos: parseInt(formData.numeroGrupos),
+      idaVueltaGrupos: formData.idaVueltaGrupos,
+      idaVueltaEliminatoria: formData.idaVueltaEliminatoria
     };
 
     setTorneos([nuevoTorneo, ...torneos]);
@@ -136,6 +152,9 @@ const Organizador = () => {
       maxJugadores: "",
       fechaInicio: "",
       fechaCierre: "",
+      numeroGrupos: "1",
+      idaVueltaGrupos: false,
+      idaVueltaEliminatoria: false,
       puntoPenales: false,
       torneoPublico: true,
       reglamento: "",
@@ -145,6 +164,20 @@ const Organizador = () => {
   };
 
   const cerrarInscripciones = (torneoId: string) => {
+    const torneo = torneos.find(t => t.id === torneoId);
+    if (!torneo) return;
+
+    // Validation: Check if tournament configuration is complete
+    if (!torneo.numeroGrupos || torneo.numeroGrupos < 1) {
+      toast.error("Debe configurar el número de grupos antes de cerrar inscripciones");
+      return;
+    }
+
+    if (torneo.formato === "completo" && (torneo.idaVueltaGrupos === undefined || torneo.idaVueltaEliminatoria === undefined)) {
+      toast.error("Debe configurar las opciones de ida y vuelta antes de cerrar inscripciones");
+      return;
+    }
+
     setTorneos(torneos.map(t => 
       t.id === torneoId 
         ? { ...t, estado: "inscripciones_cerradas" as const }
@@ -257,13 +290,50 @@ const Organizador = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <Tabs defaultValue="resultados" className="w-full">
+                    <Tabs defaultValue="tabla" className="w-full">
                       <TabsList className="grid w-full grid-cols-4">
+                        <TabsTrigger value="tabla">Tabla General</TabsTrigger>
                         <TabsTrigger value="resultados">Resultados</TabsTrigger>
                         <TabsTrigger value="goleadores">Goleadores</TabsTrigger>
-                        <TabsTrigger value="asistencias">Asistencias</TabsTrigger>
                         <TabsTrigger value="tarjetas">Tarjetas</TabsTrigger>
                       </TabsList>
+
+                      <TabsContent value="tabla">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Pos</TableHead>
+                              <TableHead>Equipo</TableHead>
+                              <TableHead>Pts</TableHead>
+                              <TableHead>PJ</TableHead>
+                              <TableHead>PG</TableHead>
+                              <TableHead>PE</TableHead>
+                              <TableHead>PP</TableHead>
+                              <TableHead>GF</TableHead>
+                              <TableHead>GC</TableHead>
+                              <TableHead>Dif</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {estadisticasTorneo.tablaGrupos.map((equipo) => (
+                              <TableRow key={equipo.posicion}>
+                                <TableCell className="font-medium">{equipo.posicion}</TableCell>
+                                <TableCell className="font-medium">{equipo.equipo}</TableCell>
+                                <TableCell className="font-bold">{equipo.puntos}</TableCell>
+                                <TableCell>{equipo.pj}</TableCell>
+                                <TableCell>{equipo.pg}</TableCell>
+                                <TableCell>{equipo.pe}</TableCell>
+                                <TableCell>{equipo.pp}</TableCell>
+                                <TableCell>{equipo.gf}</TableCell>
+                                <TableCell>{equipo.gc}</TableCell>
+                                <TableCell className={equipo.dif >= 0 ? "text-green-600" : "text-red-600"}>
+                                  {equipo.dif > 0 ? `+${equipo.dif}` : equipo.dif}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TabsContent>
 
                       <TabsContent value="resultados">
                         <Table>
@@ -301,27 +371,6 @@ const Organizador = () => {
                                 <TableCell className="font-medium">{goleador.nombre}</TableCell>
                                 <TableCell>{goleador.equipo}</TableCell>
                                 <TableCell>{goleador.goles}</TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </TabsContent>
-
-                      <TabsContent value="asistencias">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Jugador</TableHead>
-                              <TableHead>Equipo</TableHead>
-                              <TableHead>Asistencias</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {estadisticasTorneo.asistencias.map((asistencia, index) => (
-                              <TableRow key={index}>
-                                <TableCell className="font-medium">{asistencia.nombre}</TableCell>
-                                <TableCell>{asistencia.equipo}</TableCell>
-                                <TableCell>{asistencia.asistencias}</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
@@ -400,6 +449,11 @@ const Organizador = () => {
                           <div>
                             <span className="font-medium">Equipos:</span> {torneo.equiposInscritos}
                           </div>
+                          {torneo.numeroGrupos && (
+                            <div>
+                              <span className="font-medium">Grupos:</span> {torneo.numeroGrupos}
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex gap-2 flex-wrap">
@@ -538,6 +592,60 @@ const Organizador = () => {
                             <SelectItem value="mixto">Mixto</SelectItem>
                           </SelectContent>
                         </Select>
+                      </div>
+                    </div>
+
+                    {/* Configuración de Grupos */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold">Configuración de Grupos</h3>
+                      <div className="grid md:grid-cols-3 gap-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="numeroGrupos">Número de Grupos *</Label>
+                          <Select 
+                            value={formData.numeroGrupos}
+                            onValueChange={(value) => setFormData({...formData, numeroGrupos: value})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona grupos" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">1 Grupo (Tabla General)</SelectItem>
+                              <SelectItem value="2">2 Grupos</SelectItem>
+                              <SelectItem value="3">3 Grupos</SelectItem>
+                              <SelectItem value="4">4 Grupos</SelectItem>
+                              <SelectItem value="6">6 Grupos</SelectItem>
+                              <SelectItem value="8">8 Grupos</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {(formData.formato === "completo" || formData.formato === "rapido") && (
+                          <>
+                            <div className="flex items-center justify-between p-4 border rounded-lg">
+                              <div className="space-y-1">
+                                <Label htmlFor="idaVueltaGrupos">Ida y vuelta en grupos</Label>
+                                <p className="text-sm text-muted-foreground">Cada equipo juega 2 veces contra cada rival</p>
+                              </div>
+                              <Switch
+                                id="idaVueltaGrupos"
+                                checked={formData.idaVueltaGrupos}
+                                onCheckedChange={(checked) => setFormData({...formData, idaVueltaGrupos: checked})}
+                              />
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 border rounded-lg">
+                              <div className="space-y-1">
+                                <Label htmlFor="idaVueltaEliminatoria">Ida y vuelta en eliminatoria</Label>
+                                <p className="text-sm text-muted-foreground">Partidos de ida y vuelta en playoffs</p>
+                              </div>
+                              <Switch
+                                id="idaVueltaEliminatoria"
+                                checked={formData.idaVueltaEliminatoria}
+                                onCheckedChange={(checked) => setFormData({...formData, idaVueltaEliminatoria: checked})}
+                              />
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
 
