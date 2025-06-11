@@ -4,17 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Upload, Plus, Edit, X, BarChart3, Calendar } from "lucide-react";
+import { ArrowLeft, Plus, Edit, X, BarChart3, Calendar, User, Bell, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import TorneoFormModal from "@/components/TorneoFormModal";
 
 interface Torneo {
   id: string;
@@ -26,61 +23,43 @@ interface Torneo {
   estado: "inscripciones_abiertas" | "inscripciones_cerradas" | "en_curso" | "finalizado";
   equiposInscritos: number;
   numeroGrupos?: number;
-  idaVueltaConfig?: {
+  idaVuelta?: {
     grupos: boolean;
     eliminatoria: boolean;
   };
-  puntoPenales?: boolean;
+  puntajeExtra?: string;
+  diasSemana?: string[];
+  partidosPorSemana?: string;
+}
+
+interface Partido {
+  id: string;
+  equipoLocal: string;
+  equipoVisitante: string;
+  fecha: string;
+  hora: string;
+  cancha: string;
+  logoLocal: string;
+  logoVisitante: string;
 }
 
 const Organizador = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    nombreTorneo: "",
-    tipoFutbol: "",
-    formato: "",
-    tipoTorneo: "",
-    categoria: "",
-    edadMinima: "",
-    edadMaxima: "",
-    maxJugadores: "",
-    fechaCierre: "",
-    numeroGrupos: "1",
-    idaVueltaConfig: {
-      grupos: false,
-      eliminatoria: false
-    },
-    puntoPenales: false,
-    torneoPublico: true,
-    reglamento: "",
-    reglamentoPDF: null as File | null
-  });
-
   const [torneos, setTorneos] = useState<Torneo[]>([
     {
       id: "TRN-ABC12345",
       nombre: "Copa Primavera 2024",
       tipoFutbol: "futbol5",
       formato: "completo",
-      categoria: "masculino",
+      categoria: "U20",
       fechaCierre: "2024-06-25",
-      estado: "inscripciones_abiertas",
+      estado: "en_curso",
       equiposInscritos: 8,
       numeroGrupos: 2,
-      idaVueltaConfig: { grupos: true, eliminatoria: false },
-      puntoPenales: true
-    },
-    {
-      id: "TRN-DEF67890",
-      nombre: "Torneo Relampago",
-      tipoFutbol: "futbol7",
-      formato: "rapido",
-      categoria: "mixto",
-      fechaCierre: "2024-06-18",
-      estado: "en_curso",
-      equiposInscritos: 16,
-      numeroGrupos: 1,
-      idaVueltaConfig: { grupos: false, eliminatoria: false }
+      idaVuelta: { grupos: true, eliminatoria: false },
+      puntajeExtra: "penales",
+      diasSemana: ["Martes", "Jueves", "Sábado"],
+      partidosPorSemana: "2"
     }
   ]);
 
@@ -90,7 +69,20 @@ const Organizador = () => {
 
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [mostrarEstadisticas, setMostrarEstadisticas] = useState<string | null>(null);
+  const [mostrarFixtures, setMostrarFixtures] = useState<string | null>(null);
   const [torneoEstadisticas, setTorneoEstadisticas] = useState<Torneo | null>(null);
+  const [fixturesGenerados, setFixturesGenerados] = useState<Partido[]>([]);
+  
+  // Perfil del organizador
+  const [perfilOrganizador, setPerfilOrganizador] = useState({
+    nombre: "",
+    encargados: "",
+    logo: null as File | null,
+    notificaciones: [
+      { id: 1, tipo: "inscripcion", mensaje: "Águilas FC solicita inscribirse al torneo Copa Primavera 2024", fecha: "2024-06-15" },
+      { id: 2, tipo: "reprogramacion", mensaje: "Tigres SC solicita reprogramar partido vs Leones United", fecha: "2024-06-14" }
+    ]
+  });
 
   const estadisticasTorneo = {
     goleadores: [
@@ -104,23 +96,16 @@ const Organizador = () => {
       { partido: "Águilas FC vs Pumas FC", resultado: "1-1", fecha: "2024-06-16", logoLocal: "🦅", logoVisitante: "🐆" }
     ],
     tablaGrupos: [
-      { posicion: 1, equipo: "Águilas FC", puntos: 10, pj: 4, pg: 3, pe: 1, pp: 0, gf: 8, gc: 3, dif: 5, logo: "🦅" },
-      { posicion: 2, equipo: "Tigres SC", puntos: 7, pj: 4, pg: 2, pe: 1, pp: 1, gf: 6, gc: 4, dif: 2, logo: "🐅" },
-      { posicion: 3, equipo: "Pumas FC", puntos: 6, pj: 4, pg: 2, pe: 0, pp: 2, gf: 5, gc: 5, dif: 0, logo: "🐆" },
-      { posicion: 4, equipo: "Leones United", puntos: 1, pj: 4, pg: 0, pe: 1, pp: 3, gf: 2, gc: 9, dif: -7, logo: "🦁" }
+      { posicion: 1, equipo: "Águilas FC", puntos: 10, pj: 4, pg: 3, pe: 1, pp: 0, gf: 8, gc: 3, dif: 5, logo: "🦅", puntosExtra: 2 },
+      { posicion: 2, equipo: "Tigres SC", puntos: 7, pj: 4, pg: 2, pe: 1, pp: 1, gf: 6, gc: 4, dif: 2, logo: "🐅", puntosExtra: 1 },
+      { posicion: 3, equipo: "Pumas FC", puntos: 6, pj: 4, pg: 2, pe: 0, pp: 2, gf: 5, gc: 5, dif: 0, logo: "🐆", puntosExtra: 0 },
+      { posicion: 4, equipo: "Leones United", puntos: 1, pj: 4, pg: 0, pe: 1, pp: 3, gf: 2, gc: 9, dif: -7, logo: "🦁", puntosExtra: 0 }
     ]
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.nombreTorneo || !formData.tipoFutbol || !formData.formato || !formData.categoria) {
-      toast.error("Por favor completa los campos obligatorios");
-      return;
-    }
-
+  const handleSubmit = (formData: any) => {
     const nuevoTorneo: Torneo = {
-      id: torneoId,
+      id: formData.torneoId,
       nombre: formData.nombreTorneo,
       tipoFutbol: formData.tipoFutbol,
       formato: formData.formato,
@@ -129,32 +114,15 @@ const Organizador = () => {
       estado: "inscripciones_abiertas",
       equiposInscritos: 0,
       numeroGrupos: parseInt(formData.numeroGrupos),
-      idaVueltaConfig: formData.idaVueltaConfig,
-      puntoPenales: formData.puntoPenales
+      idaVuelta: formData.idaVuelta,
+      puntajeExtra: formData.puntajeExtra,
+      diasSemana: formData.diasSemana,
+      partidosPorSemana: formData.partidosPorSemana
     };
 
     setTorneos([nuevoTorneo, ...torneos]);
-    console.log("Datos del torneo:", { ...formData, torneoId });
-    toast.success("¡Torneo creado exitosamente! ID: " + torneoId);
-    
-    setFormData({
-      nombreTorneo: "",
-      tipoFutbol: "",
-      formato: "",
-      tipoTorneo: "",
-      categoria: "",
-      edadMinima: "",
-      edadMaxima: "",
-      maxJugadores: "",
-      fechaCierre: "",
-      numeroGrupos: "1",
-      idaVueltaConfig: { grupos: false, eliminatoria: false },
-      puntoPenales: false,
-      torneoPublico: true,
-      reglamento: "",
-      reglamentoPDF: null
-    });
-    setMostrarFormulario(false);
+    console.log("Datos del torneo:", formData);
+    toast.success("¡Torneo creado exitosamente! ID: " + formData.torneoId);
   };
 
   const cerrarInscripciones = (torneoId: string) => {
@@ -166,8 +134,8 @@ const Organizador = () => {
       return;
     }
 
-    if (torneo.formato === "completo" && (!torneo.idaVueltaConfig)) {
-      toast.error("Debe configurar las opciones de ida y vuelta antes de cerrar inscripciones");
+    if (!torneo.diasSemana || torneo.diasSemana.length === 0) {
+      toast.error("Debe configurar los días de la semana para los partidos");
       return;
     }
 
@@ -177,19 +145,6 @@ const Organizador = () => {
         : t
     ));
     toast.success("Inscripciones cerradas. ¡Generando fixtures y iniciando torneo!");
-  };
-
-  const getFormatoDescripcion = (formato: string) => {
-    switch (formato) {
-      case "completo":
-        return "Fase de grupos seguida de eliminatorias directas";
-      case "eliminatorio":
-        return "Eliminación directa desde el inicio";
-      case "rapido":
-        return "Partidos de ida y vuelta, formato acelerado";
-      default:
-        return "";
-    }
   };
 
   const getEstadoBadge = (estado: string) => {
@@ -207,16 +162,6 @@ const Organizador = () => {
     }
   };
 
-  const handleReglamentoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.type === 'application/pdf') {
-      setFormData({ ...formData, reglamentoPDF: file });
-      toast.success("Reglamento PDF cargado");
-    } else {
-      toast.error("Por favor selecciona un archivo PDF válido");
-    }
-  };
-
   const verEstadisticas = (torneoId: string) => {
     const torneo = torneos.find(t => t.id === torneoId);
     if (torneo) {
@@ -225,9 +170,52 @@ const Organizador = () => {
     }
   };
 
+  const verFixtures = (torneoId: string) => {
+    // Generar fixtures aleatorios
+    const equiposEjemplo = ["Águilas FC", "Tigres SC", "Leones United", "Pumas FC"];
+    const fixtures: Partido[] = [];
+    
+    for (let i = 0; i < equiposEjemplo.length; i++) {
+      for (let j = i + 1; j < equiposEjemplo.length; j++) {
+        fixtures.push({
+          id: `P${i}${j}`,
+          equipoLocal: equiposEjemplo[i],
+          equipoVisitante: equiposEjemplo[j],
+          fecha: `2024-06-${15 + fixtures.length}`,
+          hora: `${15 + (fixtures.length % 3)}:00`,
+          cancha: `Cancha ${(fixtures.length % 3) + 1}`,
+          logoLocal: ["🦅", "🐅", "🦁", "🐆"][i],
+          logoVisitante: ["🦅", "🐅", "🦁", "🐆"][j]
+        });
+      }
+    }
+    
+    setFixturesGenerados(fixtures);
+    setMostrarFixtures(torneoId);
+    toast.success("Fixtures generados y sorteo realizado!");
+  };
+
   const cerrarEstadisticas = () => {
     setMostrarEstadisticas(null);
     setTorneoEstadisticas(null);
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPerfilOrganizador({ ...perfilOrganizador, logo: file });
+      toast.success("Logo cargado exitosamente");
+    }
+  };
+
+  const getPuntajeExtraLabel = (puntajeExtra?: string) => {
+    switch (puntajeExtra) {
+      case "NA": return "N/A";
+      case "penales": return "Penales";
+      case "shootouts": return "Rondas de Shoot Outs";
+      case "otros": return "Otros";
+      default: return "N/A";
+    }
   };
 
   return (
@@ -253,6 +241,85 @@ const Organizador = () => {
 
       <div className="container mx-auto px-4 py-4 md:py-8">
         <div className="max-w-6xl mx-auto space-y-6">
+          
+          {/* Perfil del Organizador */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="w-5 h-5" />
+                Perfil del Organizador
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label>Nombre del Organizador</Label>
+                  <Input
+                    value={perfilOrganizador.nombre}
+                    onChange={(e) => setPerfilOrganizador({...perfilOrganizador, nombre: e.target.value})}
+                    placeholder="Juan Pérez"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Encargados</Label>
+                  <Input
+                    value={perfilOrganizador.encargados}
+                    onChange={(e) => setPerfilOrganizador({...perfilOrganizador, encargados: e.target.value})}
+                    placeholder="María García, Carlos López"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Logo</Label>
+                  <div className="flex items-center gap-4">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                      id="logoOrganizador"
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => document.getElementById('logoOrganizador')?.click()}
+                      className="flex items-center gap-2"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Subir Logo
+                    </Button>
+                    {perfilOrganizador.logo && (
+                      <Badge variant="secondary">{perfilOrganizador.logo.name}</Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Notificaciones */}
+              {perfilOrganizador.notificaciones.length > 0 && (
+                <div className="mt-6 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Bell className="w-5 h-5" />
+                    <h3 className="font-semibold">Notificaciones Pendientes</h3>
+                    <Badge variant="secondary">{perfilOrganizador.notificaciones.length}</Badge>
+                  </div>
+                  <div className="space-y-2">
+                    {perfilOrganizador.notificaciones.map((notif) => (
+                      <div key={notif.id} className="flex items-center justify-between p-3 border rounded-lg bg-yellow-50">
+                        <div>
+                          <p className="text-sm font-medium">{notif.mensaje}</p>
+                          <p className="text-xs text-muted-foreground">{notif.fecha}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline">Aprobar</Button>
+                          <Button size="sm" variant="destructive">Rechazar</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <h2 className="text-xl md:text-2xl font-bold">Mis Torneos</h2>
             <Button 
@@ -299,6 +366,13 @@ const Organizador = () => {
                       {torneo.numeroGrupos && (
                         <div><span className="font-medium">Grupos:</span> {torneo.numeroGrupos}</div>
                       )}
+                      <div><span className="font-medium">Puntaje extra:</span> {getPuntajeExtraLabel(torneo.puntajeExtra)}</div>
+                      {torneo.diasSemana && (
+                        <div><span className="font-medium">Días:</span> {torneo.diasSemana.join(", ")}</div>
+                      )}
+                      {torneo.partidosPorSemana && (
+                        <div><span className="font-medium">Partidos/semana:</span> {torneo.partidosPorSemana}</div>
+                      )}
                     </div>
 
                     <div className="flex gap-2 flex-wrap">
@@ -306,7 +380,7 @@ const Organizador = () => {
                         variant="outline" 
                         size="sm" 
                         className="flex items-center gap-1"
-                        disabled={torneo.estado === "en_curso"}
+                        disabled={torneo.estado === "en_curso" || torneo.estado === "finalizado"}
                       >
                         <Edit className="w-3 h-3" />
                         Editar Torneo
@@ -327,6 +401,7 @@ const Organizador = () => {
                             variant="outline" 
                             size="sm" 
                             className="flex items-center gap-1"
+                            onClick={() => verFixtures(torneo.id)}
                           >
                             <Calendar className="w-3 h-3" />
                             Fixtures
@@ -351,293 +426,18 @@ const Organizador = () => {
               ))}
             </div>
           )}
-
-          {mostrarFormulario && (
-            <Card>
-              <CardHeader>
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <CardTitle className="text-xl md:text-2xl flex items-center gap-2">
-                    🏆 Crear Nuevo Torneo
-                  </CardTitle>
-                  <Button 
-                    variant="ghost" 
-                    onClick={() => setMostrarFormulario(false)}
-                    className="flex items-center gap-2"
-                  >
-                    <X className="w-4 h-4" />
-                    Cancelar
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="nombreTorneo">Nombre del Torneo *</Label>
-                      <Input
-                        id="nombreTorneo"
-                        value={formData.nombreTorneo}
-                        onChange={(e) => setFormData({...formData, nombreTorneo: e.target.value})}
-                        placeholder="Ej: Copa Primavera 2024"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="torneoId">ID del Torneo</Label>
-                      <Input
-                        id="torneoId"
-                        value={torneoId}
-                        disabled
-                        className="bg-gray-50"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="tipoFutbol">Tipo de Fútbol *</Label>
-                      <Select onValueChange={(value) => setFormData({...formData, tipoFutbol: value})}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona el tipo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="futbol5">Fútbol 5</SelectItem>
-                          <SelectItem value="futbol7">Fútbol 7</SelectItem>
-                          <SelectItem value="futbol9">Fútbol 9</SelectItem>
-                          <SelectItem value="futbol11">Fútbol 11</SelectItem>
-                          <SelectItem value="sala">Fútbol Sala</SelectItem>
-                          <SelectItem value="playa">Fútbol Playa</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="formato">Formato *</Label>
-                      <Select onValueChange={(value) => setFormData({...formData, formato: value})}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona el formato" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="completo">Completo</SelectItem>
-                          <SelectItem value="eliminatorio">Eliminatorio</SelectItem>
-                          <SelectItem value="rapido">Rápido</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      {formData.formato && (
-                        <p className="text-sm text-muted-foreground">
-                          {getFormatoDescripcion(formData.formato)}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="categoria">Categoría *</Label>
-                      <Select onValueChange={(value) => setFormData({...formData, categoria: value})}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona la categoría" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="masculino">Masculino</SelectItem>
-                          <SelectItem value="femenino">Femenino</SelectItem>
-                          <SelectItem value="mixto">Mixto</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Configuración de Grupos</h3>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="numeroGrupos">Número de Grupos *</Label>
-                        <Select 
-                          value={formData.numeroGrupos}
-                          onValueChange={(value) => setFormData({...formData, numeroGrupos: value})}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona grupos" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="1">1 Grupo (Tabla General)</SelectItem>
-                            <SelectItem value="2">2 Grupos</SelectItem>
-                            <SelectItem value="3">3 Grupos</SelectItem>
-                            <SelectItem value="4">4 Grupos</SelectItem>
-                            <SelectItem value="6">6 Grupos</SelectItem>
-                            <SelectItem value="8">8 Grupos</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {(formData.formato === "completo" || formData.formato === "rapido") && (
-                        <div className="space-y-4">
-                          <Label>Ida y Vuelta</Label>
-                          <div className="space-y-3">
-                            <div className="flex items-center space-x-2">
-                              <Checkbox
-                                id="idaVueltaGrupos"
-                                checked={formData.idaVueltaConfig.grupos}
-                                onCheckedChange={(checked) => setFormData({
-                                  ...formData, 
-                                  idaVueltaConfig: {...formData.idaVueltaConfig, grupos: !!checked}
-                                })}
-                              />
-                              <Label htmlFor="idaVueltaGrupos" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                Grupos - Cada equipo juega 2 veces contra cada rival
-                              </Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Checkbox
-                                id="idaVueltaEliminatoria"
-                                checked={formData.idaVueltaConfig.eliminatoria}
-                                onCheckedChange={(checked) => setFormData({
-                                  ...formData, 
-                                  idaVueltaConfig: {...formData.idaVueltaConfig, eliminatoria: !!checked}
-                                })}
-                              />
-                              <Label htmlFor="idaVueltaEliminatoria" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                Eliminatoria - Partidos de ida y vuelta en playoffs
-                              </Label>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="fechaCierre">Fecha límite de inscripciones *</Label>
-                    <Input
-                      id="fechaCierre"
-                      type="date"
-                      value={formData.fechaCierre}
-                      onChange={(e) => setFormData({...formData, fechaCierre: e.target.value})}
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="edadMinima">Edad Mínima</Label>
-                      <Input
-                        id="edadMinima"
-                        type="number"
-                        value={formData.edadMinima}
-                        onChange={(e) => setFormData({...formData, edadMinima: e.target.value})}
-                        placeholder="16"
-                        min="5"
-                        max="100"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edadMaxima">Edad Máxima</Label>
-                      <Input
-                        id="edadMaxima"
-                        type="number"
-                        value={formData.edadMaxima}
-                        onChange={(e) => setFormData({...formData, edadMaxima: e.target.value})}
-                        placeholder="35"
-                        min="5"
-                        max="100"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="maxJugadores">Máx. Jugadores por Equipo</Label>
-                      <Input
-                        id="maxJugadores"
-                        type="number"
-                        value={formData.maxJugadores}
-                        onChange={(e) => setFormData({...formData, maxJugadores: e.target.value})}
-                        placeholder="15"
-                        min="7"
-                        max="30"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="space-y-1">
-                        <Label htmlFor="puntoPenales">Punto adicional por penales</Label>
-                        <p className="text-sm text-muted-foreground">Solo aplica en fase de grupos</p>
-                      </div>
-                      <Switch
-                        id="puntoPenales"
-                        checked={formData.puntoPenales}
-                        onCheckedChange={(checked) => setFormData({...formData, puntoPenales: checked})}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="space-y-1">
-                        <Label htmlFor="torneoPublico">Torneo público</Label>
-                        <p className="text-sm text-muted-foreground">Mostrar en la lista pública de torneos</p>
-                      </div>
-                      <Switch
-                        id="torneoPublico"
-                        checked={formData.torneoPublico}
-                        onCheckedChange={(checked) => setFormData({...formData, torneoPublico: checked})}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="reglamento">Reglamento General del Torneo</Label>
-                      <Textarea
-                        id="reglamento"
-                        value={formData.reglamento}
-                        onChange={(e) => setFormData({...formData, reglamento: e.target.value})}
-                        placeholder="Describe las reglas generales del torneo, horarios, sanciones, etc."
-                        rows={6}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="reglamentoPDF">Reglamento PDF (Opcional)</Label>
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                        <Input
-                          id="reglamentoPDF"
-                          type="file"
-                          accept=".pdf"
-                          onChange={handleReglamentoUpload}
-                          className="hidden"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => document.getElementById('reglamentoPDF')?.click()}
-                          className="flex items-center gap-2"
-                        >
-                          <Upload className="w-4 h-4" />
-                          Subir PDF
-                        </Button>
-                        {formData.reglamentoPDF && (
-                          <Badge variant="secondary">{formData.reglamentoPDF.name}</Badge>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row gap-4 pt-6">
-                    <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700">
-                      🏆 Crear Torneo
-                    </Button>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => setMostrarFormulario(false)}
-                      className="flex-1"
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
 
+      {/* Modal del formulario de torneo */}
+      <TorneoFormModal
+        open={mostrarFormulario}
+        onClose={() => setMostrarFormulario(false)}
+        onSubmit={handleSubmit}
+        torneoId={torneoId}
+      />
+
+      {/* Modal de estadísticas */}
       <Dialog open={!!mostrarEstadisticas} onOpenChange={() => cerrarEstadisticas()}>
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -656,11 +456,11 @@ const Organizador = () => {
                 <div><span className="font-medium">Grupos:</span> {torneoEstadisticas.numeroGrupos || 1}</div>
                 <div>
                   <span className="font-medium">Ida y vuelta:</span> 
-                  {torneoEstadisticas.idaVueltaConfig?.grupos && " Grupos"}
-                  {torneoEstadisticas.idaVueltaConfig?.eliminatoria && " Eliminatoria"}
-                  {!torneoEstadisticas.idaVueltaConfig?.grupos && !torneoEstadisticas.idaVueltaConfig?.eliminatoria && " No"}
+                  {torneoEstadisticas.idaVuelta?.grupos && " Grupos"}
+                  {torneoEstadisticas.idaVuelta?.eliminatoria && " Eliminatoria"}
+                  {!torneoEstadisticas.idaVuelta?.grupos && !torneoEstadisticas.idaVuelta?.eliminatoria && " No"}
                 </div>
-                <div><span className="font-medium">Penales:</span> {torneoEstadisticas.puntoPenales ? "Punto extra" : "No"}</div>
+                <div><span className="font-medium">Puntaje extra:</span> {getPuntajeExtraLabel(torneoEstadisticas.puntajeExtra)}</div>
               </div>
 
               <Tabs defaultValue="tabla" className="w-full">
@@ -685,6 +485,7 @@ const Organizador = () => {
                           <TableHead>GF</TableHead>
                           <TableHead>GC</TableHead>
                           <TableHead>Dif</TableHead>
+                          {torneoEstadisticas.puntajeExtra !== "NA" && <TableHead>P+</TableHead>}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -707,6 +508,7 @@ const Organizador = () => {
                             <TableCell className={equipo.dif >= 0 ? "text-green-600" : "text-red-600"}>
                               {equipo.dif > 0 ? `+${equipo.dif}` : equipo.dif}
                             </TableCell>
+                            {torneoEstadisticas.puntajeExtra !== "NA" && <TableCell>{equipo.puntosExtra}</TableCell>}
                           </TableRow>
                         ))}
                       </TableBody>
@@ -774,6 +576,62 @@ const Organizador = () => {
               </Tabs>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de fixtures */}
+      <Dialog open={!!mostrarFixtures} onOpenChange={() => setMostrarFixtures(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              Fixtures del Torneo
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <p className="font-medium">Sorteo realizado y fechas programadas</p>
+              <p className="text-sm text-muted-foreground">Los equipos pueden solicitar reprogramaciones antes del partido</p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Partido</TableHead>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Hora</TableHead>
+                    <TableHead>Cancha</TableHead>
+                    <TableHead>Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {fixturesGenerados.map((partido) => (
+                    <TableRow key={partido.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span>{partido.logoLocal}</span>
+                          <span className="font-medium">
+                            {partido.equipoLocal} vs {partido.equipoVisitante}
+                          </span>
+                          <span>{partido.logoVisitante}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{partido.fecha}</TableCell>
+                      <TableCell>{partido.hora}</TableCell>
+                      <TableCell>{partido.cancha}</TableCell>
+                      <TableCell>
+                        <Button variant="outline" size="sm">
+                          Editar Fecha
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

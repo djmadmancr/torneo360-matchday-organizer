@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Search, Calendar, Clock, Camera } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface Partido {
   id: string;
@@ -87,6 +87,7 @@ const Fiscal = () => {
   ]);
 
   const [partidoSeleccionado, setPartidoSeleccionado] = useState<string>("");
+  const [mostrarFormularioResultados, setMostrarFormularioResultados] = useState(false);
   const [resultado, setResultado] = useState({
     golesLocal: "",
     golesVisitante: "",
@@ -113,6 +114,11 @@ const Fiscal = () => {
     }
     console.log("Buscando torneo:", torneoId);
     toast.success(`Torneo ${torneoId} encontrado. Mostrando partidos asignados.`);
+  };
+
+  const seleccionarPartido = (partidoId: string) => {
+    setPartidoSeleccionado(partidoId);
+    setMostrarFormularioResultados(true);
   };
 
   const agregarGoleador = () => {
@@ -206,11 +212,13 @@ const Fiscal = () => {
     console.log("Subiendo resultados:", resultadoCompleto);
     toast.success("¡Resultados subidos exitosamente!");
 
+    // Limpiar formulario
     setPartidoSeleccionado("");
     setResultado({ golesLocal: "", golesVisitante: "", informeArbitral: null });
     setGoleadores([]);
     setTarjetas([]);
     setCambios([]);
+    setMostrarFormularioResultados(false);
   };
 
   const handleInformeUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -249,6 +257,7 @@ const Fiscal = () => {
 
   const jugadoresLocales = jugadores.filter(j => j.equipo === "local");
   const jugadoresVisitantes = jugadores.filter(j => j.equipo === "visitante");
+  const partidoActual = partidos.find(p => p.id === partidoSeleccionado);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50">
@@ -273,6 +282,8 @@ const Fiscal = () => {
 
       <div className="container mx-auto px-4 py-4 md:py-8">
         <div className="max-w-6xl mx-auto space-y-6">
+          
+          {/* Buscar Torneo */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -312,10 +323,11 @@ const Fiscal = () => {
             </CardContent>
           </Card>
 
+          {/* Seleccionar Partido */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                📅 Seleccionar Partido y Registrar Resultados
+                📅 Seleccionar Partido
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -353,232 +365,264 @@ const Fiscal = () => {
 
                       <Button 
                         size="sm" 
-                        variant="outline"
-                        onClick={() => setPartidoSeleccionado(partido.id)}
-                        className={partidoSeleccionado === partido.id ? "bg-orange-100 border-orange-500" : ""}
+                        onClick={() => seleccionarPartido(partido.id)}
+                        className="bg-orange-600 hover:bg-orange-700"
                       >
-                        {partidoSeleccionado === partido.id ? "Seleccionado" : "Seleccionar"}
+                        Registrar Resultados
                       </Button>
                     </div>
                   ))}
-                </div>
-              )}
-
-              {partidoSeleccionado && (
-                <div className="space-y-6 border-t pt-6">
-                  <h3 className="text-lg font-semibold">📊 Resultados del Partido</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="golesLocal">Goles Equipo Local</Label>
-                      <Input
-                        id="golesLocal"
-                        type="number"
-                        value={resultado.golesLocal}
-                        onChange={(e) => setResultado({...resultado, golesLocal: e.target.value})}
-                        placeholder="0"
-                        min="0"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="golesVisitante">Goles Equipo Visitante</Label>
-                      <Input
-                        id="golesVisitante"
-                        type="number"
-                        value={resultado.golesVisitante}
-                        onChange={(e) => setResultado({...resultado, golesVisitante: e.target.value})}
-                        placeholder="0"
-                        min="0"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <Label>⚽ Goleadores</Label>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <Select value={nuevoGoleador.jugadorId} onValueChange={(value) => setNuevoGoleador({...nuevoGoleador, jugadorId: value})}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar jugador" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {jugadores.map((jugador) => (
-                            <SelectItem key={jugador.id} value={jugador.id}>
-                              {jugador.nombre} #{jugador.numero} ({jugador.equipo === "local" ? "Local" : "Visitante"})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        placeholder="Cantidad de goles"
-                        type="number"
-                        value={nuevoGoleador.goles}
-                        onChange={(e) => setNuevoGoleador({...nuevoGoleador, goles: parseInt(e.target.value) || 1})}
-                        min="1"
-                      />
-                      <Button onClick={agregarGoleador} variant="outline">
-                        Agregar Gol
-                      </Button>
-                    </div>
-                    
-                    {goleadores.length > 0 && (
-                      <div className="space-y-2">
-                        {goleadores.map((goleador) => (
-                          <div key={goleador.id} className="flex justify-between items-center p-2 bg-orange-50 rounded">
-                            <span>{goleador.nombre}</span>
-                            <Badge>{goleador.goles} gol(es)</Badge>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-4">
-                    <Label>🟨🟥 Tarjetas</Label>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      <Select value={nuevaTarjeta.jugadorId} onValueChange={(value) => setNuevaTarjeta({...nuevaTarjeta, jugadorId: value})}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar jugador" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {jugadores.map((jugador) => (
-                            <SelectItem key={jugador.id} value={jugador.id}>
-                              {jugador.nombre} #{jugador.numero} ({jugador.equipo === "local" ? "Local" : "Visitante"})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Select value={nuevaTarjeta.tipo} onValueChange={(value) => setNuevaTarjeta({...nuevaTarjeta, tipo: value})}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Tipo de tarjeta" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="amarilla">Amarilla</SelectItem>
-                          <SelectItem value="doble_amarilla">Doble Amarilla</SelectItem>
-                          <SelectItem value="roja_directa">Roja Directa</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        placeholder="Minuto"
-                        type="number"
-                        value={nuevaTarjeta.minuto}
-                        onChange={(e) => setNuevaTarjeta({...nuevaTarjeta, minuto: e.target.value})}
-                        min="1"
-                        max="120"
-                      />
-                      <Button onClick={agregarTarjeta} variant="outline">
-                        Agregar Tarjeta
-                      </Button>
-                    </div>
-                    
-                    {tarjetas.length > 0 && (
-                      <div className="space-y-2">
-                        {tarjetas.map((tarjeta) => (
-                          <div key={tarjeta.id} className="flex justify-between items-center p-2 bg-orange-50 rounded">
-                            <span>{tarjeta.nombre} - Min {tarjeta.minuto}</span>
-                            {getTarjetaBadge(tarjeta.tipo)}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-4">
-                    <Label>🔄 Cambios de Jugadores</Label>
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                      <Select value={nuevoCambio.equipo} onValueChange={(value) => setNuevoCambio({...nuevoCambio, equipo: value})}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Equipo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="local">Local</SelectItem>
-                          <SelectItem value="visitante">Visitante</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select value={nuevoCambio.jugadorSaleId} onValueChange={(value) => setNuevoCambio({...nuevoCambio, jugadorSaleId: value})}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Sale" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(nuevoCambio.equipo === "local" ? jugadoresLocales : nuevoCambio.equipo === "visitante" ? jugadoresVisitantes : []).map((jugador) => (
-                            <SelectItem key={jugador.id} value={jugador.id}>
-                              {jugador.nombre} #{jugador.numero}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Select value={nuevoCambio.jugadorEntraId} onValueChange={(value) => setNuevoCambio({...nuevoCambio, jugadorEntraId: value})}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Entra" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(nuevoCambio.equipo === "local" ? jugadoresLocales : nuevoCambio.equipo === "visitante" ? jugadoresVisitantes : []).map((jugador) => (
-                            <SelectItem key={jugador.id} value={jugador.id}>
-                              {jugador.nombre} #{jugador.numero}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        placeholder="Minuto"
-                        type="number"
-                        value={nuevoCambio.minuto}
-                        onChange={(e) => setNuevoCambio({...nuevoCambio, minuto: e.target.value})}
-                        min="1"
-                        max="120"
-                      />
-                      <Button onClick={agregarCambio} variant="outline">
-                        Agregar Cambio
-                      </Button>
-                    </div>
-                    
-                    {cambios.length > 0 && (
-                      <div className="space-y-2">
-                        {cambios.map((cambio) => (
-                          <div key={cambio.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-2 bg-orange-50 rounded gap-2">
-                            <span className="text-sm">
-                              Min {cambio.minuto}: Sale {cambio.nombreSale} → Entra {cambio.nombreEntra}
-                            </span>
-                            <Badge variant="outline">{cambio.equipo === "local" ? "Local" : "Visitante"}</Badge>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="informe">📸 Foto del Informe Arbitral</Label>
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                      <Input
-                        id="informe"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleInformeUpload}
-                        className="hidden"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => document.getElementById('informe')?.click()}
-                        className="flex items-center gap-2"
-                      >
-                        <Camera className="w-4 h-4" />
-                        Subir Foto
-                      </Button>
-                      {resultado.informeArbitral && (
-                        <Badge variant="secondary">{resultado.informeArbitral.name}</Badge>
-                      )}
-                    </div>
-                  </div>
-
-                  <Button onClick={subirResultados} className="w-full bg-orange-600 hover:bg-orange-700">
-                    📊 Subir Resultados Completos
-                  </Button>
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* Modal de Resultados */}
+      <Dialog open={mostrarFormularioResultados} onOpenChange={setMostrarFormularioResultados}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              📊 Registrar Resultados del Partido {partidoActual?.id}
+            </DialogTitle>
+          </DialogHeader>
+
+          {partidoActual && (
+            <div className="space-y-6">
+              <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                <h4 className="font-semibold text-orange-800 mb-2">
+                  {partidoActual.equipoLocal} vs {partidoActual.equipoVisitante}
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div><span className="font-medium">ID:</span> {partidoActual.id}</div>
+                  <div><span className="font-medium">Fecha:</span> {partidoActual.fecha} - {partidoActual.hora}</div>
+                  <div><span className="font-medium">Cancha:</span> {partidoActual.cancha}</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="golesLocal">Goles Equipo Local</Label>
+                  <Input
+                    id="golesLocal"
+                    type="number"
+                    value={resultado.golesLocal}
+                    onChange={(e) => setResultado({...resultado, golesLocal: e.target.value})}
+                    placeholder="0"
+                    min="0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="golesVisitante">Goles Equipo Visitante</Label>
+                  <Input
+                    id="golesVisitante"
+                    type="number"
+                    value={resultado.golesVisitante}
+                    onChange={(e) => setResultado({...resultado, golesVisitante: e.target.value})}
+                    placeholder="0"
+                    min="0"
+                  />
+                </div>
+              </div>
+
+              {/* Goleadores */}
+              <div className="space-y-4">
+                <Label>⚽ Goleadores</Label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Select value={nuevoGoleador.jugadorId} onValueChange={(value) => setNuevoGoleador({...nuevoGoleador, jugadorId: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar jugador" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {jugadores.map((jugador) => (
+                        <SelectItem key={jugador.id} value={jugador.id}>
+                          {jugador.nombre} #{jugador.numero} ({jugador.equipo === "local" ? "Local" : "Visitante"})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    placeholder="Cantidad de goles"
+                    type="number"
+                    value={nuevoGoleador.goles}
+                    onChange={(e) => setNuevoGoleador({...nuevoGoleador, goles: parseInt(e.target.value) || 1})}
+                    min="1"
+                  />
+                  <Button onClick={agregarGoleador} variant="outline">
+                    Agregar Gol
+                  </Button>
+                </div>
+                
+                {goleadores.length > 0 && (
+                  <div className="space-y-2">
+                    {goleadores.map((goleador) => (
+                      <div key={goleador.id} className="flex justify-between items-center p-2 bg-orange-50 rounded">
+                        <span>{goleador.nombre}</span>
+                        <Badge>{goleador.goles} gol(es)</Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Tarjetas */}
+              <div className="space-y-4">
+                <Label>🟨🟥 Tarjetas</Label>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Select value={nuevaTarjeta.jugadorId} onValueChange={(value) => setNuevaTarjeta({...nuevaTarjeta, jugadorId: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar jugador" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {jugadores.map((jugador) => (
+                        <SelectItem key={jugador.id} value={jugador.id}>
+                          {jugador.nombre} #{jugador.numero} ({jugador.equipo === "local" ? "Local" : "Visitante"})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={nuevaTarjeta.tipo} onValueChange={(value) => setNuevaTarjeta({...nuevaTarjeta, tipo: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Tipo de tarjeta" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="amarilla">Amarilla</SelectItem>
+                      <SelectItem value="doble_amarilla">Doble Amarilla</SelectItem>
+                      <SelectItem value="roja_directa">Roja Directa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    placeholder="Minuto"
+                    type="number"
+                    value={nuevaTarjeta.minuto}
+                    onChange={(e) => setNuevaTarjeta({...nuevaTarjeta, minuto: e.target.value})}
+                    min="1"
+                    max="120"
+                  />
+                  <Button onClick={agregarTarjeta} variant="outline">
+                    Agregar Tarjeta
+                  </Button>
+                </div>
+                
+                {tarjetas.length > 0 && (
+                  <div className="space-y-2">
+                    {tarjetas.map((tarjeta) => (
+                      <div key={tarjeta.id} className="flex justify-between items-center p-2 bg-orange-50 rounded">
+                        <span>{tarjeta.nombre} - Min {tarjeta.minuto}</span>
+                        {getTarjetaBadge(tarjeta.tipo)}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Cambios */}
+              <div className="space-y-4">
+                <Label>🔄 Cambios de Jugadores</Label>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <Select value={nuevoCambio.equipo} onValueChange={(value) => setNuevoCambio({...nuevoCambio, equipo: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Equipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="local">Local</SelectItem>
+                      <SelectItem value="visitante">Visitante</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={nuevoCambio.jugadorSaleId} onValueChange={(value) => setNuevoCambio({...nuevoCambio, jugadorSaleId: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sale" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(nuevoCambio.equipo === "local" ? jugadoresLocales : nuevoCambio.equipo === "visitante" ? jugadoresVisitantes : []).map((jugador) => (
+                        <SelectItem key={jugador.id} value={jugador.id}>
+                          {jugador.nombre} #{jugador.numero}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={nuevoCambio.jugadorEntraId} onValueChange={(value) => setNuevoCambio({...nuevoCambio, jugadorEntraId: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Entra" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(nuevoCambio.equipo === "local" ? jugadoresLocales : nuevoCambio.equipo === "visitante" ? jugadoresVisitantes : []).map((jugador) => (
+                        <SelectItem key={jugador.id} value={jugador.id}>
+                          {jugador.nombre} #{jugador.numero}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    placeholder="Minuto"
+                    type="number"
+                    value={nuevoCambio.minuto}
+                    onChange={(e) => setNuevoCambio({...nuevoCambio, minuto: e.target.value})}
+                    min="1"
+                    max="120"
+                  />
+                  <Button onClick={agregarCambio} variant="outline">
+                    Agregar Cambio
+                  </Button>
+                </div>
+                
+                {cambios.length > 0 && (
+                  <div className="space-y-2">
+                    {cambios.map((cambio) => (
+                      <div key={cambio.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-2 bg-orange-50 rounded gap-2">
+                        <span className="text-sm">
+                          Min {cambio.minuto}: Sale {cambio.nombreSale} → Entra {cambio.nombreEntra}
+                        </span>
+                        <Badge variant="outline">{cambio.equipo === "local" ? "Local" : "Visitante"}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Informe Arbitral */}
+              <div className="space-y-2">
+                <Label htmlFor="informe">📸 Foto del Informe Arbitral</Label>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <Input
+                    id="informe"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleInformeUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('informe')?.click()}
+                    className="flex items-center gap-2"
+                  >
+                    <Camera className="w-4 h-4" />
+                    Subir Foto
+                  </Button>
+                  {resultado.informeArbitral && (
+                    <Badge variant="secondary">{resultado.informeArbitral.name}</Badge>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-4 pt-6">
+                <Button onClick={subirResultados} className="flex-1 bg-orange-600 hover:bg-orange-700">
+                  📊 Subir Resultados Completos
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setMostrarFormularioResultados(false)}
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
