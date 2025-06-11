@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Trash2, Upload, Search, MapPin, User, Phone, Mail, BarChart3, Calendar } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Upload, Search, MapPin, User, Phone, Mail, BarChart3, Calendar, Clock, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -20,17 +21,17 @@ interface Equipo {
   logo: File | null;
   uniformes: {
     principal: {
-      camiseta: { principal: string; secundario?: string };
+      camiseta: { principal: string; secundario: string };
       pantaloneta: string;
       medias: string;
     };
-    alternativo?: {
-      camiseta: { principal: string; secundario?: string };
+    alternativo: {
+      camiseta: { principal: string; secundario: string };
       pantaloneta: string;
       medias: string;
     };
-    tercero?: {
-      camiseta: { principal: string; secundario?: string };
+    tercero: {
+      camiseta: { principal: string; secundario: string };
       pantaloneta: string;
       medias: string;
     };
@@ -83,11 +84,25 @@ interface TorneoParticipando {
   categoria: string;
   estado: "inscrito" | "en_curso" | "finalizado";
   proximoPartido?: {
+    id: string;
     rival: string;
     fecha: string;
     hora: string;
     cancha: string;
   };
+}
+
+interface SolicitudReprogramacion {
+  id: string;
+  partidoId: string;
+  equipoSolicitante: string;
+  equipoRival: string;
+  fechaActual: string;
+  horaActual: string;
+  motivo: string;
+  fechaPropuesta?: string;
+  horaPropuesta?: string;
+  estado: "pendiente" | "aprobada" | "rechazada";
 }
 
 const Equipo = () => {
@@ -97,23 +112,25 @@ const Equipo = () => {
   const [mostrarFormularioEquipo, setMostrarFormularioEquipo] = useState(false);
   const [equipoEditando, setEquipoEditando] = useState<string | null>(null);
   const [uniformeActivo, setUniformeActivo] = useState<"principal" | "alternativo" | "tercero">("principal");
+  const [mostrarReprogramacion, setMostrarReprogramacion] = useState(false);
+  const [partidoAReprogramar, setPartidoAReprogramar] = useState<any>(null);
 
   const [formEquipo, setFormEquipo] = useState({
     nombre: "",
     logo: null as File | null,
     uniformes: {
       principal: {
-        camiseta: { principal: "#FF0000", secundario: "" },
+        camiseta: { principal: "#FF0000", secundario: "#FFFFFF" },
         pantaloneta: "#000000", 
         medias: "#FFFFFF"
       },
       alternativo: {
-        camiseta: { principal: "#FFFFFF", secundario: "" },
+        camiseta: { principal: "#FFFFFF", secundario: "#FF0000" },
         pantaloneta: "#FFFFFF", 
         medias: "#000000"
       },
       tercero: {
-        camiseta: { principal: "#0000FF", secundario: "" },
+        camiseta: { principal: "#0000FF", secundario: "#FFFFFF" },
         pantaloneta: "#0000FF", 
         medias: "#FFFFFF"
       }
@@ -146,6 +163,12 @@ const Equipo = () => {
     identificacion: "",
     telefono: "",
     rol: ""
+  });
+
+  const [solicitudReprogramacion, setSolicitudReprogramacion] = useState({
+    motivo: "",
+    fechaPropuesta: "",
+    horaPropuesta: ""
   });
 
   const [busquedaTorneo, setBusquedaTorneo] = useState("");
@@ -189,6 +212,7 @@ const Equipo = () => {
       categoria: "U20",
       estado: "en_curso",
       proximoPartido: {
+        id: "P001",
         rival: "Tigres SC",
         fecha: "2024-06-20",
         hora: "16:00",
@@ -208,6 +232,76 @@ const Equipo = () => {
       estado: "finalizado"
     }
   ]);
+
+  // Funciones de gestión de canchas
+  const agregarCancha = () => {
+    if (!nuevaCancha.trim()) {
+      toast.error("Por favor ingresa el nombre de la cancha");
+      return;
+    }
+    if (canchasCasa.length >= 3) {
+      toast.error("Máximo 3 canchas casa permitidas");
+      return;
+    }
+    setCanchasCasa([...canchasCasa, nuevaCancha.trim()]);
+    setNuevaCancha("");
+    toast.success("Cancha agregada exitosamente");
+  };
+
+  const eliminarCancha = (index: number) => {
+    setCanchasCasa(canchasCasa.filter((_, i) => i !== index));
+    toast.success("Cancha eliminada");
+  };
+
+  // Funciones de gestión de jugadores
+  const agregarJugador = () => {
+    if (!nuevoJugador.nombre || !nuevoJugador.identificacion || !nuevoJugador.edad) {
+      toast.error("Por favor completa todos los campos del jugador");
+      return;
+    }
+
+    const nuevoJugadorData: Jugador = {
+      id: 'JUG-' + Math.random().toString(36).substr(2, 8).toUpperCase(),
+      nombre: nuevoJugador.nombre,
+      identificacion: nuevoJugador.identificacion,
+      edad: nuevoJugador.edad,
+      seleccionado: false
+    };
+
+    setJugadores([...jugadores, nuevoJugadorData]);
+    setNuevoJugador({ nombre: "", identificacion: "", edad: "" });
+    toast.success("Jugador agregado exitosamente");
+  };
+
+  const eliminarJugador = (jugadorId: string) => {
+    setJugadores(jugadores.filter(j => j.id !== jugadorId));
+    toast.success("Jugador eliminado");
+  };
+
+  // Funciones de gestión de personal técnico
+  const agregarPersonal = () => {
+    if (!nuevoPersonal.nombre || !nuevoPersonal.identificacion || !nuevoPersonal.telefono || !nuevoPersonal.rol) {
+      toast.error("Por favor completa todos los campos del personal técnico");
+      return;
+    }
+
+    const nuevoPersonalData: PersonalTecnico = {
+      id: 'PER-' + Math.random().toString(36).substr(2, 8).toUpperCase(),
+      nombre: nuevoPersonal.nombre,
+      identificacion: nuevoPersonal.identificacion,
+      telefono: nuevoPersonal.telefono,
+      rol: nuevoPersonal.rol as "dt" | "asistente"
+    };
+
+    setPersonalTecnico([...personalTecnico, nuevoPersonalData]);
+    setNuevoPersonal({ nombre: "", identificacion: "", telefono: "", rol: "" });
+    toast.success("Personal técnico agregado exitosamente");
+  };
+
+  const eliminarPersonal = (personalId: string) => {
+    setPersonalTecnico(personalTecnico.filter(p => p.id !== personalId));
+    toast.success("Personal técnico eliminado");
+  };
 
   const generarEquipoId = () => {
     return 'EQP-' + Math.random().toString(36).substr(2, 8).toUpperCase();
@@ -247,17 +341,17 @@ const Equipo = () => {
       logo: null,
       uniformes: {
         principal: {
-          camiseta: { principal: "#FF0000", secundario: "" },
+          camiseta: { principal: "#FF0000", secundario: "#FFFFFF" },
           pantaloneta: "#000000", 
           medias: "#FFFFFF"
         },
         alternativo: {
-          camiseta: { principal: "#FFFFFF", secundario: "" },
+          camiseta: { principal: "#FFFFFF", secundario: "#FF0000" },
           pantaloneta: "#FFFFFF", 
           medias: "#000000"
         },
         tercero: {
-          camiseta: { principal: "#0000FF", secundario: "" },
+          camiseta: { principal: "#0000FF", secundario: "#FFFFFF" },
           pantaloneta: "#0000FF", 
           medias: "#FFFFFF"
         }
@@ -337,6 +431,30 @@ const Equipo = () => {
           }
         : equipo
     ));
+  };
+
+  const solicitarReprogramacion = (partido: any) => {
+    setPartidoAReprogramar(partido);
+    setMostrarReprogramacion(true);
+  };
+
+  const enviarSolicitudReprogramacion = () => {
+    if (!solicitudReprogramacion.motivo) {
+      toast.error("Por favor ingresa el motivo de la reprogramación");
+      return;
+    }
+
+    console.log("Solicitud de reprogramación enviada:", {
+      partidoId: partidoAReprogramar.id,
+      motivo: solicitudReprogramacion.motivo,
+      fechaPropuesta: solicitudReprogramacion.fechaPropuesta,
+      horaPropuesta: solicitudReprogramacion.horaPropuesta
+    });
+
+    toast.success("Solicitud de reprogramación enviada al organizador");
+    setMostrarReprogramacion(false);
+    setSolicitudReprogramacion({ motivo: "", fechaPropuesta: "", horaPropuesta: "" });
+    setPartidoAReprogramar(null);
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -458,9 +576,20 @@ const Equipo = () => {
                               <h4 className="font-semibold text-lg">{torneo.nombre}</h4>
                               <p className="text-sm text-muted-foreground">Categoría: {torneo.categoria}</p>
                               {torneo.proximoPartido && (
-                                <p className="text-sm text-blue-600 mt-1">
-                                  Próximo: vs {torneo.proximoPartido.rival} - {torneo.proximoPartido.fecha} {torneo.proximoPartido.hora}
-                                </p>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <p className="text-sm text-blue-600">
+                                    Próximo: vs {torneo.proximoPartido.rival} - {torneo.proximoPartido.fecha} {torneo.proximoPartido.hora}
+                                  </p>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => solicitarReprogramacion(torneo.proximoPartido)}
+                                    className="ml-2 text-xs"
+                                  >
+                                    <AlertCircle className="w-3 h-3 mr-1" />
+                                    Reprogramar
+                                  </Button>
+                                </div>
                               )}
                             </div>
                             <Badge className={
@@ -675,10 +804,10 @@ const Equipo = () => {
                 </div>
 
                 <div className="space-y-4">
-                  <Label>Camiseta - Color Secundario (Opcional)</Label>
+                  <Label>Camiseta - Color Secundario</Label>
                   <input
                     type="color"
-                    value={formEquipo.uniformes[uniformeActivo].camiseta.secundario || "#FFFFFF"}
+                    value={formEquipo.uniformes[uniformeActivo].camiseta.secundario}
                     onChange={(e) => setFormEquipo({
                       ...formEquipo,
                       uniformes: {
@@ -743,9 +872,7 @@ const Equipo = () => {
                     <div 
                       className="w-8 h-8 rounded border-2 border-gray-300"
                       style={{ 
-                        background: formEquipo.uniformes[uniformeActivo].camiseta.secundario ? 
-                          `linear-gradient(45deg, ${formEquipo.uniformes[uniformeActivo].camiseta.principal}, ${formEquipo.uniformes[uniformeActivo].camiseta.secundario})` :
-                          formEquipo.uniformes[uniformeActivo].camiseta.principal
+                        background: `linear-gradient(45deg, ${formEquipo.uniformes[uniformeActivo].camiseta.principal}, ${formEquipo.uniformes[uniformeActivo].camiseta.secundario})`
                       }}
                     />
                     <span className="text-sm">Camiseta</span>
@@ -1059,6 +1186,81 @@ const Equipo = () => {
               <Button 
                 variant="outline" 
                 onClick={() => setMostrarSeleccionJugadores(false)}
+                className="flex-1"
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de solicitud de reprogramación */}
+      <Dialog open={mostrarReprogramacion} onOpenChange={setMostrarReprogramacion}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Solicitar Reprogramación</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {partidoAReprogramar && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm font-medium">Partido a reprogramar:</p>
+                <p className="text-sm">vs {partidoAReprogramar.rival}</p>
+                <p className="text-sm text-muted-foreground">
+                  {partidoAReprogramar.fecha} - {partidoAReprogramar.hora}
+                </p>
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <Label>Motivo de la reprogramación *</Label>
+              <textarea
+                className="w-full p-3 border rounded-md resize-none"
+                rows={3}
+                value={solicitudReprogramacion.motivo}
+                onChange={(e) => setSolicitudReprogramacion({
+                  ...solicitudReprogramacion,
+                  motivo: e.target.value
+                })}
+                placeholder="Explica el motivo de la reprogramación..."
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Fecha propuesta (opcional)</Label>
+                <Input
+                  type="date"
+                  value={solicitudReprogramacion.fechaPropuesta}
+                  onChange={(e) => setSolicitudReprogramacion({
+                    ...solicitudReprogramacion,
+                    fechaPropuesta: e.target.value
+                  })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Hora propuesta (opcional)</Label>
+                <Input
+                  type="time"
+                  value={solicitudReprogramacion.horaPropuesta}
+                  onChange={(e) => setSolicitudReprogramacion({
+                    ...solicitudReprogramacion,
+                    horaPropuesta: e.target.value
+                  })}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <Button 
+                onClick={enviarSolicitudReprogramacion}
+                className="flex-1 bg-orange-600 hover:bg-orange-700"
+              >
+                Enviar Solicitud
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setMostrarReprogramacion(false)}
                 className="flex-1"
               >
                 Cancelar
