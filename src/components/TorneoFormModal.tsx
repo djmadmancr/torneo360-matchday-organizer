@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,14 +11,50 @@ import { Badge } from "@/components/ui/badge";
 import { Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
+interface Torneo {
+  id: string;
+  nombre: string;
+  tipo: string;
+  formato: string;
+  categoria: string;
+  fechaInicio: string;
+  fechaFin: string;
+  estado: string;
+  equiposInscritos: number;
+  maxEquipos: number;
+  logo: string;
+  edadMinima?: string;
+  edadMaxima?: string;
+  maxJugadores?: string;
+  fechaCierre?: string;
+  numeroGrupos?: string;
+  idaVuelta?: {
+    grupos: boolean;
+    eliminatoria: boolean;
+  };
+  puntajeExtra?: string;
+  torneoPublico?: boolean;
+  reglamento?: string;
+  diasSemana?: string[];
+  partidosPorSemana?: string;
+  mejorPerdedor?: boolean;
+}
+
 interface TorneoFormModalProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (data: any) => void;
   torneoId: string;
+  torneoEditando?: Torneo | null;
 }
 
-const TorneoFormModal: React.FC<TorneoFormModalProps> = ({ open, onClose, onSubmit, torneoId }) => {
+const TorneoFormModal: React.FC<TorneoFormModalProps> = ({ 
+  open, 
+  onClose, 
+  onSubmit, 
+  torneoId, 
+  torneoEditando 
+}) => {
   const [formData, setFormData] = useState({
     nombreTorneo: "",
     tipoFutbol: "",
@@ -42,6 +77,31 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({ open, onClose, onSubm
     partidosPorSemana: "1",
     mejorPerdedor: false
   });
+
+  // Load existing tournament data when editing
+  useEffect(() => {
+    if (torneoEditando) {
+      setFormData({
+        nombreTorneo: torneoEditando.nombre || "",
+        tipoFutbol: torneoEditando.tipo || "",
+        formato: torneoEditando.formato || "",
+        categoria: torneoEditando.categoria || "",
+        edadMinima: torneoEditando.edadMinima || "",
+        edadMaxima: torneoEditando.edadMaxima || "",
+        maxJugadores: torneoEditando.maxJugadores || "",
+        fechaCierre: torneoEditando.fechaCierre || "",
+        numeroGrupos: torneoEditando.numeroGrupos || "1",
+        idaVuelta: torneoEditando.idaVuelta || { grupos: false, eliminatoria: false },
+        puntajeExtra: torneoEditando.puntajeExtra || "NA",
+        torneoPublico: torneoEditando.torneoPublico !== undefined ? torneoEditando.torneoPublico : true,
+        reglamento: torneoEditando.reglamento || "",
+        reglamentoPDF: null,
+        diasSemana: torneoEditando.diasSemana || [],
+        partidosPorSemana: torneoEditando.partidosPorSemana || "1",
+        mejorPerdedor: torneoEditando.mejorPerdedor || false
+      });
+    }
+  }, [torneoEditando]);
 
   const diasSemanaOpciones = [
     "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"
@@ -115,7 +175,7 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({ open, onClose, onSubm
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
-            🏆 Crear Nuevo Torneo
+            🏆 {torneoEditando ? 'Editar Torneo' : 'Crear Nuevo Torneo'}
             <Button variant="ghost" onClick={handleClose}>
               <X className="w-4 h-4" />
             </Button>
@@ -148,7 +208,10 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({ open, onClose, onSubm
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
               <Label>Tipo de Fútbol *</Label>
-              <Select onValueChange={(value) => setFormData({...formData, tipoFutbol: value})}>
+              <Select 
+                value={formData.tipoFutbol}
+                onValueChange={(value) => setFormData({...formData, tipoFutbol: value})}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona el tipo" />
                 </SelectTrigger>
@@ -165,7 +228,10 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({ open, onClose, onSubm
 
             <div className="space-y-2">
               <Label>Formato *</Label>
-              <Select onValueChange={(value) => setFormData({...formData, formato: value})}>
+              <Select 
+                value={formData.formato}
+                onValueChange={(value) => setFormData({...formData, formato: value})}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona el formato" />
                 </SelectTrigger>
@@ -179,7 +245,10 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({ open, onClose, onSubm
 
             <div className="space-y-2">
               <Label>Categoría *</Label>
-              <Select onValueChange={(value) => setFormData({...formData, categoria: value})}>
+              <Select 
+                value={formData.categoria}
+                onValueChange={(value) => setFormData({...formData, categoria: value})}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona la categoría" />
                 </SelectTrigger>
@@ -429,7 +498,7 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({ open, onClose, onSubm
 
           <div className="flex flex-col sm:flex-row gap-4 pt-6">
             <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700">
-              🏆 Crear Torneo
+              🏆 {torneoEditando ? 'Actualizar Torneo' : 'Crear Torneo'}
             </Button>
             <Button 
               type="button" 
