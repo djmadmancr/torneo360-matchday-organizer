@@ -39,7 +39,8 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({ open, onClose, onSubm
     reglamento: "",
     reglamentoPDF: null as File | null,
     diasSemana: [] as string[],
-    partidosPorSemana: "1"
+    partidosPorSemana: "1",
+    mejorPerdedor: false
   });
 
   const diasSemanaOpciones = [
@@ -82,13 +83,40 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({ open, onClose, onSubm
     }
   };
 
+  const resetForm = () => {
+    setFormData({
+      nombreTorneo: "",
+      tipoFutbol: "",
+      formato: "",
+      categoria: "",
+      edadMinima: "",
+      edadMaxima: "",
+      maxJugadores: "",
+      fechaCierre: "",
+      numeroGrupos: "1",
+      idaVuelta: { grupos: false, eliminatoria: false },
+      puntajeExtra: "NA",
+      torneoPublico: true,
+      reglamento: "",
+      reglamentoPDF: null,
+      diasSemana: [],
+      partidosPorSemana: "1",
+      mejorPerdedor: false
+    });
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             🏆 Crear Nuevo Torneo
-            <Button variant="ghost" onClick={onClose}>
+            <Button variant="ghost" onClick={handleClose}>
               <X className="w-4 h-4" />
             </Button>
           </DialogTitle>
@@ -142,9 +170,9 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({ open, onClose, onSubm
                   <SelectValue placeholder="Selecciona el formato" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="completo">Completo</SelectItem>
-                  <SelectItem value="eliminatorio">Eliminatorio</SelectItem>
-                  <SelectItem value="rapido">Rápido</SelectItem>
+                  <SelectItem value="completo">Completo (Grupos + Eliminatoria)</SelectItem>
+                  <SelectItem value="eliminatorio">Eliminatorio (Llaves de muerte súbita)</SelectItem>
+                  <SelectItem value="relampago">Relámpago</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -168,59 +196,73 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({ open, onClose, onSubm
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Número de Grupos *</Label>
-              <Select 
-                value={formData.numeroGrupos}
-                onValueChange={(value) => setFormData({...formData, numeroGrupos: value})}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1 Grupo (Tabla General)</SelectItem>
-                  <SelectItem value="2">2 Grupos</SelectItem>
-                  <SelectItem value="3">3 Grupos</SelectItem>
-                  <SelectItem value="4">4 Grupos</SelectItem>
-                  <SelectItem value="6">6 Grupos</SelectItem>
-                  <SelectItem value="8">8 Grupos</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
+          {/* Configuraciones específicas por formato */}
+          {formData.formato === "completo" && (
             <div className="space-y-4">
-              <Label>Ida y Vuelta</Label>
-              <div className="space-y-3">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="idaVueltaGrupos"
-                    checked={formData.idaVuelta.grupos}
-                    onCheckedChange={(checked) => setFormData({
-                      ...formData, 
-                      idaVuelta: {...formData.idaVuelta, grupos: !!checked}
-                    })}
-                  />
-                  <Label htmlFor="idaVueltaGrupos" className="text-sm">
-                    Grupos - Cada equipo juega 2 veces contra cada rival
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="idaVueltaEliminatoria"
-                    checked={formData.idaVuelta.eliminatoria}
-                    onCheckedChange={(checked) => setFormData({
-                      ...formData, 
-                      idaVuelta: {...formData.idaVuelta, eliminatoria: !!checked}
-                    })}
-                  />
-                  <Label htmlFor="idaVueltaEliminatoria" className="text-sm">
-                    Eliminatoria - Partidos de ida y vuelta en playoffs
-                  </Label>
+              <div className="space-y-2">
+                <Label>Número de Grupos *</Label>
+                <Select 
+                  value={formData.numeroGrupos}
+                  onValueChange={(value) => setFormData({...formData, numeroGrupos: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 Grupo (Tabla General)</SelectItem>
+                    <SelectItem value="2">2 Grupos</SelectItem>
+                    <SelectItem value="3">3 Grupos</SelectItem>
+                    <SelectItem value="4">4 Grupos</SelectItem>
+                    <SelectItem value="6">6 Grupos</SelectItem>
+                    <SelectItem value="8">8 Grupos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-4">
+                <Label>Ida y Vuelta</Label>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="idaVueltaGrupos"
+                      checked={formData.idaVuelta.grupos}
+                      onCheckedChange={(checked) => setFormData({
+                        ...formData, 
+                        idaVuelta: {...formData.idaVuelta, grupos: !!checked}
+                      })}
+                    />
+                    <Label htmlFor="idaVueltaGrupos" className="text-sm">
+                      Grupos - Cada equipo juega 2 veces contra cada rival
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="idaVueltaEliminatoria"
+                      checked={formData.idaVuelta.eliminatoria}
+                      onCheckedChange={(checked) => setFormData({
+                        ...formData, 
+                        idaVuelta: {...formData.idaVuelta, eliminatoria: !!checked}
+                      })}
+                    />
+                    <Label htmlFor="idaVueltaEliminatoria" className="text-sm">
+                      Eliminatoria - Partidos de ida y vuelta en playoffs
+                    </Label>
+                  </div>
                 </div>
               </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="mejorPerdedor"
+                  checked={formData.mejorPerdedor}
+                  onCheckedChange={(checked) => setFormData({...formData, mejorPerdedor: !!checked})}
+                />
+                <Label htmlFor="mejorPerdedor" className="text-sm">
+                  Activar mejor perdedor o mejores perdedores
+                </Label>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="space-y-2">
             <Label>Puntaje Extra</Label>
@@ -240,45 +282,56 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({ open, onClose, onSubm
             </Select>
           </div>
 
-          <div className="space-y-4">
-            <Label>Programación de Partidos</Label>
+          {formData.formato !== "relampago" && (
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Días de la semana para partidos *</Label>
-                <div className="grid grid-cols-3 md:grid-cols-7 gap-2">
-                  {diasSemanaOpciones.map((dia) => (
-                    <div key={dia} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={dia}
-                        checked={formData.diasSemana.includes(dia)}
-                        onCheckedChange={() => toggleDiaSemana(dia)}
-                      />
-                      <Label htmlFor={dia} className="text-sm">{dia}</Label>
-                    </div>
-                  ))}
+              <Label>Programación de Partidos</Label>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Días de la semana para partidos *</Label>
+                  <div className="grid grid-cols-3 md:grid-cols-7 gap-2">
+                    {diasSemanaOpciones.map((dia) => (
+                      <div key={dia} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={dia}
+                          checked={formData.diasSemana.includes(dia)}
+                          onCheckedChange={() => toggleDiaSemana(dia)}
+                        />
+                        <Label htmlFor={dia} className="text-sm">{dia}</Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Partidos por semana</Label>
+                  <Select 
+                    value={formData.partidosPorSemana}
+                    onValueChange={(value) => setFormData({...formData, partidosPorSemana: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 partido</SelectItem>
+                      <SelectItem value="2">2 partidos</SelectItem>
+                      <SelectItem value="3">3 partidos</SelectItem>
+                      <SelectItem value="4">4 partidos</SelectItem>
+                      <SelectItem value="5">5 partidos</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-              
-              <div className="space-y-2">
-                <Label>Partidos por semana</Label>
-                <Select 
-                  value={formData.partidosPorSemana}
-                  onValueChange={(value) => setFormData({...formData, partidosPorSemana: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1 partido</SelectItem>
-                    <SelectItem value="2">2 partidos</SelectItem>
-                    <SelectItem value="3">3 partidos</SelectItem>
-                    <SelectItem value="4">4 partidos</SelectItem>
-                    <SelectItem value="5">5 partidos</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
-          </div>
+          )}
+
+          {formData.formato === "relampago" && (
+            <div className="bg-yellow-50 p-4 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                <strong>Formato Relámpago:</strong> Todos los partidos se juegan en la misma cancha, sin opción de ida y vuelta. 
+                Ideal para torneos de un día.
+              </p>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Fecha límite de inscripciones *</Label>
@@ -381,7 +434,7 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({ open, onClose, onSubm
             <Button 
               type="button" 
               variant="outline" 
-              onClick={onClose}
+              onClick={handleClose}
               className="flex-1"
             >
               Cancelar

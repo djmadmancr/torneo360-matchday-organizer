@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Search, Calendar, Clock, Camera } from "lucide-react";
+import { ArrowLeft, FileText, Calendar, Clock, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -18,246 +18,135 @@ interface Partido {
   fecha: string;
   hora: string;
   cancha: string;
-  estado: "pendiente" | "en_curso" | "finalizado";
-}
-
-interface Jugador {
-  id: string;
-  nombre: string;
-  numero: number;
-  equipo: "local" | "visitante";
-}
-
-interface Goleador {
-  id: string;
-  jugadorId: string;
-  nombre: string;
-  goles: number;
-}
-
-interface Tarjeta {
-  id: string;
-  jugadorId: string;
-  nombre: string;
-  tipo: "amarilla" | "doble_amarilla" | "roja_directa";
-  minuto: number;
-}
-
-interface Cambio {
-  id: string;
-  jugadorSaleId: string;
-  jugadorEntraId: string;
-  nombreSale: string;
-  nombreEntra: string;
-  minuto: number;
-  equipo: "local" | "visitante";
+  logoLocal: string;
+  logoVisitante: string;
+  torneo: string;
+  categoria: string;
+  estado: "programado" | "en_curso" | "finalizado";
 }
 
 const Fiscal = () => {
   const navigate = useNavigate();
-  const [torneoId, setTorneoId] = useState("");
-  const [partidos] = useState<Partido[]>([
-    {
-      id: "PT-001",
-      equipoLocal: "Águilas FC",
-      equipoVisitante: "Leones United",
-      fecha: "2024-06-15",
-      hora: "15:00",
-      cancha: "Cancha Principal",
-      estado: "pendiente"
-    },
-    {
-      id: "PT-002",
-      equipoLocal: "Tigres SC",
-      equipoVisitante: "Pumas FC",
-      fecha: "2024-06-15",
-      hora: "17:00",
-      cancha: "Cancha 2",
-      estado: "pendiente"
-    }
-  ]);
-
-  const [jugadores] = useState<Jugador[]>([
-    { id: "j1", nombre: "Carlos Mendez", numero: 1, equipo: "local" },
-    { id: "j2", nombre: "Roberto Silva", numero: 9, equipo: "local" },
-    { id: "j3", nombre: "Luis García", numero: 10, equipo: "local" },
-    { id: "j4", nombre: "Pedro Ruiz", numero: 7, equipo: "visitante" },
-    { id: "j5", nombre: "Marco Torres", numero: 11, equipo: "visitante" },
-    { id: "j6", nombre: "Diego López", numero: 8, equipo: "visitante" },
-  ]);
-
-  const [partidoSeleccionado, setPartidoSeleccionado] = useState<string>("");
-  const [mostrarFormularioResultados, setMostrarFormularioResultados] = useState(false);
+  const [partidoSeleccionado, setPartidoSeleccionado] = useState<Partido | null>(null);
+  const [mostrarFormularioResultado, setMostrarFormularioResultado] = useState(false);
+  
   const [resultado, setResultado] = useState({
     golesLocal: "",
     golesVisitante: "",
-    informeArbitral: null as File | null
+    observaciones: "",
+    tarjetasAmarillas: "",
+    tarjetasRojas: "",
+    jugadorDestacado: ""
   });
 
-  const [goleadores, setGoleadores] = useState<Goleador[]>([]);
-  const [tarjetas, setTarjetas] = useState<Tarjeta[]>([]);
-  const [cambios, setCambios] = useState<Cambio[]>([]);
-
-  const [nuevoGoleador, setNuevoGoleador] = useState({ jugadorId: "", goles: 1 });
-  const [nuevaTarjeta, setNuevaTarjeta] = useState({ jugadorId: "", tipo: "", minuto: "" });
-  const [nuevoCambio, setNuevoCambio] = useState({ 
-    jugadorSaleId: "", 
-    jugadorEntraId: "", 
-    minuto: "",
-    equipo: "" 
-  });
-
-  const buscarTorneo = () => {
-    if (!torneoId) {
-      toast.error("Por favor ingresa el ID del torneo");
-      return;
+  const [partidos] = useState<Partido[]>([
+    {
+      id: "P001",
+      equipoLocal: "Águilas FC",
+      equipoVisitante: "Tigres SC",
+      fecha: "2024-06-20",
+      hora: "16:00",
+      cancha: "Cancha Principal",
+      logoLocal: "🦅",
+      logoVisitante: "🐅",
+      torneo: "Copa Primavera 2024",
+      categoria: "U20",
+      estado: "programado"
+    },
+    {
+      id: "P002",
+      equipoLocal: "Leones United",
+      equipoVisitante: "Pumas FC",
+      fecha: "2024-06-20",
+      hora: "18:00",
+      cancha: "Cancha 2",
+      logoLocal: "🦁",
+      logoVisitante: "🐆",
+      torneo: "Liga Municipal Otoño",
+      categoria: "Libre",
+      estado: "en_curso"
+    },
+    {
+      id: "P003",
+      equipoLocal: "Halcones FC",
+      equipoVisitante: "Lobos SC",
+      fecha: "2024-06-21",
+      hora: "15:00",
+      cancha: "Cancha Principal",
+      logoLocal: "🦅",
+      logoVisitante: "🐺",
+      torneo: "Torneo Relámpago Verano",
+      categoria: "U17",
+      estado: "programado"
     }
-    console.log("Buscando torneo:", torneoId);
-    toast.success(`Torneo ${torneoId} encontrado. Mostrando partidos asignados.`);
+  ]);
+
+  const seleccionarPartido = (partido: Partido) => {
+    setPartidoSeleccionado(partido);
+    setMostrarFormularioResultado(true);
+    setResultado({
+      golesLocal: "",
+      golesVisitante: "",
+      observaciones: "",
+      tarjetasAmarillas: "",
+      tarjetasRojas: "",
+      jugadorDestacado: ""
+    });
   };
 
-  const seleccionarPartido = (partidoId: string) => {
-    setPartidoSeleccionado(partidoId);
-    setMostrarFormularioResultados(true);
-  };
-
-  const agregarGoleador = () => {
-    if (!nuevoGoleador.jugadorId) {
-      toast.error("Por favor selecciona un jugador");
-      return;
-    }
-
-    const jugador = jugadores.find(j => j.id === nuevoGoleador.jugadorId);
-    if (!jugador) return;
-
-    const goleador: Goleador = {
-      id: Math.random().toString(36).substr(2, 9),
-      jugadorId: nuevoGoleador.jugadorId,
-      nombre: jugador.nombre,
-      goles: nuevoGoleador.goles
-    };
-
-    setGoleadores([...goleadores, goleador]);
-    setNuevoGoleador({ jugadorId: "", goles: 1 });
-    toast.success("Goleador agregado");
-  };
-
-  const agregarTarjeta = () => {
-    if (!nuevaTarjeta.jugadorId || !nuevaTarjeta.tipo || !nuevaTarjeta.minuto) {
-      toast.error("Por favor completa todos los datos de la tarjeta");
-      return;
-    }
-
-    const jugador = jugadores.find(j => j.id === nuevaTarjeta.jugadorId);
-    if (!jugador) return;
-
-    const tarjeta: Tarjeta = {
-      id: Math.random().toString(36).substr(2, 9),
-      jugadorId: nuevaTarjeta.jugadorId,
-      nombre: jugador.nombre,
-      tipo: nuevaTarjeta.tipo as "amarilla" | "doble_amarilla" | "roja_directa",
-      minuto: parseInt(nuevaTarjeta.minuto)
-    };
-
-    setTarjetas([...tarjetas, tarjeta]);
-    setNuevaTarjeta({ jugadorId: "", tipo: "", minuto: "" });
-    toast.success("Tarjeta registrada");
-  };
-
-  const agregarCambio = () => {
-    if (!nuevoCambio.jugadorSaleId || !nuevoCambio.jugadorEntraId || !nuevoCambio.minuto || !nuevoCambio.equipo) {
-      toast.error("Por favor completa todos los datos del cambio");
-      return;
-    }
-
-    const jugadorSale = jugadores.find(j => j.id === nuevoCambio.jugadorSaleId);
-    const jugadorEntra = jugadores.find(j => j.id === nuevoCambio.jugadorEntraId);
-    if (!jugadorSale || !jugadorEntra) return;
-
-    const cambio: Cambio = {
-      id: Math.random().toString(36).substr(2, 9),
-      jugadorSaleId: nuevoCambio.jugadorSaleId,
-      jugadorEntraId: nuevoCambio.jugadorEntraId,
-      nombreSale: jugadorSale.nombre,
-      nombreEntra: jugadorEntra.nombre,
-      minuto: parseInt(nuevoCambio.minuto),
-      equipo: nuevoCambio.equipo as "local" | "visitante"
-    };
-
-    setCambios([...cambios, cambio]);
-    setNuevoCambio({ jugadorSaleId: "", jugadorEntraId: "", minuto: "", equipo: "" });
-    toast.success("Cambio registrado");
-  };
-
-  const subirResultados = () => {
-    if (!partidoSeleccionado) {
-      toast.error("Por favor selecciona un partido");
-      return;
-    }
-
+  const enviarResultado = () => {
+    if (!partidoSeleccionado) return;
+    
     if (!resultado.golesLocal || !resultado.golesVisitante) {
-      toast.error("Por favor ingresa el marcador final");
+      toast.error("Por favor ingresa el resultado del partido");
       return;
     }
 
-    const resultadoCompleto = {
-      partidoId: partidoSeleccionado,
-      marcador: `${resultado.golesLocal} - ${resultado.golesVisitante}`,
-      goleadores,
-      tarjetas,
-      cambios,
-      informeArbitral: resultado.informeArbitral
+    const resultadoFinal = {
+      partidoId: partidoSeleccionado.id,
+      equipoLocal: partidoSeleccionado.equipoLocal,
+      equipoVisitante: partidoSeleccionado.equipoVisitante,
+      golesLocal: parseInt(resultado.golesLocal),
+      golesVisitante: parseInt(resultado.golesVisitante),
+      observaciones: resultado.observaciones,
+      tarjetasAmarillas: resultado.tarjetasAmarillas,
+      tarjetasRojas: resultado.tarjetasRojas,
+      jugadorDestacado: resultado.jugadorDestacado,
+      fecha: new Date().toISOString()
     };
 
-    console.log("Subiendo resultados:", resultadoCompleto);
-    toast.success("¡Resultados subidos exitosamente!");
-
-    // Limpiar formulario
-    setPartidoSeleccionado("");
-    setResultado({ golesLocal: "", golesVisitante: "", informeArbitral: null });
-    setGoleadores([]);
-    setTarjetas([]);
-    setCambios([]);
-    setMostrarFormularioResultados(false);
+    console.log("Resultado enviado:", resultadoFinal);
+    toast.success(`Resultado enviado: ${partidoSeleccionado.equipoLocal} ${resultado.golesLocal} - ${resultado.golesVisitante} ${partidoSeleccionado.equipoVisitante}`);
+    
+    setMostrarFormularioResultado(false);
+    setPartidoSeleccionado(null);
   };
 
-  const handleInformeUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setResultado({ ...resultado, informeArbitral: file });
-      toast.success("Informe arbitral cargado");
-    }
+  const cerrarModal = () => {
+    setMostrarFormularioResultado(false);
+    setPartidoSeleccionado(null);
+    setResultado({
+      golesLocal: "",
+      golesVisitante: "",
+      observaciones: "",
+      tarjetasAmarillas: "",
+      tarjetasRojas: "",
+      jugadorDestacado: ""
+    });
   };
 
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
-      case "pendiente":
-        return <Badge variant="secondary">Pendiente</Badge>;
+      case "programado":
+        return <Badge className="bg-blue-500">Programado</Badge>;
       case "en_curso":
-        return <Badge className="bg-yellow-500">En Curso</Badge>;
+        return <Badge className="bg-green-500">En Curso</Badge>;
       case "finalizado":
-        return <Badge className="bg-green-500">Finalizado</Badge>;
+        return <Badge variant="secondary">Finalizado</Badge>;
       default:
         return <Badge variant="outline">Desconocido</Badge>;
     }
   };
-
-  const getTarjetaBadge = (tipo: string) => {
-    switch (tipo) {
-      case "amarilla":
-        return <Badge className="bg-yellow-500">Amarilla</Badge>;
-      case "doble_amarilla":
-        return <Badge className="bg-orange-500">Doble Amarilla</Badge>;
-      case "roja_directa":
-        return <Badge className="bg-red-500">Roja Directa</Badge>;
-      default:
-        return <Badge variant="outline">Desconocida</Badge>;
-    }
-  };
-
-  const jugadoresLocales = jugadores.filter(j => j.equipo === "local");
-  const jugadoresVisitantes = jugadores.filter(j => j.equipo === "visitante");
-  const partidoActual = partidos.find(p => p.id === partidoSeleccionado);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50">
@@ -274,346 +163,223 @@ const Fiscal = () => {
             </Button>
             <div>
               <h1 className="text-xl md:text-2xl font-bold text-primary">🟠 Panel de Fiscal</h1>
-              <p className="text-sm text-muted-foreground">Supervisa partidos y registra resultados</p>
+              <p className="text-sm text-muted-foreground">Registra los resultados de los partidos</p>
             </div>
           </div>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-4 md:py-8">
-        <div className="max-w-6xl mx-auto space-y-6">
-          
-          {/* Buscar Torneo */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Search className="w-5 h-5" />
-                Buscar Torneo
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="idTorneo">ID del Torneo</Label>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Input
-                    id="idTorneo"
-                    value={torneoId}
-                    onChange={(e) => setTorneoId(e.target.value)}
-                    placeholder="Ej: TRN-ABC12345"
-                    className="flex-1"
-                  />
-                  <Button onClick={buscarTorneo} className="bg-orange-600 hover:bg-orange-700">
-                    <Search className="w-4 h-4 mr-2" />
-                    Buscar
-                  </Button>
-                </div>
-              </div>
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h2 className="text-xl md:text-2xl font-bold">Partidos Disponibles</h2>
+            <Badge variant="outline" className="text-sm">
+              {partidos.filter(p => p.estado !== "finalizado").length} partidos pendientes
+            </Badge>
+          </div>
 
-              {torneoId && (
-                <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-                  <h4 className="font-semibold text-orange-800 mb-2">Información del Torneo</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div><span className="font-medium">ID:</span> {torneoId}</div>
-                    <div><span className="font-medium">Estado:</span> Activo</div>
-                    <div><span className="font-medium">Partidos asignados:</span> 2</div>
-                    <div><span className="font-medium">Rol:</span> Árbitro Principal</div>
+          <div className="grid gap-6">
+            {partidos.map((partido) => (
+              <Card key={partido.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                    <div>
+                      <CardTitle className="text-lg">{partido.torneo}</CardTitle>
+                      <p className="text-sm text-muted-foreground">Categoría: {partido.categoria}</p>
+                    </div>
+                    {getEstadoBadge(partido.estado)}
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Seleccionar Partido */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                📅 Seleccionar Partido
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {partidos.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  No tienes partidos asignados. Busca un torneo para ver tus asignaciones.
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  {partidos.map((partido) => (
-                    <div key={partido.id} className="border rounded-lg p-4">
-                      <div className="flex flex-col sm:flex-row justify-between items-start mb-3 gap-3">
-                        <div>
-                          <h4 className="font-semibold text-lg">
-                            {partido.equipoLocal} vs {partido.equipoVisitante}
-                          </h4>
-                          <p className="text-sm text-muted-foreground">ID: {partido.id}</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Equipos */}
+                    <div className="flex items-center justify-center gap-4 p-4 bg-gray-50 rounded-lg">
+                      <div className="text-center flex-1">
+                        <div className="flex items-center justify-center gap-2 mb-2">
+                          <span className="text-2xl">{partido.logoLocal}</span>
+                          <span className="font-semibold text-lg">{partido.equipoLocal}</span>
                         </div>
-                        {getEstadoBadge(partido.estado)}
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-4">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-orange-600" />
-                          <span>{partido.fecha}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-orange-600" />
-                          <span>{partido.hora}</span>
-                        </div>
-                        <div>
-                          <span className="font-medium">Cancha:</span> {partido.cancha}
+                      <div className="text-center px-4">
+                        <span className="text-2xl font-bold text-gray-500">VS</span>
+                      </div>
+                      
+                      <div className="text-center flex-1">
+                        <div className="flex items-center justify-center gap-2 mb-2">
+                          <span className="font-semibold text-lg">{partido.equipoVisitante}</span>
+                          <span className="text-2xl">{partido.logoVisitante}</span>
                         </div>
                       </div>
+                    </div>
 
+                    {/* Información del partido */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                        <span>{partido.fecha}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-muted-foreground" />
+                        <span>{partido.hora}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-muted-foreground" />
+                        <span>{partido.cancha}</span>
+                      </div>
+                    </div>
+
+                    {/* ID del partido */}
+                    <div className="bg-blue-50 p-3 rounded-lg">
+                      <p className="text-sm">
+                        <span className="font-medium">ID del Partido:</span> {partido.id}
+                      </p>
+                    </div>
+
+                    {/* Botón de acción */}
+                    <div className="flex justify-end">
                       <Button 
-                        size="sm" 
-                        onClick={() => seleccionarPartido(partido.id)}
-                        className="bg-orange-600 hover:bg-orange-700"
+                        onClick={() => seleccionarPartido(partido)}
+                        className="bg-orange-600 hover:bg-orange-700 flex items-center gap-2"
+                        disabled={partido.estado === "finalizado"}
                       >
-                        Registrar Resultados
+                        <FileText className="w-4 h-4" />
+                        {partido.estado === "finalizado" ? "Finalizado" : "Registrar Resultado"}
                       </Button>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Modal de Resultados */}
-      <Dialog open={mostrarFormularioResultados} onOpenChange={setMostrarFormularioResultados}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      {/* Modal de registro de resultado */}
+      <Dialog open={mostrarFormularioResultado} onOpenChange={cerrarModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              📊 Registrar Resultados del Partido {partidoActual?.id}
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Registrar Resultado del Partido
             </DialogTitle>
           </DialogHeader>
-
-          {partidoActual && (
+          
+          {partidoSeleccionado && (
             <div className="space-y-6">
-              <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-                <h4 className="font-semibold text-orange-800 mb-2">
-                  {partidoActual.equipoLocal} vs {partidoActual.equipoVisitante}
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div><span className="font-medium">ID:</span> {partidoActual.id}</div>
-                  <div><span className="font-medium">Fecha:</span> {partidoActual.fecha} - {partidoActual.hora}</div>
-                  <div><span className="font-medium">Cancha:</span> {partidoActual.cancha}</div>
+              {/* Información del partido */}
+              <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                <div className="flex items-center justify-center gap-4">
+                  <div className="text-center">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xl">{partidoSeleccionado.logoLocal}</span>
+                      <span className="font-semibold">{partidoSeleccionado.equipoLocal}</span>
+                    </div>
+                  </div>
+                  <span className="text-lg font-bold">VS</span>
+                  <div className="text-center">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold">{partidoSeleccionado.equipoVisitante}</span>
+                      <span className="text-xl">{partidoSeleccionado.logoVisitante}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-center text-sm text-muted-foreground">
+                  <p><strong>ID:</strong> {partidoSeleccionado.id}</p>
+                  <p>{partidoSeleccionado.fecha} - {partidoSeleccionado.hora} - {partidoSeleccionado.cancha}</p>
+                  <p>{partidoSeleccionado.torneo} ({partidoSeleccionado.categoria})</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Formulario de resultado */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Goles {partidoSeleccionado.equipoLocal} *</Label>
+                    <Input
+                      type="number"
+                      value={resultado.golesLocal}
+                      onChange={(e) => setResultado({...resultado, golesLocal: e.target.value})}
+                      placeholder="0"
+                      min="0"
+                      max="50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Goles {partidoSeleccionado.equipoVisitante} *</Label>
+                    <Input
+                      type="number"
+                      value={resultado.golesVisitante}
+                      onChange={(e) => setResultado({...resultado, golesVisitante: e.target.value})}
+                      placeholder="0"
+                      min="0"
+                      max="50"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Tarjetas Amarillas</Label>
+                    <Input
+                      value={resultado.tarjetasAmarillas}
+                      onChange={(e) => setResultado({...resultado, tarjetasAmarillas: e.target.value})}
+                      placeholder="Ej: Juan Pérez (15'), María López (45')"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Tarjetas Rojas</Label>
+                    <Input
+                      value={resultado.tarjetasRojas}
+                      onChange={(e) => setResultado({...resultado, tarjetasRojas: e.target.value})}
+                      placeholder="Ej: Carlos Ruiz (67')"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="golesLocal">Goles Equipo Local</Label>
+                  <Label>Jugador Destacado</Label>
                   <Input
-                    id="golesLocal"
-                    type="number"
-                    value={resultado.golesLocal}
-                    onChange={(e) => setResultado({...resultado, golesLocal: e.target.value})}
-                    placeholder="0"
-                    min="0"
+                    value={resultado.jugadorDestacado}
+                    onChange={(e) => setResultado({...resultado, jugadorDestacado: e.target.value})}
+                    placeholder="Nombre del jugador más destacado del partido"
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="golesVisitante">Goles Equipo Visitante</Label>
-                  <Input
-                    id="golesVisitante"
-                    type="number"
-                    value={resultado.golesVisitante}
-                    onChange={(e) => setResultado({...resultado, golesVisitante: e.target.value})}
-                    placeholder="0"
-                    min="0"
+                  <Label>Observaciones</Label>
+                  <textarea
+                    className="w-full p-3 border rounded-md resize-none"
+                    rows={4}
+                    value={resultado.observaciones}
+                    onChange={(e) => setResultado({...resultado, observaciones: e.target.value})}
+                    placeholder="Observaciones adicionales del partido (incidentes, lesiones, etc.)"
                   />
                 </div>
               </div>
 
-              {/* Goleadores */}
-              <div className="space-y-4">
-                <Label>⚽ Goleadores</Label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Select value={nuevoGoleador.jugadorId} onValueChange={(value) => setNuevoGoleador({...nuevoGoleador, jugadorId: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar jugador" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {jugadores.map((jugador) => (
-                        <SelectItem key={jugador.id} value={jugador.id}>
-                          {jugador.nombre} #{jugador.numero} ({jugador.equipo === "local" ? "Local" : "Visitante"})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    placeholder="Cantidad de goles"
-                    type="number"
-                    value={nuevoGoleador.goles}
-                    onChange={(e) => setNuevoGoleador({...nuevoGoleador, goles: parseInt(e.target.value) || 1})}
-                    min="1"
-                  />
-                  <Button onClick={agregarGoleador} variant="outline">
-                    Agregar Gol
-                  </Button>
+              {/* Vista previa del resultado */}
+              {resultado.golesLocal && resultado.golesVisitante && (
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h4 className="font-medium mb-2">Vista previa del resultado:</h4>
+                  <p className="text-lg font-bold text-center">
+                    {partidoSeleccionado.equipoLocal} {resultado.golesLocal} - {resultado.golesVisitante} {partidoSeleccionado.equipoVisitante}
+                  </p>
                 </div>
-                
-                {goleadores.length > 0 && (
-                  <div className="space-y-2">
-                    {goleadores.map((goleador) => (
-                      <div key={goleador.id} className="flex justify-between items-center p-2 bg-orange-50 rounded">
-                        <span>{goleador.nombre}</span>
-                        <Badge>{goleador.goles} gol(es)</Badge>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              )}
 
-              {/* Tarjetas */}
-              <div className="space-y-4">
-                <Label>🟨🟥 Tarjetas</Label>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <Select value={nuevaTarjeta.jugadorId} onValueChange={(value) => setNuevaTarjeta({...nuevaTarjeta, jugadorId: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar jugador" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {jugadores.map((jugador) => (
-                        <SelectItem key={jugador.id} value={jugador.id}>
-                          {jugador.nombre} #{jugador.numero} ({jugador.equipo === "local" ? "Local" : "Visitante"})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={nuevaTarjeta.tipo} onValueChange={(value) => setNuevaTarjeta({...nuevaTarjeta, tipo: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Tipo de tarjeta" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="amarilla">Amarilla</SelectItem>
-                      <SelectItem value="doble_amarilla">Doble Amarilla</SelectItem>
-                      <SelectItem value="roja_directa">Roja Directa</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    placeholder="Minuto"
-                    type="number"
-                    value={nuevaTarjeta.minuto}
-                    onChange={(e) => setNuevaTarjeta({...nuevaTarjeta, minuto: e.target.value})}
-                    min="1"
-                    max="120"
-                  />
-                  <Button onClick={agregarTarjeta} variant="outline">
-                    Agregar Tarjeta
-                  </Button>
-                </div>
-                
-                {tarjetas.length > 0 && (
-                  <div className="space-y-2">
-                    {tarjetas.map((tarjeta) => (
-                      <div key={tarjeta.id} className="flex justify-between items-center p-2 bg-orange-50 rounded">
-                        <span>{tarjeta.nombre} - Min {tarjeta.minuto}</span>
-                        {getTarjetaBadge(tarjeta.tipo)}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Cambios */}
-              <div className="space-y-4">
-                <Label>🔄 Cambios de Jugadores</Label>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                  <Select value={nuevoCambio.equipo} onValueChange={(value) => setNuevoCambio({...nuevoCambio, equipo: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Equipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="local">Local</SelectItem>
-                      <SelectItem value="visitante">Visitante</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select value={nuevoCambio.jugadorSaleId} onValueChange={(value) => setNuevoCambio({...nuevoCambio, jugadorSaleId: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sale" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(nuevoCambio.equipo === "local" ? jugadoresLocales : nuevoCambio.equipo === "visitante" ? jugadoresVisitantes : []).map((jugador) => (
-                        <SelectItem key={jugador.id} value={jugador.id}>
-                          {jugador.nombre} #{jugador.numero}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={nuevoCambio.jugadorEntraId} onValueChange={(value) => setNuevoCambio({...nuevoCambio, jugadorEntraId: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Entra" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(nuevoCambio.equipo === "local" ? jugadoresLocales : nuevoCambio.equipo === "visitante" ? jugadoresVisitantes : []).map((jugador) => (
-                        <SelectItem key={jugador.id} value={jugador.id}>
-                          {jugador.nombre} #{jugador.numero}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    placeholder="Minuto"
-                    type="number"
-                    value={nuevoCambio.minuto}
-                    onChange={(e) => setNuevoCambio({...nuevoCambio, minuto: e.target.value})}
-                    min="1"
-                    max="120"
-                  />
-                  <Button onClick={agregarCambio} variant="outline">
-                    Agregar Cambio
-                  </Button>
-                </div>
-                
-                {cambios.length > 0 && (
-                  <div className="space-y-2">
-                    {cambios.map((cambio) => (
-                      <div key={cambio.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-2 bg-orange-50 rounded gap-2">
-                        <span className="text-sm">
-                          Min {cambio.minuto}: Sale {cambio.nombreSale} → Entra {cambio.nombreEntra}
-                        </span>
-                        <Badge variant="outline">{cambio.equipo === "local" ? "Local" : "Visitante"}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Informe Arbitral */}
-              <div className="space-y-2">
-                <Label htmlFor="informe">📸 Foto del Informe Arbitral</Label>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                  <Input
-                    id="informe"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleInformeUpload}
-                    className="hidden"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => document.getElementById('informe')?.click()}
-                    className="flex items-center gap-2"
-                  >
-                    <Camera className="w-4 h-4" />
-                    Subir Foto
-                  </Button>
-                  {resultado.informeArbitral && (
-                    <Badge variant="secondary">{resultado.informeArbitral.name}</Badge>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex gap-4 pt-6">
-                <Button onClick={subirResultados} className="flex-1 bg-orange-600 hover:bg-orange-700">
-                  📊 Subir Resultados Completos
+              {/* Botones */}
+              <div className="flex gap-4">
+                <Button 
+                  onClick={enviarResultado} 
+                  className="flex-1 bg-orange-600 hover:bg-orange-700"
+                  disabled={!resultado.golesLocal || !resultado.golesVisitante}
+                >
+                  📤 Enviar Resultado
                 </Button>
                 <Button 
                   variant="outline" 
-                  onClick={() => setMostrarFormularioResultados(false)}
+                  onClick={cerrarModal}
                   className="flex-1"
                 >
                   Cancelar

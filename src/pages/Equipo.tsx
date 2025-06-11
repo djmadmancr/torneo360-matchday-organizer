@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Trash2, Upload, Search, MapPin, User, Phone, Mail } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Upload, Search, MapPin, User, Phone, Mail, BarChart3, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -19,10 +18,22 @@ interface Equipo {
   id: string;
   nombre: string;
   logo: File | null;
-  colores: {
-    camiseta: string;
-    pantaloneta: string;
-    medias: string;
+  uniformes: {
+    principal: {
+      camiseta: { principal: string; secundario?: string };
+      pantaloneta: string;
+      medias: string;
+    };
+    alternativo?: {
+      camiseta: { principal: string; secundario?: string };
+      pantaloneta: string;
+      medias: string;
+    };
+    tercero?: {
+      camiseta: { principal: string; secundario?: string };
+      pantaloneta: string;
+      medias: string;
+    };
   };
   contactoPrincipal: {
     nombre: string;
@@ -37,6 +48,7 @@ interface Equipo {
   jugadores: Jugador[];
   personalTecnico: PersonalTecnico[];
   canchasCasa: string[];
+  torneosParticipando: string[];
 }
 
 interface Jugador {
@@ -65,20 +77,46 @@ interface TorneoPublico {
   maxEquipos: number;
 }
 
+interface TorneoParticipando {
+  id: string;
+  nombre: string;
+  categoria: string;
+  estado: "inscrito" | "en_curso" | "finalizado";
+  proximoPartido?: {
+    rival: string;
+    fecha: string;
+    hora: string;
+    cancha: string;
+  };
+}
+
 const Equipo = () => {
   const navigate = useNavigate();
   const [equipos, setEquipos] = useState<Equipo[]>([]);
   const [equipoSeleccionado, setEquipoSeleccionado] = useState<string>("");
   const [mostrarFormularioEquipo, setMostrarFormularioEquipo] = useState(false);
   const [equipoEditando, setEquipoEditando] = useState<string | null>(null);
+  const [uniformeActivo, setUniformeActivo] = useState<"principal" | "alternativo" | "tercero">("principal");
 
   const [formEquipo, setFormEquipo] = useState({
     nombre: "",
     logo: null as File | null,
-    colores: {
-      camiseta: "#FF0000",
-      pantaloneta: "#000000", 
-      medias: "#FFFFFF"
+    uniformes: {
+      principal: {
+        camiseta: { principal: "#FF0000", secundario: "" },
+        pantaloneta: "#000000", 
+        medias: "#FFFFFF"
+      },
+      alternativo: {
+        camiseta: { principal: "#FFFFFF", secundario: "" },
+        pantaloneta: "#FFFFFF", 
+        medias: "#000000"
+      },
+      tercero: {
+        camiseta: { principal: "#0000FF", secundario: "" },
+        pantaloneta: "#0000FF", 
+        medias: "#FFFFFF"
+      }
     },
     contactoPrincipal: {
       nombre: "",
@@ -110,7 +148,6 @@ const Equipo = () => {
     rol: ""
   });
 
-  const [torneoId, setTorneoId] = useState("");
   const [busquedaTorneo, setBusquedaTorneo] = useState("");
   const [mostrarSeleccionJugadores, setMostrarSeleccionJugadores] = useState(false);
   const [torneoSeleccionado, setTorneoSeleccionado] = useState("");
@@ -133,6 +170,42 @@ const Equipo = () => {
       fechaCierre: "2024-06-18",
       equiposInscritos: 8,
       maxEquipos: 12
+    },
+    {
+      id: "TRN-ABC12345",
+      nombre: "Copa Primavera 2024",
+      tipoFutbol: "futbol5",
+      categoria: "U20",
+      fechaCierre: "2024-06-25",
+      equiposInscritos: 8,
+      maxEquipos: 12
+    }
+  ]);
+
+  const [torneosParticipando] = useState<TorneoParticipando[]>([
+    {
+      id: "TRN-ABC12345",
+      nombre: "Copa Primavera 2024",
+      categoria: "U20",
+      estado: "en_curso",
+      proximoPartido: {
+        rival: "Tigres SC",
+        fecha: "2024-06-20",
+        hora: "16:00",
+        cancha: "Cancha Principal"
+      }
+    },
+    {
+      id: "TRN-DEF67890",
+      nombre: "Liga Municipal Otoño",
+      categoria: "Libre",
+      estado: "inscrito",
+    },
+    {
+      id: "TRN-GHI11111",
+      nombre: "Torneo Relámpago Verano",
+      categoria: "U17",
+      estado: "finalizado"
     }
   ]);
 
@@ -151,7 +224,8 @@ const Equipo = () => {
       ...formEquipo,
       jugadores,
       personalTecnico,
-      canchasCasa
+      canchasCasa,
+      torneosParticipando: []
     };
 
     if (equipoEditando) {
@@ -171,7 +245,23 @@ const Equipo = () => {
     setFormEquipo({
       nombre: "",
       logo: null,
-      colores: { camiseta: "#FF0000", pantaloneta: "#000000", medias: "#FFFFFF" },
+      uniformes: {
+        principal: {
+          camiseta: { principal: "#FF0000", secundario: "" },
+          pantaloneta: "#000000", 
+          medias: "#FFFFFF"
+        },
+        alternativo: {
+          camiseta: { principal: "#FFFFFF", secundario: "" },
+          pantaloneta: "#FFFFFF", 
+          medias: "#000000"
+        },
+        tercero: {
+          camiseta: { principal: "#0000FF", secundario: "" },
+          pantaloneta: "#0000FF", 
+          medias: "#FFFFFF"
+        }
+      },
       contactoPrincipal: { nombre: "", telefono: "", email: "" },
       fiscalCasa: { nombre: "", identificacion: "", telefono: "" }
     });
@@ -187,7 +277,7 @@ const Equipo = () => {
       setFormEquipo({
         nombre: equipo.nombre,
         logo: equipo.logo,
-        colores: equipo.colores,
+        uniformes: equipo.uniformes,
         contactoPrincipal: equipo.contactoPrincipal,
         fiscalCasa: equipo.fiscalCasa
       });
@@ -196,71 +286,6 @@ const Equipo = () => {
       setCanchasCasa(equipo.canchasCasa);
       setMostrarFormularioEquipo(true);
     }
-  };
-
-  const agregarJugador = () => {
-    if (!nuevoJugador.nombre || !nuevoJugador.identificacion || !nuevoJugador.edad) {
-      toast.error("Por favor completa todos los campos del jugador");
-      return;
-    }
-
-    const jugador: Jugador = {
-      id: Math.random().toString(36).substr(2, 9),
-      ...nuevoJugador,
-      seleccionado: false
-    };
-
-    setJugadores([...jugadores, jugador]);
-    setNuevoJugador({ nombre: "", identificacion: "", edad: "" });
-    toast.success("Jugador agregado exitosamente");
-  };
-
-  const agregarPersonal = () => {
-    if (!nuevoPersonal.nombre || !nuevoPersonal.identificacion || !nuevoPersonal.telefono || !nuevoPersonal.rol) {
-      toast.error("Por favor completa todos los campos");
-      return;
-    }
-
-    const personal: PersonalTecnico = {
-      id: Math.random().toString(36).substr(2, 9),
-      ...nuevoPersonal,
-      rol: nuevoPersonal.rol as "dt" | "asistente"
-    };
-
-    setPersonalTecnico([...personalTecnico, personal]);
-    setNuevoPersonal({ nombre: "", identificacion: "", telefono: "", rol: "" });
-    toast.success("Personal técnico agregado exitosamente");
-  };
-
-  const eliminarJugador = (id: string) => {
-    setJugadores(jugadores.filter(j => j.id !== id));
-    toast.success("Jugador eliminado");
-  };
-
-  const eliminarPersonal = (id: string) => {
-    setPersonalTecnico(personalTecnico.filter(p => p.id !== id));
-    toast.success("Personal técnico eliminado");
-  };
-
-  const agregarCancha = () => {
-    if (!nuevaCancha.trim()) {
-      toast.error("Por favor ingresa el nombre de la cancha");
-      return;
-    }
-
-    if (canchasCasa.length >= 3) {
-      toast.error("Máximo 3 canchas como casa");
-      return;
-    }
-
-    setCanchasCasa([...canchasCasa, nuevaCancha]);
-    setNuevaCancha("");
-    toast.success("Cancha agregada como casa");
-  };
-
-  const eliminarCancha = (index: number) => {
-    setCanchasCasa(canchasCasa.filter((_, i) => i !== index));
-    toast.success("Cancha eliminada");
   };
 
   const aplicarATorneoPublico = (torneoId: string) => {
@@ -329,6 +354,14 @@ const Equipo = () => {
 
   const equipoActual = equipos.find(e => e.id === equipoSeleccionado);
 
+  const verEstadisticasTorneo = (torneoId: string) => {
+    toast.success(`Abriendo estadísticas del torneo ${torneoId}`);
+  };
+
+  const verFixturesTorneo = (torneoId: string) => {
+    toast.success(`Abriendo fixtures del torneo ${torneoId}`);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50">
       <div className="bg-white shadow-sm border-b">
@@ -352,11 +385,9 @@ const Equipo = () => {
 
       <div className="container mx-auto px-4 py-4 md:py-8">
         <Tabs defaultValue="equipos" className="max-w-6xl mx-auto">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 text-xs md:text-sm">
+          <TabsList className="grid w-full grid-cols-2 text-xs md:text-sm">
             <TabsTrigger value="equipos">Equipos</TabsTrigger>
-            <TabsTrigger value="torneos-publicos">Torneos</TabsTrigger>
-            <TabsTrigger value="torneo-id">Por ID</TabsTrigger>
-            <TabsTrigger value="configuracion">Configuración</TabsTrigger>
+            <TabsTrigger value="torneos">Torneos</TabsTrigger>
           </TabsList>
 
           <TabsContent value="equipos">
@@ -391,6 +422,11 @@ const Equipo = () => {
                       key={equipo.id}
                       equipo={{
                         ...equipo,
+                        colores: {
+                          camiseta: equipo.uniformes.principal.camiseta.principal,
+                          pantaloneta: equipo.uniformes.principal.pantaloneta,
+                          medias: equipo.uniformes.principal.medias
+                        },
                         jugadores: equipo.jugadores.length
                       }}
                       onEdit={() => editarEquipo(equipo.id)}
@@ -401,8 +437,71 @@ const Equipo = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="torneos-publicos">
+          <TabsContent value="torneos">
             <div className="space-y-6">
+              {/* Torneos en los que participo */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Mis Torneos</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {torneosParticipando.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">
+                      No estás participando en ningún torneo actualmente
+                    </p>
+                  ) : (
+                    <div className="space-y-4">
+                      {torneosParticipando.map((torneo) => (
+                        <div key={torneo.id} className="border rounded-lg p-4">
+                          <div className="flex flex-col sm:flex-row justify-between items-start mb-3 gap-3">
+                            <div>
+                              <h4 className="font-semibold text-lg">{torneo.nombre}</h4>
+                              <p className="text-sm text-muted-foreground">Categoría: {torneo.categoria}</p>
+                              {torneo.proximoPartido && (
+                                <p className="text-sm text-blue-600 mt-1">
+                                  Próximo: vs {torneo.proximoPartido.rival} - {torneo.proximoPartido.fecha} {torneo.proximoPartido.hora}
+                                </p>
+                              )}
+                            </div>
+                            <Badge className={
+                              torneo.estado === "en_curso" ? "bg-blue-500" :
+                              torneo.estado === "inscrito" ? "bg-green-500" : "bg-gray-500"
+                            }>
+                              {torneo.estado === "en_curso" ? "En Curso" :
+                               torneo.estado === "inscrito" ? "Inscrito" : "Finalizado"}
+                            </Badge>
+                          </div>
+                          
+                          {torneo.estado === "en_curso" && (
+                            <div className="flex gap-2 flex-wrap">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => verEstadisticasTorneo(torneo.id)}
+                                className="flex items-center gap-1"
+                              >
+                                <BarChart3 className="w-4 h-4" />
+                                Estadísticas
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => verFixturesTorneo(torneo.id)}
+                                className="flex items-center gap-1"
+                              >
+                                <Calendar className="w-4 h-4" />
+                                Fixtures
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Torneos públicos disponibles */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -476,77 +575,12 @@ const Equipo = () => {
               </Card>
             </div>
           </TabsContent>
-
-          <TabsContent value="torneo-id">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  🏆 Aplicar a Torneo por ID
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label>ID del Torneo</Label>
-                  <Input
-                    value={torneoId}
-                    onChange={(e) => setTorneoId(e.target.value)}
-                    placeholder="Ej: TRN-ABC12345"
-                  />
-                </div>
-
-                {equipos.length > 0 && (
-                  <div className="space-y-2">
-                    <Label>Seleccionar equipo</Label>
-                    <Select value={equipoSeleccionado} onValueChange={setEquipoSeleccionado}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona un equipo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {equipos.map((equipo) => (
-                          <SelectItem key={equipo.id} value={equipo.id}>
-                            {equipo.nombre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                <Button 
-                  onClick={() => {
-                    if (!torneoId || !equipoSeleccionado) {
-                      toast.error("Por favor completa todos los campos");
-                      return;
-                    }
-                    toast.success(`Aplicación enviada al torneo ${torneoId}`);
-                  }}
-                  className="w-full bg-green-600 hover:bg-green-700"
-                  disabled={!torneoId || !equipoSeleccionado}
-                >
-                  🏆 Aplicar al Torneo
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="configuracion">
-            <Card>
-              <CardHeader>
-                <CardTitle>⚙️ Configuración General</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Configuraciones adicionales del equipo aparecerán aquí.
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
       </div>
 
       {/* Modal de creación/edición de equipo */}
       <Dialog open={mostrarFormularioEquipo} onOpenChange={(open) => !open && cerrarFormularioEquipo()}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {equipoEditando ? "Editar Equipo" : "Crear Nuevo Equipo"}
@@ -589,36 +623,152 @@ const Equipo = () => {
               </div>
             </div>
 
+            {/* Uniformes */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Colores del Equipo</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <ColorSelector
-                  label="Color de Camiseta"
-                  value={formEquipo.colores.camiseta}
-                  onChange={(color) => setFormEquipo({
-                    ...formEquipo,
-                    colores: { ...formEquipo.colores, camiseta: color }
-                  })}
-                />
-                <ColorSelector
-                  label="Color de Pantaloneta"
-                  value={formEquipo.colores.pantaloneta}
-                  onChange={(color) => setFormEquipo({
-                    ...formEquipo,
-                    colores: { ...formEquipo.colores, pantaloneta: color }
-                  })}
-                />
-                <ColorSelector
-                  label="Color de Medias"
-                  value={formEquipo.colores.medias}
-                  onChange={(color) => setFormEquipo({
-                    ...formEquipo,
-                    colores: { ...formEquipo.colores, medias: color }
-                  })}
-                />
+              <h3 className="text-lg font-semibold">Uniformes del Equipo</h3>
+              
+              <div className="flex gap-2 mb-4">
+                <Button 
+                  variant={uniformeActivo === "principal" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setUniformeActivo("principal")}
+                >
+                  Principal
+                </Button>
+                <Button 
+                  variant={uniformeActivo === "alternativo" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setUniformeActivo("alternativo")}
+                >
+                  Alternativo
+                </Button>
+                <Button 
+                  variant={uniformeActivo === "tercero" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setUniformeActivo("tercero")}
+                >
+                  Tercero
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="space-y-4">
+                  <Label>Camiseta - Color Principal</Label>
+                  <input
+                    type="color"
+                    value={formEquipo.uniformes[uniformeActivo].camiseta.principal}
+                    onChange={(e) => setFormEquipo({
+                      ...formEquipo,
+                      uniformes: {
+                        ...formEquipo.uniformes,
+                        [uniformeActivo]: {
+                          ...formEquipo.uniformes[uniformeActivo],
+                          camiseta: {
+                            ...formEquipo.uniformes[uniformeActivo].camiseta,
+                            principal: e.target.value
+                          }
+                        }
+                      }
+                    })}
+                    className="w-full h-12 rounded border"
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <Label>Camiseta - Color Secundario (Opcional)</Label>
+                  <input
+                    type="color"
+                    value={formEquipo.uniformes[uniformeActivo].camiseta.secundario || "#FFFFFF"}
+                    onChange={(e) => setFormEquipo({
+                      ...formEquipo,
+                      uniformes: {
+                        ...formEquipo.uniformes,
+                        [uniformeActivo]: {
+                          ...formEquipo.uniformes[uniformeActivo],
+                          camiseta: {
+                            ...formEquipo.uniformes[uniformeActivo].camiseta,
+                            secundario: e.target.value
+                          }
+                        }
+                      }
+                    })}
+                    className="w-full h-12 rounded border"
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <Label>Pantaloneta</Label>
+                  <input
+                    type="color"
+                    value={formEquipo.uniformes[uniformeActivo].pantaloneta}
+                    onChange={(e) => setFormEquipo({
+                      ...formEquipo,
+                      uniformes: {
+                        ...formEquipo.uniformes,
+                        [uniformeActivo]: {
+                          ...formEquipo.uniformes[uniformeActivo],
+                          pantaloneta: e.target.value
+                        }
+                      }
+                    })}
+                    className="w-full h-12 rounded border"
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <Label>Medias</Label>
+                  <input
+                    type="color"
+                    value={formEquipo.uniformes[uniformeActivo].medias}
+                    onChange={(e) => setFormEquipo({
+                      ...formEquipo,
+                      uniformes: {
+                        ...formEquipo.uniformes,
+                        [uniformeActivo]: {
+                          ...formEquipo.uniformes[uniformeActivo],
+                          medias: e.target.value
+                        }
+                      }
+                    })}
+                    className="w-full h-12 rounded border"
+                  />
+                </div>
+              </div>
+
+              {/* Vista previa del uniforme */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium mb-2">Vista previa - Uniforme {uniformeActivo}</h4>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-8 h-8 rounded border-2 border-gray-300"
+                      style={{ 
+                        background: formEquipo.uniformes[uniformeActivo].camiseta.secundario ? 
+                          `linear-gradient(45deg, ${formEquipo.uniformes[uniformeActivo].camiseta.principal}, ${formEquipo.uniformes[uniformeActivo].camiseta.secundario})` :
+                          formEquipo.uniformes[uniformeActivo].camiseta.principal
+                      }}
+                    />
+                    <span className="text-sm">Camiseta</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-8 h-8 rounded border-2 border-gray-300"
+                      style={{ backgroundColor: formEquipo.uniformes[uniformeActivo].pantaloneta }}
+                    />
+                    <span className="text-sm">Pantaloneta</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-8 h-8 rounded border-2 border-gray-300"
+                      style={{ backgroundColor: formEquipo.uniformes[uniformeActivo].medias }}
+                    />
+                    <span className="text-sm">Medias</span>
+                  </div>
+                </div>
               </div>
             </div>
 
+            {/* Contacto Principal */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <User className="w-5 h-5" />
@@ -662,6 +812,7 @@ const Equipo = () => {
               </div>
             </div>
 
+            {/* Fiscal de Casa */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">🔍 Fiscal de Casa</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -699,6 +850,46 @@ const Equipo = () => {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Canchas Casa */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <MapPin className="w-5 h-5" />
+                Canchas Casa (2-3 canchas)
+              </h3>
+              <div className="flex gap-4">
+                <Input
+                  value={nuevaCancha}
+                  onChange={(e) => setNuevaCancha(e.target.value)}
+                  placeholder="Nombre de la cancha"
+                  className="flex-1"
+                />
+                <Button 
+                  onClick={agregarCancha} 
+                  disabled={canchasCasa.length >= 3}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Agregar
+                </Button>
+              </div>
+
+              {canchasCasa.length > 0 && (
+                <div className="space-y-2">
+                  {canchasCasa.map((cancha, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 border rounded">
+                      <span className="text-sm">{cancha}</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => eliminarCancha(index)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Gestión de Jugadores */}
@@ -793,46 +984,6 @@ const Equipo = () => {
                         variant="destructive"
                         size="sm"
                         onClick={() => eliminarPersonal(personal.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Canchas Casa */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <MapPin className="w-5 h-5" />
-                Canchas Casa (2-3 canchas)
-              </h3>
-              <div className="flex gap-4">
-                <Input
-                  value={nuevaCancha}
-                  onChange={(e) => setNuevaCancha(e.target.value)}
-                  placeholder="Nombre de la cancha"
-                  className="flex-1"
-                />
-                <Button 
-                  onClick={agregarCancha} 
-                  disabled={canchasCasa.length >= 3}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Agregar
-                </Button>
-              </div>
-
-              {canchasCasa.length > 0 && (
-                <div className="space-y-2">
-                  {canchasCasa.map((cancha, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 border rounded">
-                      <span className="text-sm">{cancha}</span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => eliminarCancha(index)}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
