@@ -9,7 +9,7 @@ interface EquipoCardProps {
   equipo: {
     id: string;
     nombre: string;
-    logo?: File | null;
+    logo?: string;
     colores: {
       camiseta: string;
       pantaloneta: string;
@@ -26,15 +26,19 @@ const EquipoCard: React.FC<EquipoCardProps> = ({ equipo, onEdit }) => {
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
               {equipo.logo ? (
                 <img 
-                  src={URL.createObjectURL(equipo.logo)} 
+                  src={equipo.logo} 
                   alt={equipo.nombre}
-                  className="w-10 h-10 object-contain rounded"
+                  className="w-10 h-10 object-cover rounded"
                 />
               ) : (
-                <span className="text-xl">⚽</span>
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">
+                    {equipo.nombre.charAt(0).toUpperCase()}
+                  </span>
+                </div>
               )}
             </div>
             <div>

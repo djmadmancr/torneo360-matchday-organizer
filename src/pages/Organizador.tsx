@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +17,10 @@ interface Torneo {
   nombre: string;
   categoria: string;
   tipo: string;
+  formato: string;
+  fechaInicio: string;
+  fechaFin: string;
+  logo: string;
   maxEquipos: number;
   equiposInscritos: number;
   estado: "inscripciones_abiertas" | "inscripciones_cerradas" | "en_curso" | "finalizado";
@@ -95,7 +98,7 @@ const Organizador = () => {
 
   const [perfil, setPerfil] = useState<PerfilOrganizador>({
     nombre: "Liga Municipal de Fútbol",
-    logo: "🏆",
+    logo: "https://images.unsplash.com/photo-1614632537190-23e4b93dc25e?w=100&h=100&fit=crop&crop=center",
     encargados: ["Carlos Rodríguez", "Ana Martínez"],
     email: "info@ligamunicipal.com",
     telefono: "+57 300 123 4567"
@@ -107,6 +110,10 @@ const Organizador = () => {
       nombre: "Copa Primavera 2024",
       categoria: "U20",
       tipo: "Completo",
+      formato: "Grupos + Eliminatorio",
+      fechaInicio: "2024-07-01",
+      fechaFin: "2024-08-15",
+      logo: "https://images.unsplash.com/photo-1614632537190-23e4b93dc25e?w=100&h=100&fit=crop&crop=center",
       maxEquipos: 12,
       equiposInscritos: 8,
       estado: "inscripciones_abiertas",
@@ -122,6 +129,10 @@ const Organizador = () => {
       nombre: "Liga Municipal Otoño",
       categoria: "Libre",
       tipo: "Eliminatorio",
+      formato: "Eliminatorio Directo",
+      fechaInicio: "2024-06-15",
+      fechaFin: "2024-07-30",
+      logo: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=100&h=100&fit=crop&crop=center",
       maxEquipos: 16,
       equiposInscritos: 16,
       estado: "en_curso",
@@ -137,6 +148,10 @@ const Organizador = () => {
       nombre: "Torneo Relámpago Verano",
       categoria: "U17",
       tipo: "Relámpago",
+      formato: "Todos contra Todos",
+      fechaInicio: "2024-06-20",
+      fechaFin: "2024-06-25",
+      logo: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=100&h=100&fit=crop&crop=center",
       maxEquipos: 8,
       equiposInscritos: 8,
       estado: "inscripciones_cerradas",
@@ -172,23 +187,23 @@ const Organizador = () => {
     }
   ]);
 
-  // Datos demo para estadísticas
+  // Datos demo para estadísticas con logos JPG
   const equiposTabla: EquipoTabla[] = [
-    { nombre: "Águilas FC", logo: "🦅", pj: 6, pg: 4, pe: 1, pp: 1, gf: 12, gc: 6, dg: 6, pts: 13, pAdicionales: 2 },
-    { nombre: "Tigres SC", logo: "🐅", pj: 6, pg: 3, pe: 2, pp: 1, gf: 10, gc: 7, dg: 3, pts: 11, pAdicionales: 0 },
-    { nombre: "Leones United", logo: "🦁", pj: 6, pg: 3, pe: 1, pp: 2, gf: 9, gc: 8, dg: 1, pts: 10, pAdicionales: 1 },
-    { nombre: "Pumas FC", logo: "🐆", pj: 6, pg: 2, pe: 2, pp: 2, gf: 8, gc: 9, dg: -1, pts: 8, pAdicionales: 0 }
+    { nombre: "Águilas FC", logo: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center", pj: 6, pg: 4, pe: 1, pp: 1, gf: 12, gc: 6, dg: 6, pts: 13, pAdicionales: 2 },
+    { nombre: "Tigres SC", logo: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=50&h=50&fit=crop&crop=center", pj: 6, pg: 3, pe: 2, pp: 1, gf: 10, gc: 7, dg: 3, pts: 11, pAdicionales: 0 },
+    { nombre: "Leones United", logo: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=50&h=50&fit=crop&crop=center", pj: 6, pg: 3, pe: 1, pp: 2, gf: 9, gc: 8, dg: 1, pts: 10, pAdicionales: 1 },
+    { nombre: "Pumas FC", logo: "https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=50&h=50&fit=crop&crop=center", pj: 6, pg: 2, pe: 2, pp: 2, gf: 8, gc: 9, dg: -1, pts: 8, pAdicionales: 0 }
   ];
 
   const resultados: Resultado[] = [
-    { equipoLocal: "Águilas FC", logoLocal: "🦅", equipoVisitante: "Tigres SC", logoVisitante: "🐅", golesLocal: 2, golesVisitante: 1, fecha: "2024-06-10" },
-    { equipoLocal: "Leones United", logoLocal: "🦁", equipoVisitante: "Pumas FC", logoVisitante: "🐆", golesLocal: 1, golesVisitante: 1, fecha: "2024-06-12" }
+    { equipoLocal: "Águilas FC", logoLocal: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center", equipoVisitante: "Tigres SC", logoVisitante: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=50&h=50&fit=crop&crop=center", golesLocal: 2, golesVisitante: 1, fecha: "2024-06-10" },
+    { equipoLocal: "Leones United", logoLocal: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=50&h=50&fit=crop&crop=center", equipoVisitante: "Pumas FC", logoVisitante: "https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=50&h=50&fit=crop&crop=center", golesLocal: 1, golesVisitante: 1, fecha: "2024-06-12" }
   ];
 
   const goleadores: Goleador[] = [
-    { nombre: "Carlos López", equipo: "Águilas FC", logoEquipo: "🦅", goles: 8 },
-    { nombre: "Miguel Torres", equipo: "Tigres SC", logoEquipo: "🐅", goles: 6 },
-    { nombre: "Juan Pérez", equipo: "Leones United", logoEquipo: "🦁", goles: 5 }
+    { nombre: "Carlos López", equipo: "Águilas FC", logoEquipo: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center", goles: 8 },
+    { nombre: "Miguel Torres", equipo: "Tigres SC", logoEquipo: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=50&h=50&fit=crop&crop=center", goles: 6 },
+    { nombre: "Juan Pérez", equipo: "Leones United", logoEquipo: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=50&h=50&fit=crop&crop=center", goles: 5 }
   ];
 
   const crearTorneo = (datosTorneo: any) => {
@@ -356,7 +371,11 @@ const Organizador = () => {
                 Volver
               </Button>
               <div className="flex items-center gap-3">
-                <span className="text-2xl">{perfil.logo}</span>
+                <img 
+                  src={perfil.logo} 
+                  alt={perfil.nombre}
+                  className="w-8 h-8 rounded-full object-cover"
+                />
                 <div>
                   <h1 className="text-xl md:text-2xl font-bold text-primary">🔵 Panel del Organizador</h1>
                   <p className="text-sm text-muted-foreground">Gestiona tus torneos y competencias</p>
@@ -530,7 +549,11 @@ const Organizador = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div className="text-center">
-              <div className="text-6xl mb-2">{perfil.logo}</div>
+              <img 
+                src={perfil.logo} 
+                alt={perfil.nombre}
+                className="w-24 h-24 rounded-full object-cover mx-auto mb-2"
+              />
               <h3 className="text-xl font-bold">{perfil.nombre}</h3>
             </div>
 
@@ -543,11 +566,11 @@ const Organizador = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Logo (emoji)</Label>
+              <Label>Logo (URL de imagen)</Label>
               <Input
                 value={perfil.logo}
                 onChange={(e) => setPerfil({...perfil, logo: e.target.value})}
-                placeholder="🏆"
+                placeholder="https://ejemplo.com/logo.jpg"
               />
             </div>
 
