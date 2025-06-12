@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Edit, Download, Calendar, BarChart3, Trophy, Bell, User, FileText, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Edit, Download, Calendar, BarChart3, Trophy, Bell, User, FileText, CheckCircle, XCircle, Clock, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -31,7 +32,7 @@ interface Torneo {
     eliminatoria: boolean;
   };
   diasSemana: string[];
-  partidosPorSemana: number;
+  partidosPorSemana: string;
   fechaCreacion: string;
 }
 
@@ -96,11 +97,11 @@ const Organizador = () => {
   const [torneoSeleccionado, setTorneoSeleccionado] = useState<Torneo | null>(null);
   const [torneoEditando, setTorneoEditando] = useState<string | null>(null);
 
-  const [perfil, setPerfil] = useState<PerfilOrganizador>({
+  const [perfil, setPerfil] = useState({
     nombre: "Liga Municipal de Fútbol",
     logo: "https://images.unsplash.com/photo-1614632537190-23e4b93dc25e?w=100&h=100&fit=crop&crop=center",
     encargados: ["Carlos Rodríguez", "Ana Martínez"],
-    email: "info@ligamunicipal.com",
+    email: "admin@ligamunicipal.com",
     telefono: "+57 300 123 4567"
   });
 
@@ -121,7 +122,7 @@ const Organizador = () => {
       puntajeExtra: "Penales",
       idaVuelta: { grupos: true, eliminatoria: false },
       diasSemana: ["sabado", "domingo"],
-      partidosPorSemana: 2,
+      partidosPorSemana: "2",
       fechaCreacion: "2024-06-01"
     },
     {
@@ -140,7 +141,7 @@ const Organizador = () => {
       puntajeExtra: "N/A",
       idaVuelta: { grupos: false, eliminatoria: true },
       diasSemana: ["viernes", "sabado"],
-      partidosPorSemana: 3,
+      partidosPorSemana: "3",
       fechaCreacion: "2024-05-15"
     },
     {
@@ -159,7 +160,7 @@ const Organizador = () => {
       puntajeExtra: "Shoot Outs",
       idaVuelta: { grupos: false, eliminatoria: false },
       diasSemana: ["domingo"],
-      partidosPorSemana: 4,
+      partidosPorSemana: "4",
       fechaCreacion: "2024-06-05"
     }
   ]);
@@ -206,158 +207,46 @@ const Organizador = () => {
     { nombre: "Juan Pérez", equipo: "Leones United", logoEquipo: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=50&h=50&fit=crop&crop=center", goles: 5 }
   ];
 
-  const crearTorneo = (datosTorneo: any) => {
+  const generarIdTorneo = () => {
+    const numeroAleatorio = Math.floor(Math.random() * 900) + 100;
+    return `TRN-${numeroAleatorio}`;
+  };
+
+  const handleCrearTorneo = (data: any) => {
     const nuevoTorneo: Torneo = {
-      id: 'TRN-' + Math.random().toString(36).substr(2, 6).toUpperCase(),
-      ...datosTorneo,
+      id: data.torneoId,
+      nombre: data.nombreTorneo,
+      categoria: data.categoria,
+      tipo: data.tipoFutbol,
+      formato: data.formato,
+      fechaInicio: "",
+      fechaFin: "",
+      logo: "https://images.unsplash.com/photo-1614632537190-23e4b93dc25e?w=100&h=100&fit=crop&crop=center",
+      maxEquipos: 16,
       equiposInscritos: 0,
-      estado: "inscripciones_abiertas" as const,
+      estado: "inscripciones_abiertas",
+      fechaCierre: data.fechaCierre,
+      puntajeExtra: data.puntajeExtra,
+      idaVuelta: data.idaVuelta,
+      diasSemana: data.diasSemana,
+      partidosPorSemana: data.partidosPorSemana,
       fechaCreacion: new Date().toISOString().split('T')[0]
     };
 
-    if (torneoEditando) {
-      setTorneos(torneos.map(t => t.id === torneoEditando ? { ...nuevoTorneo, id: torneoEditando } : t));
-      toast.success("Torneo actualizado exitosamente!");
-      setTorneoEditando(null);
-    } else {
-      setTorneos([...torneos, nuevoTorneo]);
-      toast.success("¡Torneo creado exitosamente! ID: " + nuevoTorneo.id);
-    }
-
-    setMostrarFormulario(false);
+    setTorneos(prev => [...prev, nuevoTorneo]);
+    toast.success("Torneo creado exitosamente");
   };
 
-  const editarTorneo = (torneoId: string) => {
-    const torneo = torneos.find(t => t.id === torneoId);
-    if (!torneo) return;
-
-    if (torneo.estado === "en_curso" || torneo.estado === "finalizado") {
-      toast.error("No se puede editar un torneo que ya ha iniciado o finalizado");
-      return;
-    }
-
+  const handleEditarTorneo = (torneoId: string) => {
     setTorneoEditando(torneoId);
     setMostrarFormulario(true);
   };
 
-  const cerrarInscripciones = (torneoId: string) => {
-    setTorneos(torneos.map(torneo => 
-      torneo.id === torneoId 
-        ? { ...torneo, estado: "inscripciones_cerradas" as const }
-        : torneo
-    ));
-    toast.success("Inscripciones cerradas. Ya se puede generar el sorteo.");
-  };
-
-  const iniciarTorneo = (torneoId: string) => {
-    setTorneos(torneos.map(torneo => 
-      torneo.id === torneoId 
-        ? { ...torneo, estado: "en_curso" as const }
-        : torneo
-    ));
-    toast.success("¡Torneo iniciado! Los fixtures han sido generados.");
-  };
-
-  const verEstadisticas = (torneo: Torneo) => {
-    setTorneoSeleccionado(torneo);
-    setMostrarEstadisticas(true);
-  };
-
-  const verFixtures = (torneo: Torneo) => {
-    setTorneoSeleccionado(torneo);
-    setMostrarFixtures(true);
-  };
-
-  const descargarFixtures = (tipo: "grupos" | "eliminatoria") => {
-    // Simular descarga
-    toast.success(`Descargando fixtures de ${tipo}...`);
-    
-    // Crear un canvas para generar la imagen
-    const canvas = document.createElement('canvas');
-    canvas.width = 800;
-    canvas.height = 600;
-    const ctx = canvas.getContext('2d');
-    
-    if (ctx) {
-      // Fondo
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, 800, 600);
-      
-      // Título
-      ctx.fillStyle = '#000000';
-      ctx.font = 'bold 24px Arial';
-      ctx.fillText(`Fixtures - ${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`, 50, 50);
-      
-      if (torneoSeleccionado) {
-        ctx.font = '18px Arial';
-        ctx.fillText(torneoSeleccionado.nombre, 50, 80);
-      }
-      
-      if (tipo === "grupos") {
-        // Dibujar grupos
-        ctx.font = '16px Arial';
-        ctx.fillText('Grupo A', 50, 120);
-        ctx.fillText('Águilas FC vs Tigres SC', 70, 150);
-        ctx.fillText('Leones United vs Pumas FC', 70, 180);
-        
-        ctx.fillText('Grupo B', 400, 120);
-        ctx.fillText('Halcones FC vs Lobos SC', 420, 150);
-        ctx.fillText('Serpientes FC vs Osos FC', 420, 180);
-      } else {
-        // Dibujar llave eliminatoria
-        ctx.font = '16px Arial';
-        ctx.fillText('Cuartos de Final', 50, 120);
-        ctx.fillText('1° Grupo A vs 2° Grupo B', 70, 150);
-        ctx.fillText('1° Grupo B vs 2° Grupo A', 70, 180);
-        
-        ctx.fillText('Semifinal', 50, 250);
-        ctx.fillText('Ganador QF1 vs Ganador QF2', 70, 280);
-        
-        ctx.fillText('Final', 50, 350);
-        ctx.fillText('Ganador SF1 vs Ganador SF2', 70, 380);
-      }
-      
-      // Convertir a imagen y descargar
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `fixtures_${tipo}_${torneoSeleccionado?.nombre || 'torneo'}.png`;
-          a.click();
-          URL.revokeObjectURL(url);
-        }
-      });
-    }
-  };
-
-  const aprobarNotificacion = (notificacionId: string) => {
-    setNotificaciones(notificaciones.filter(n => n.id !== notificacionId));
-    toast.success("Solicitud aprobada");
-  };
-
-  const rechazarNotificacion = (notificacionId: string) => {
-    setNotificaciones(notificaciones.filter(n => n.id !== notificacionId));
-    toast.success("Solicitud rechazada");
-  };
-
-  const getEstadoBadge = (estado: string) => {
-    switch (estado) {
-      case "inscripciones_abiertas":
-        return <Badge className="bg-green-500">Inscripciones Abiertas</Badge>;
-      case "inscripciones_cerradas":
-        return <Badge className="bg-yellow-500">Inscripciones Cerradas</Badge>;
-      case "en_curso":
-        return <Badge className="bg-blue-500">En Curso</Badge>;
-      case "finalizado":
-        return <Badge variant="secondary">Finalizado</Badge>;
-      default:
-        return <Badge variant="outline">Desconocido</Badge>;
-    }
-  };
+  const torneoParaEditar = torneoEditando ? torneos.find(t => t.id === torneoEditando) : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+      {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -367,8 +256,7 @@ const Organizador = () => {
                 onClick={() => navigate('/')}
                 className="flex items-center gap-2"
               >
-                <ArrowLeft className="w-4 h-4" />
-                Volver
+                ← Volver
               </Button>
               <div className="flex items-center gap-3">
                 <img 
@@ -377,8 +265,8 @@ const Organizador = () => {
                   className="w-8 h-8 rounded-full object-cover"
                 />
                 <div>
-                  <h1 className="text-xl md:text-2xl font-bold text-primary">🔵 Panel del Organizador</h1>
-                  <p className="text-sm text-muted-foreground">Gestiona tus torneos y competencias</p>
+                  <h1 className="text-xl md:text-2xl font-bold text-primary">🏆 Panel del Organizador</h1>
+                  <p className="text-sm text-muted-foreground">Gestiona tus torneos y equipos</p>
                 </div>
               </div>
             </div>
@@ -410,534 +298,387 @@ const Organizador = () => {
         </div>
       </div>
 
+      {/* Main Content */}
       <div className="container mx-auto px-4 py-4 md:py-8">
-        <Tabs defaultValue="torneos" className="max-w-6xl mx-auto">
-          <TabsList className="grid w-full grid-cols-1 text-xs md:text-sm">
-            <TabsTrigger value="torneos">Gestión de Torneos</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="torneos">
-            <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h2 className="text-xl md:text-2xl font-bold">Mis Torneos</h2>
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Sidebar */}
+          <div className="w-full lg:w-80 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="w-5 h-5" />
+                  Acciones Rápidas
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
                 <Button 
-                  onClick={() => setMostrarFormulario(true)}
-                  className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
+                  className="w-full" 
+                  onClick={() => {
+                    setTorneoEditando(null);
+                    setMostrarFormulario(true);
+                  }}
                 >
-                  <Plus className="w-4 h-4" />
-                  Nuevo Torneo
+                  <Trophy className="w-4 h-4 mr-2" />
+                  Crear Torneo
                 </Button>
-              </div>
+                <Button variant="outline" className="w-full">
+                  <Download className="w-4 h-4 mr-2" />
+                  Descargar Reportes
+                </Button>
+                <Button variant="outline" className="w-full">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Programar Partido
+                </Button>
+              </CardContent>
+            </Card>
 
-              <div className="grid gap-6">
-                {torneos.map((torneo) => (
-                  <Card key={torneo.id} className="hover:shadow-md transition-shadow">
-                    <CardHeader>
-                      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                        <div>
-                          <CardTitle className="text-lg">{torneo.nombre}</CardTitle>
-                          <p className="text-sm text-muted-foreground">ID: {torneo.id}</p>
+            <Card>
+              <CardHeader>
+                <CardTitle>Resumen</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Torneos Activos</span>
+                  <span className="font-medium">{torneos.filter(t => t.estado === "en_curso").length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Equipos Inscritos</span>
+                  <span className="font-medium">{torneos.reduce((acc, t) => acc + t.equiposInscritos, 0)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Notificaciones</span>
+                  <span className="font-medium">{notificaciones.length}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Main Content Area */}
+          <div className="flex-1">
+            <Tabs defaultValue="torneos" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+                <TabsTrigger value="torneos">Torneos</TabsTrigger>
+                <TabsTrigger value="equipos">Equipos</TabsTrigger>
+                <TabsTrigger value="estadisticas">Estadísticas</TabsTrigger>
+                <TabsTrigger value="fixtures">Fixtures</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="torneos">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-bold">Mis Torneos</h2>
+                    <Button onClick={() => {
+                      setTorneoEditando(null);
+                      setMostrarFormulario(true);
+                    }}>
+                      <Trophy className="w-4 h-4 mr-2" />
+                      Nuevo Torneo
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {torneos.map((torneo) => (
+                      <Card key={torneo.id} className="hover:shadow-lg transition-shadow">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              <img 
+                                src={torneo.logo} 
+                                alt={torneo.nombre}
+                                className="w-12 h-12 rounded-lg object-cover"
+                              />
+                              <div>
+                                <CardTitle className="text-lg">{torneo.nombre}</CardTitle>
+                                <p className="text-sm text-muted-foreground">{torneo.categoria}</p>
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditarTorneo(torneo.id)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Equipos:</span>
+                            <span>{torneo.equiposInscritos}/{torneo.maxEquipos}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Formato:</span>
+                            <span>{torneo.formato}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Badge variant={
+                              torneo.estado === "en_curso" ? "default" :
+                              torneo.estado === "inscripciones_abiertas" ? "secondary" :
+                              torneo.estado === "finalizado" ? "outline" : "destructive"
+                            }>
+                              {torneo.estado.replace("_", " ")}
+                            </Badge>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setTorneoSeleccionado(torneo);
+                                setMostrarEstadisticas(true);
+                              }}
+                            >
+                              <BarChart3 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="equipos">
+                <div className="space-y-6">
+                  <h2 className="text-2xl font-bold">Equipos Registrados</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {equiposTabla.map((equipo, index) => (
+                      <Card key={index}>
+                        <CardHeader>
+                          <div className="flex items-center gap-3">
+                            <img 
+                              src={equipo.logo} 
+                              alt={equipo.nombre}
+                              className="w-12 h-12 rounded-lg object-cover"
+                            />
+                            <div>
+                              <CardTitle className="text-lg">{equipo.nombre}</CardTitle>
+                              <p className="text-sm text-muted-foreground">{equipo.pts} puntos</p>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-3 gap-4 text-center text-sm">
+                            <div>
+                              <p className="font-medium">{equipo.pj}</p>
+                              <p className="text-muted-foreground">PJ</p>
+                            </div>
+                            <div>
+                              <p className="font-medium">{equipo.gf}</p>
+                              <p className="text-muted-foreground">GF</p>
+                            </div>
+                            <div>
+                              <p className="font-medium">{equipo.gc}</p>
+                              <p className="text-muted-foreground">GC</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="estadisticas">
+                <div className="space-y-6">
+                  <h2 className="text-2xl font-bold">Estadísticas Generales</h2>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Tabla de Posiciones</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {equiposTabla.slice(0, 4).map((equipo, index) => (
+                            <div key={index} className="flex items-center justify-between p-2 rounded bg-muted/50">
+                              <div className="flex items-center gap-3">
+                                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center">
+                                  {index + 1}
+                                </span>
+                                <img 
+                                  src={equipo.logo} 
+                                  alt={equipo.nombre}
+                                  className="w-8 h-8 rounded object-cover"
+                                />
+                                <span className="font-medium">{equipo.nombre}</span>
+                              </div>
+                              <span className="font-bold">{equipo.pts}</span>
+                            </div>
+                          ))}
                         </div>
-                        {getEstadoBadge(torneo.estado)}
-                      </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Goleadores</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {goleadores.map((goleador, index) => (
+                            <div key={index} className="flex items-center justify-between p-2 rounded bg-muted/50">
+                              <div className="flex items-center gap-3">
+                                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center">
+                                  {index + 1}
+                                </span>
+                                <img 
+                                  src={goleador.logoEquipo} 
+                                  alt={goleador.equipo}
+                                  className="w-8 h-8 rounded object-cover"
+                                />
+                                <div>
+                                  <p className="font-medium">{goleador.nombre}</p>
+                                  <p className="text-xs text-muted-foreground">{goleador.equipo}</p>
+                                </div>
+                              </div>
+                              <span className="font-bold">{goleador.goles}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Últimos Resultados</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                          <div><span className="font-medium">Categoría:</span> {torneo.categoria}</div>
-                          <div><span className="font-medium">Tipo:</span> {torneo.tipo}</div>
-                          <div><span className="font-medium">Equipos:</span> {torneo.equiposInscritos}/{torneo.maxEquipos}</div>
-                          <div><span className="font-medium">Cierre:</span> {torneo.fechaCierre}</div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                          <div><span className="font-medium">Puntaje extra:</span> {torneo.puntajeExtra}</div>
-                          <div><span className="font-medium">Ida y vuelta:</span> 
-                            {torneo.idaVuelta.grupos && torneo.idaVuelta.eliminatoria ? "Grupos y Eliminatoria" :
-                             torneo.idaVuelta.grupos ? "Solo Grupos" :
-                             torneo.idaVuelta.eliminatoria ? "Solo Eliminatoria" : "No"}
+                        {resultados.map((resultado, index) => (
+                          <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <img 
+                                src={resultado.logoLocal} 
+                                alt={resultado.equipoLocal}
+                                className="w-8 h-8 rounded object-cover"
+                              />
+                              <span className="font-medium">{resultado.equipoLocal}</span>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-xl font-bold">
+                                {resultado.golesLocal} - {resultado.golesVisitante}
+                              </div>
+                              <div className="text-xs text-muted-foreground">{resultado.fecha}</div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="font-medium">{resultado.equipoVisitante}</span>
+                              <img 
+                                src={resultado.logoVisitante} 
+                                alt={resultado.equipoVisitante}
+                                className="w-8 h-8 rounded object-cover"
+                              />
+                            </div>
                           </div>
-                          <div><span className="font-medium">Días:</span> {torneo.diasSemana.join(", ")}</div>
-                          <div><span className="font-medium">Partidos/semana:</span> {torneo.partidosPorSemana}</div>
-                        </div>
-
-                        <div className="flex gap-2 flex-wrap">
-                          {torneo.estado === "inscripciones_abiertas" && (
-                            <>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => editarTorneo(torneo.id)}
-                                className="flex items-center gap-1"
-                              >
-                                <Edit className="w-4 h-4" />
-                                Editar
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => cerrarInscripciones(torneo.id)}
-                                className="flex items-center gap-1"
-                              >
-                                <Calendar className="w-4 h-4" />
-                                Cerrar Inscripciones
-                              </Button>
-                            </>
-                          )}
-                          
-                          {torneo.estado === "inscripciones_cerradas" && (
-                            <>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => iniciarTorneo(torneo.id)}
-                                className="flex items-center gap-1"
-                              >
-                                <Trophy className="w-4 h-4" />
-                                Iniciar Torneo
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => verFixtures(torneo)}
-                                className="flex items-center gap-1"
-                              >
-                                <Calendar className="w-4 h-4" />
-                                Fixtures
-                              </Button>
-                            </>
-                          )}
-                          
-                          {(torneo.estado === "en_curso" || torneo.estado === "finalizado") && (
-                            <>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => verEstadisticas(torneo)}
-                                className="flex items-center gap-1"
-                              >
-                                <BarChart3 className="w-4 h-4" />
-                                Estadísticas
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => verFixtures(torneo)}
-                                className="flex items-center gap-1"
-                              >
-                                <Calendar className="w-4 h-4" />
-                                Fixtures
-                              </Button>
-                            </>
-                          )}
-                        </div>
+                        ))}
                       </div>
                     </CardContent>
                   </Card>
-                ))}
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="fixtures">
+                <div className="space-y-6">
+                  <h2 className="text-2xl font-bold">Fixtures y Calendario</h2>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Próximos Partidos</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground">No hay partidos programados.</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
       </div>
 
-      {/* Modal del perfil del organizador */}
-      <Dialog open={mostrarPerfil} onOpenChange={setMostrarPerfil}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Perfil del Organizador</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="text-center">
-              <img 
-                src={perfil.logo} 
-                alt={perfil.nombre}
-                className="w-24 h-24 rounded-full object-cover mx-auto mb-2"
-              />
-              <h3 className="text-xl font-bold">{perfil.nombre}</h3>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Nombre de la organización</Label>
-              <Input
-                value={perfil.nombre}
-                onChange={(e) => setPerfil({...perfil, nombre: e.target.value})}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Logo (URL de imagen)</Label>
-              <Input
-                value={perfil.logo}
-                onChange={(e) => setPerfil({...perfil, logo: e.target.value})}
-                placeholder="https://ejemplo.com/logo.jpg"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input
-                value={perfil.email}
-                onChange={(e) => setPerfil({...perfil, email: e.target.value})}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Teléfono</Label>
-              <Input
-                value={perfil.telefono}
-                onChange={(e) => setPerfil({...perfil, telefono: e.target.value})}
-              />
-            </div>
-
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h4 className="font-medium mb-2">Torneos Gestionados</h4>
-              <p className="text-sm text-muted-foreground">
-                Total: {torneos.length} torneos
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Activos: {torneos.filter(t => t.estado === "en_curso").length}
-              </p>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal de notificaciones */}
-      <Dialog open={mostrarNotificaciones} onOpenChange={setMostrarNotificaciones}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Notificaciones</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {notificaciones.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                No hay notificaciones pendientes
-              </p>
-            ) : (
-              notificaciones.map((notificacion) => (
-                <div key={notificacion.id} className="border rounded-lg p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <h4 className="font-semibold">{notificacion.titulo}</h4>
-                    <Badge variant="outline">{notificacion.tipo}</Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    {notificacion.mensaje}
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">
-                      {notificacion.fecha}
-                    </span>
-                    {notificacion.accionRequerida && (
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => aprobarNotificacion(notificacion.id)}
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          Aprobar
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => rechazarNotificacion(notificacion.id)}
-                        >
-                          <XCircle className="w-4 h-4 mr-1" />
-                          Rechazar
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal de estadísticas */}
-      <Dialog open={mostrarEstadisticas} onOpenChange={setMostrarEstadisticas}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Estadísticas del Torneo</DialogTitle>
-          </DialogHeader>
-          
-          {torneoSeleccionado && (
-            <div className="space-y-6">
-              {/* Información general del torneo */}
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="text-lg font-semibold mb-2">{torneoSeleccionado.nombre}</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div><span className="font-medium">Categoría:</span> {torneoSeleccionado.categoria}</div>
-                  <div><span className="font-medium">Tipo:</span> {torneoSeleccionado.tipo}</div>
-                  <div><span className="font-medium">Puntaje extra:</span> {torneoSeleccionado.puntajeExtra}</div>
-                  <div><span className="font-medium">Equipos:</span> {torneoSeleccionado.equiposInscritos}</div>
-                </div>
-              </div>
-
-              <Tabs defaultValue="tabla" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="tabla">Tabla General</TabsTrigger>
-                  <TabsTrigger value="resultados">Resultados</TabsTrigger>
-                  <TabsTrigger value="goleo">Goleo</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="tabla">
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-200">
-                      <thead>
-                        <tr className="bg-gray-100">
-                          <th className="border border-gray-200 p-2 text-left">Pos</th>
-                          <th className="border border-gray-200 p-2 text-left">Equipo</th>
-                          <th className="border border-gray-200 p-2 text-center">PJ</th>
-                          <th className="border border-gray-200 p-2 text-center">PG</th>
-                          <th className="border border-gray-200 p-2 text-center">PE</th>
-                          <th className="border border-gray-200 p-2 text-center">PP</th>
-                          <th className="border border-gray-200 p-2 text-center">GF</th>
-                          <th className="border border-gray-200 p-2 text-center">GC</th>
-                          <th className="border border-gray-200 p-2 text-center">DG</th>
-                          {torneoSeleccionado.puntajeExtra !== "N/A" && (
-                            <th className="border border-gray-200 p-2 text-center">P+</th>
-                          )}
-                          <th className="border border-gray-200 p-2 text-center">Pts</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {equiposTabla.map((equipo, index) => (
-                          <tr key={equipo.nombre} className="hover:bg-gray-50">
-                            <td className="border border-gray-200 p-2 text-center font-bold">{index + 1}</td>
-                            <td className="border border-gray-200 p-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-lg">{equipo.logo}</span>
-                                <span className="font-medium">{equipo.nombre}</span>
-                              </div>
-                            </td>
-                            <td className="border border-gray-200 p-2 text-center">{equipo.pj}</td>
-                            <td className="border border-gray-200 p-2 text-center">{equipo.pg}</td>
-                            <td className="border border-gray-200 p-2 text-center">{equipo.pe}</td>
-                            <td className="border border-gray-200 p-2 text-center">{equipo.pp}</td>
-                            <td className="border border-gray-200 p-2 text-center">{equipo.gf}</td>
-                            <td className="border border-gray-200 p-2 text-center">{equipo.gc}</td>
-                            <td className="border border-gray-200 p-2 text-center">{equipo.dg}</td>
-                            {torneoSeleccionado.puntajeExtra !== "N/A" && (
-                              <td className="border border-gray-200 p-2 text-center">{equipo.pAdicionales || 0}</td>
-                            )}
-                            <td className="border border-gray-200 p-2 text-center font-bold">{equipo.pts}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="resultados">
-                  <div className="space-y-4">
-                    {resultados.map((resultado, index) => (
-                      <div key={index} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-center gap-4">
-                          <div className="text-center flex-1">
-                            <div className="flex items-center justify-center gap-2 mb-2">
-                              <span className="text-2xl">{resultado.logoLocal}</span>
-                              <span className="font-semibold">{resultado.equipoLocal}</span>
-                            </div>
-                          </div>
-                          
-                          <div className="text-center px-4">
-                            <div className="text-2xl font-bold">
-                              {resultado.golesLocal} - {resultado.golesVisitante}
-                            </div>
-                            <div className="text-sm text-muted-foreground">{resultado.fecha}</div>
-                          </div>
-                          
-                          <div className="text-center flex-1">
-                            <div className="flex items-center justify-center gap-2 mb-2">
-                              <span className="font-semibold">{resultado.equipoVisitante}</span>
-                              <span className="text-2xl">{resultado.logoVisitante}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="goleo">
-                  <div className="space-y-4">
-                    {goleadores.map((goleador, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-lg">{index + 1}</span>
-                          <span className="text-xl">{goleador.logoEquipo}</span>
-                          <div>
-                            <p className="font-semibold">{goleador.nombre}</p>
-                            <p className="text-sm text-muted-foreground">{goleador.equipo}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold">{goleador.goles}</p>
-                          <p className="text-sm text-muted-foreground">goles</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal de fixtures */}
-      <Dialog open={mostrarFixtures} onOpenChange={setMostrarFixtures}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Fixtures del Torneo</DialogTitle>
-          </DialogHeader>
-          
-          {torneoSeleccionado && (
-            <div className="space-y-6">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="text-lg font-semibold mb-2">{torneoSeleccionado.nombre}</h3>
-                <div className="flex gap-4">
-                  <Button 
-                    onClick={() => descargarFixtures("grupos")}
-                    className="flex items-center gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    Descargar Fase de Grupos
-                  </Button>
-                  <Button 
-                    onClick={() => descargarFixtures("eliminatoria")}
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    Descargar Eliminatoria
-                  </Button>
-                </div>
-              </div>
-
-              <Tabs defaultValue="grupos" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="grupos">Fase de Grupos</TabsTrigger>
-                  <TabsTrigger value="eliminatoria">Llave Eliminatoria</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="grupos">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <h4 className="text-lg font-semibold">Grupo A</h4>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <span>🦅</span>
-                            <span>Águilas FC</span>
-                          </div>
-                          <span className="text-sm">vs</span>
-                          <div className="flex items-center gap-2">
-                            <span>Tigres SC</span>
-                            <span>🐅</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <span>🦁</span>
-                            <span>Leones United</span>
-                          </div>
-                          <span className="text-sm">vs</span>
-                          <div className="flex items-center gap-2">
-                            <span>Pumas FC</span>
-                            <span>🐆</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <h4 className="text-lg font-semibold">Grupo B</h4>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <span>🦅</span>
-                            <span>Halcones FC</span>
-                          </div>
-                          <span className="text-sm">vs</span>
-                          <div className="flex items-center gap-2">
-                            <span>Lobos SC</span>
-                            <span>🐺</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <span>🐍</span>
-                            <span>Serpientes FC</span>
-                          </div>
-                          <span className="text-sm">vs</span>
-                          <div className="flex items-center gap-2">
-                            <span>Osos FC</span>
-                            <span>🐻</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="eliminatoria">
-                  <div className="space-y-8">
-                    <div className="space-y-4">
-                      <h4 className="text-lg font-semibold">Cuartos de Final</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="p-4 border rounded-lg text-center">
-                          <p className="text-sm text-muted-foreground mb-2">QF1</p>
-                          <p>1° Grupo A vs 2° Grupo B</p>
-                        </div>
-                        <div className="p-4 border rounded-lg text-center">
-                          <p className="text-sm text-muted-foreground mb-2">QF2</p>
-                          <p>1° Grupo B vs 2° Grupo A</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <h4 className="text-lg font-semibold">Semifinal</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="p-4 border rounded-lg text-center">
-                          <p className="text-sm text-muted-foreground mb-2">SF1</p>
-                          <p>Ganador QF1 vs Ganador QF2</p>
-                        </div>
-                        <div className="p-4 border rounded-lg text-center">
-                          <p className="text-sm text-muted-foreground mb-2">SF2</p>
-                          <p>Ganador QF3 vs Ganador QF4</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <h4 className="text-lg font-semibold">Final</h4>
-                      <div className="p-6 border rounded-lg text-center bg-yellow-50">
-                        <p className="text-sm text-muted-foreground mb-2">FINAL</p>
-                        <p className="text-lg font-semibold">Ganador SF1 vs Ganador SF2</p>
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <TorneoFormModal 
+      {/* Modals */}
+      <TorneoFormModal
         open={mostrarFormulario}
         onClose={() => {
           setMostrarFormulario(false);
           setTorneoEditando(null);
         }}
-        onSubmit={crearTorneo}
-        torneoEditando={torneoEditando ? torneos.find(t => t.id === torneoEditando) : null}
+        onSubmit={handleCrearTorneo}
+        torneoId={generarIdTorneo()}
+        torneoEditando={torneoParaEditar}
       />
+
+      {/* Perfil Modal */}
+      <Dialog open={mostrarPerfil} onOpenChange={setMostrarPerfil}>
+        <DialogContent className="w-[95vw] max-w-md mx-auto">
+          <DialogHeader>
+            <DialogTitle>Perfil del Organizador</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-center gap-4">
+              <img 
+                src={perfil.logo} 
+                alt={perfil.nombre}
+                className="w-16 h-16 rounded-lg object-cover"
+              />
+              <div>
+                <h3 className="font-semibold">{perfil.nombre}</h3>
+                <p className="text-sm text-muted-foreground">{perfil.email}</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-sm font-medium">Encargados</Label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {perfil.encargados.map((encargado, index) => (
+                    <Badge key={index} variant="secondary">{encargado}</Badge>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Teléfono</Label>
+                <p className="text-sm">{perfil.telefono}</p>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Notificaciones Modal */}
+      <Dialog open={mostrarNotificaciones} onOpenChange={setMostrarNotificaciones}>
+        <DialogContent className="w-[95vw] max-w-lg mx-auto max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Notificaciones</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {notificaciones.map((notif) => (
+              <div key={notif.id} className="p-4 border rounded-lg space-y-2">
+                <div className="flex items-start justify-between">
+                  <h4 className="font-medium">{notif.titulo}</h4>
+                  <Badge variant={notif.accionRequerida ? "destructive" : "secondary"}>
+                    {notif.accionRequerida ? "Acción requerida" : "Informativa"}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">{notif.mensaje}</p>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{notif.fecha}</span>
+                  <span>{notif.equipoSolicitante}</span>
+                </div>
+                {notif.accionRequerida && (
+                  <div className="flex gap-2 pt-2">
+                    <Button size="sm" variant="outline">
+                      <CheckCircle className="w-4 h-4 mr-1" />
+                      Aprobar
+                    </Button>
+                    <Button size="sm" variant="destructive">
+                      <XCircle className="w-4 h-4 mr-1" />
+                      Rechazar
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

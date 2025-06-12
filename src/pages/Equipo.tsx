@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Edit, Download, Calendar, BarChart3, Trophy, Bell, User, FileText, CheckCircle, XCircle, Clock, Upload } from "lucide-react";
+import { Edit, Download, Calendar, BarChart3, Trophy, Bell, User, FileText, CheckCircle, XCircle, Clock, Upload, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
