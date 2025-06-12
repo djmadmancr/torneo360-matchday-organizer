@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Edit, Download, Calendar, BarChart3, Trophy, Bell, User, FileText, CheckCircle, XCircle, Clock, Upload } from "lucide-react";
+import { Edit, Download, Calendar, BarChart3, Trophy, Bell, User, CheckCircle, XCircle, ArrowLeft, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -70,6 +70,8 @@ interface EquipoTabla {
   dg: number;
   pts: number;
   pAdicionales?: number;
+  torneosInscritos: string[];
+  estadisticasPorTorneo: { [torneoId: string]: { pj: number; pg: number; pe: number; pp: number; gf: number; gc: number; pts: number; posicion: number } };
 }
 
 interface Resultado {
@@ -95,12 +97,11 @@ const Organizador = () => {
   const [mostrarPerfil, setMostrarPerfil] = useState(false);
   const [mostrarNotificaciones, setMostrarNotificaciones] = useState(false);
   const [mostrarEstadisticas, setMostrarEstadisticas] = useState(false);
-  const [mostrarFixtures, setMostrarFixtures] = useState(false);
   const [mostrarDashboard, setMostrarDashboard] = useState(false);
   const [torneoSeleccionado, setTorneoSeleccionado] = useState<Torneo | null>(null);
   const [torneoEditando, setTorneoEditando] = useState<string | null>(null);
 
-  const [perfil, setPerfil] = useState({
+  const [perfil, setPerfil] = useState<PerfilOrganizador>({
     nombre: "Liga Municipal de Fútbol",
     logo: "https://images.unsplash.com/photo-1614632537190-23e4b93dc25e?w=100&h=100&fit=crop&crop=center",
     encargados: ["Carlos Rodríguez", "Ana Martínez"],
@@ -191,12 +192,45 @@ const Organizador = () => {
     }
   ]);
 
-  // Datos demo para estadísticas con logos JPG
+  // Datos demo para equipos con información de torneos
   const equiposTabla: EquipoTabla[] = [
-    { nombre: "Águilas FC", logo: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center", pj: 6, pg: 4, pe: 1, pp: 1, gf: 12, gc: 6, dg: 6, pts: 13, pAdicionales: 2 },
-    { nombre: "Tigres SC", logo: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=50&h=50&fit=crop&crop=center", pj: 6, pg: 3, pe: 2, pp: 1, gf: 10, gc: 7, dg: 3, pts: 11, pAdicionales: 0 },
-    { nombre: "Leones United", logo: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=50&h=50&fit=crop&crop=center", pj: 6, pg: 3, pe: 1, pp: 2, gf: 9, gc: 8, dg: 1, pts: 10, pAdicionales: 1 },
-    { nombre: "Pumas FC", logo: "https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=50&h=50&fit=crop&crop=center", pj: 6, pg: 2, pe: 2, pp: 2, gf: 8, gc: 9, dg: -1, pts: 8, pAdicionales: 0 }
+    { 
+      nombre: "Águilas FC", 
+      logo: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center", 
+      pj: 6, pg: 4, pe: 1, pp: 1, gf: 12, gc: 6, dg: 6, pts: 13, pAdicionales: 2,
+      torneosInscritos: ["TRN-001", "TRN-002"],
+      estadisticasPorTorneo: {
+        "TRN-001": { pj: 3, pg: 2, pe: 1, pp: 0, gf: 7, gc: 3, pts: 7, posicion: 1 },
+        "TRN-002": { pj: 3, pg: 2, pe: 0, pp: 1, gf: 5, gc: 3, pts: 6, posicion: 2 }
+      }
+    },
+    { 
+      nombre: "Tigres SC", 
+      logo: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=50&h=50&fit=crop&crop=center", 
+      pj: 6, pg: 3, pe: 2, pp: 1, gf: 10, gc: 7, dg: 3, pts: 11, pAdicionales: 0,
+      torneosInscritos: ["TRN-002"],
+      estadisticasPorTorneo: {
+        "TRN-002": { pj: 3, pg: 2, pe: 0, pp: 1, gf: 5, gc: 3, pts: 6, posicion: 2 }
+      }
+    },
+    { 
+      nombre: "Leones United", 
+      logo: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=50&h=50&fit=crop&crop=center", 
+      pj: 6, pg: 3, pe: 1, pp: 2, gf: 9, gc: 8, dg: 1, pts: 10, pAdicionales: 1,
+      torneosInscritos: ["TRN-001"],
+      estadisticasPorTorneo: {
+        "TRN-001": { pj: 3, pg: 2, pe: 1, pp: 0, gf: 7, gc: 3, pts: 7, posicion: 1 }
+      }
+    },
+    { 
+      nombre: "Pumas FC", 
+      logo: "https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=50&h=50&fit=crop&crop=center", 
+      pj: 6, pg: 2, pe: 2, pp: 2, gf: 8, gc: 9, dg: -1, pts: 8, pAdicionales: 0,
+      torneosInscritos: ["TRN-001"],
+      estadisticasPorTorneo: {
+        "TRN-001": { pj: 3, pg: 2, pe: 1, pp: 0, gf: 7, gc: 3, pts: 7, posicion: 1 }
+      }
+    }
   ];
 
   const resultados: Resultado[] = [
@@ -244,7 +278,6 @@ const Organizador = () => {
     const torneo = torneos.find(t => t.id === torneoId);
     if (!torneo) return;
 
-    // Permitir edición si las inscripciones están abiertas o cerradas, pero no si ya comenzó
     if (torneo.estado === "en_curso" || torneo.estado === "finalizado") {
       toast.error("No se puede editar un torneo que ya ha iniciado o finalizado");
       return;
@@ -252,6 +285,17 @@ const Organizador = () => {
 
     setTorneoEditando(torneoId);
     setMostrarFormulario(true);
+  };
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPerfil(prev => ({ ...prev, logo: e.target?.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const torneoParaEditar = torneoEditando ? torneos.find(t => t.id === torneoEditando) : null;
@@ -290,7 +334,8 @@ const Organizador = () => {
                 onClick={() => navigate('/')}
                 className="flex items-center gap-2"
               >
-                ← Volver
+                <ArrowLeft className="w-4 h-4" />
+                Volver
               </Button>
               <div className="flex items-center gap-3">
                 <img 
@@ -398,11 +443,9 @@ const Organizador = () => {
           {/* Main Content Area */}
           <div className="flex-1">
             <Tabs defaultValue="torneos" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="torneos">Torneos</TabsTrigger>
                 <TabsTrigger value="equipos">Equipos</TabsTrigger>
-                <TabsTrigger value="estadisticas">Estadísticas</TabsTrigger>
-                <TabsTrigger value="fixtures">Fixtures</TabsTrigger>
               </TabsList>
 
               <TabsContent value="torneos">
@@ -499,7 +542,7 @@ const Organizador = () => {
                             </div>
                           </div>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="space-y-4">
                           <div className="grid grid-cols-3 gap-4 text-center text-sm">
                             <div>
                               <p className="font-medium">{equipo.pj}</p>
@@ -514,123 +557,30 @@ const Organizador = () => {
                               <p className="text-muted-foreground">GC</p>
                             </div>
                           </div>
+                          
+                          <div>
+                            <h4 className="font-medium text-sm mb-2">Torneos Registrados:</h4>
+                            <div className="space-y-2">
+                              {equipo.torneosInscritos.map((torneoId) => {
+                                const torneo = torneos.find(t => t.id === torneoId);
+                                const stats = equipo.estadisticasPorTorneo[torneoId];
+                                return torneo && stats ? (
+                                  <div key={torneoId} className="text-xs border rounded p-2">
+                                    <p className="font-medium">{torneo.nombre}</p>
+                                    <div className="flex justify-between mt-1">
+                                      <span>PJ: {stats.pj}</span>
+                                      <span>Pts: {stats.pts}</span>
+                                      <span>Pos: #{stats.posicion}</span>
+                                    </div>
+                                  </div>
+                                ) : null;
+                              })}
+                            </div>
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
                   </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="estadisticas">
-                <div className="space-y-6">
-                  <h2 className="text-2xl font-bold">Estadísticas Generales</h2>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Tabla de Posiciones</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          {equiposTabla.slice(0, 4).map((equipo, index) => (
-                            <div key={index} className="flex items-center justify-between p-2 rounded bg-muted/50">
-                              <div className="flex items-center gap-3">
-                                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center">
-                                  {index + 1}
-                                </span>
-                                <img 
-                                  src={equipo.logo} 
-                                  alt={equipo.nombre}
-                                  className="w-8 h-8 rounded object-cover"
-                                />
-                                <span className="font-medium">{equipo.nombre}</span>
-                              </div>
-                              <span className="font-bold">{equipo.pts}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Goleadores</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          {goleadores.map((goleador, index) => (
-                            <div key={index} className="flex items-center justify-between p-2 rounded bg-muted/50">
-                              <div className="flex items-center gap-3">
-                                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center">
-                                  {index + 1}
-                                </span>
-                                <img 
-                                  src={goleador.logoEquipo} 
-                                  alt={goleador.equipo}
-                                  className="w-8 h-8 rounded object-cover"
-                                />
-                                <div>
-                                  <p className="font-medium">{goleador.nombre}</p>
-                                  <p className="text-xs text-muted-foreground">{goleador.equipo}</p>
-                                </div>
-                              </div>
-                              <span className="font-bold">{goleador.goles}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Últimos Resultados</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {resultados.map((resultado, index) => (
-                          <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <img 
-                                src={resultado.logoLocal} 
-                                alt={resultado.equipoLocal}
-                                className="w-8 h-8 rounded object-cover"
-                              />
-                              <span className="font-medium">{resultado.equipoLocal}</span>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-xl font-bold">
-                                {resultado.golesLocal} - {resultado.golesVisitante}
-                              </div>
-                              <div className="text-xs text-muted-foreground">{resultado.fecha}</div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span className="font-medium">{resultado.equipoVisitante}</span>
-                              <img 
-                                src={resultado.logoVisitante} 
-                                alt={resultado.equipoVisitante}
-                                className="w-8 h-8 rounded object-cover"
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="fixtures">
-                <div className="space-y-6">
-                  <h2 className="text-2xl font-bold">Fixtures y Calendario</h2>
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Próximos Partidos</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground">No hay partidos programados.</p>
-                    </CardContent>
-                  </Card>
                 </div>
               </TabsContent>
             </Tabs>
@@ -650,7 +600,6 @@ const Organizador = () => {
         torneoEditando={torneoParaEditar}
       />
 
-      {/* Tournament-specific statistics modal */}
       <Dialog open={mostrarEstadisticas} onOpenChange={setMostrarEstadisticas}>
         <DialogContent className="w-[95vw] max-w-6xl max-h-[80vh] overflow-hidden">
           <DialogHeader>
@@ -667,7 +616,6 @@ const Organizador = () => {
         </DialogContent>
       </Dialog>
 
-      {/* General dashboard modal */}
       <Dialog open={mostrarDashboard} onOpenChange={setMostrarDashboard}>
         <DialogContent className="w-[95vw] max-w-6xl max-h-[80vh] overflow-hidden">
           <DialogHeader>
@@ -679,7 +627,6 @@ const Organizador = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Perfil Modal */}
       <Dialog open={mostrarPerfil} onOpenChange={setMostrarPerfil}>
         <DialogContent className="w-[95vw] max-w-md mx-auto">
           <DialogHeader>
@@ -692,12 +639,45 @@ const Organizador = () => {
                 alt={perfil.nombre}
                 className="w-16 h-16 rounded-lg object-cover"
               />
-              <div>
+              <div className="flex-1">
                 <h3 className="font-semibold">{perfil.nombre}</h3>
                 <p className="text-sm text-muted-foreground">{perfil.email}</p>
               </div>
+              <Button variant="outline" size="sm" asChild>
+                <label htmlFor="logo-upload" className="cursor-pointer">
+                  <Upload className="w-4 h-4" />
+                  <input
+                    id="logo-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoChange}
+                    className="hidden"
+                  />
+                </label>
+              </Button>
             </div>
             <div className="space-y-3">
+              <div>
+                <Label>Nombre de la Organización</Label>
+                <Input 
+                  value={perfil.nombre}
+                  onChange={(e) => setPerfil(prev => ({ ...prev, nombre: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input 
+                  value={perfil.email}
+                  onChange={(e) => setPerfil(prev => ({ ...prev, email: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>Teléfono</Label>
+                <Input 
+                  value={perfil.telefono}
+                  onChange={(e) => setPerfil(prev => ({ ...prev, telefono: e.target.value }))}
+                />
+              </div>
               <div>
                 <Label className="text-sm font-medium">Encargados</Label>
                 <div className="flex flex-wrap gap-2 mt-1">
@@ -706,16 +686,11 @@ const Organizador = () => {
                   ))}
                 </div>
               </div>
-              <div>
-                <Label className="text-sm font-medium">Teléfono</Label>
-                <p className="text-sm">{perfil.telefono}</p>
-              </div>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Notificaciones Modal */}
       <Dialog open={mostrarNotificaciones} onOpenChange={setMostrarNotificaciones}>
         <DialogContent className="w-[95vw] max-w-lg mx-auto max-h-[80vh] overflow-y-auto">
           <DialogHeader>

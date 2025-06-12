@@ -5,21 +5,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Edit } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Jugador {
   id: string;
   nombre: string;
   posicion: string;
-  numero: number;
+  numeroIdentificacion: string;
   edad: number;
 }
 
 interface Coach {
   nombre: string;
   tipo: "entrenador" | "asistente";
-  experiencia: string;
+  numeroIdentificacion: string;
 }
 
 interface JugadoresCoachManagerProps {
@@ -33,18 +33,18 @@ const JugadoresCoachManager = ({ jugadores, coaches, onJugadoresChange, onCoache
   const [nuevoJugador, setNuevoJugador] = useState<Omit<Jugador, 'id'>>({
     nombre: '',
     posicion: '',
-    numero: 0,
+    numeroIdentificacion: '',
     edad: 0
   });
 
   const [nuevoCoach, setNuevoCoach] = useState<Coach>({
     nombre: '',
     tipo: 'entrenador',
-    experiencia: ''
+    numeroIdentificacion: ''
   });
 
   const agregarJugador = () => {
-    if (!nuevoJugador.nombre || !nuevoJugador.posicion || nuevoJugador.numero <= 0) {
+    if (!nuevoJugador.nombre || !nuevoJugador.posicion || !nuevoJugador.numeroIdentificacion) {
       toast.error("Por favor completa todos los campos del jugador");
       return;
     }
@@ -55,7 +55,7 @@ const JugadoresCoachManager = ({ jugadores, coaches, onJugadoresChange, onCoache
     };
 
     onJugadoresChange([...jugadores, jugadorConId]);
-    setNuevoJugador({ nombre: '', posicion: '', numero: 0, edad: 0 });
+    setNuevoJugador({ nombre: '', posicion: '', numeroIdentificacion: '', edad: 0 });
     toast.success("Jugador agregado exitosamente");
   };
 
@@ -65,13 +65,13 @@ const JugadoresCoachManager = ({ jugadores, coaches, onJugadoresChange, onCoache
   };
 
   const agregarCoach = () => {
-    if (!nuevoCoach.nombre || !nuevoCoach.experiencia) {
+    if (!nuevoCoach.nombre || !nuevoCoach.numeroIdentificacion) {
       toast.error("Por favor completa todos los campos del coach");
       return;
     }
 
     onCoachesChange([...coaches, nuevoCoach]);
-    setNuevoCoach({ nombre: '', tipo: 'entrenador', experiencia: '' });
+    setNuevoCoach({ nombre: '', tipo: 'entrenador', numeroIdentificacion: '' });
     toast.success("Coach agregado exitosamente");
   };
 
@@ -109,12 +109,11 @@ const JugadoresCoachManager = ({ jugadores, coaches, onJugadoresChange, onCoache
               />
             </div>
             <div>
-              <Label>Número</Label>
+              <Label>Número de Identificación</Label>
               <Input
-                type="number"
-                value={nuevoJugador.numero || ''}
-                onChange={(e) => setNuevoJugador({...nuevoJugador, numero: parseInt(e.target.value) || 0})}
-                placeholder="Número"
+                value={nuevoJugador.numeroIdentificacion}
+                onChange={(e) => setNuevoJugador({...nuevoJugador, numeroIdentificacion: e.target.value})}
+                placeholder="Número de ID"
               />
             </div>
             <div>
@@ -138,7 +137,7 @@ const JugadoresCoachManager = ({ jugadores, coaches, onJugadoresChange, onCoache
               {jugadores.map((jugador) => (
                 <div key={jugador.id} className="flex items-center justify-between p-2 border rounded">
                   <div className="flex items-center gap-3">
-                    <Badge variant="outline">#{jugador.numero}</Badge>
+                    <Badge variant="outline">#{jugador.numeroIdentificacion}</Badge>
                     <span className="font-medium">{jugador.nombre}</span>
                     <span className="text-sm text-muted-foreground">{jugador.posicion}</span>
                     <span className="text-xs text-muted-foreground">{jugador.edad} años</span>
@@ -186,11 +185,11 @@ const JugadoresCoachManager = ({ jugadores, coaches, onJugadoresChange, onCoache
               </select>
             </div>
             <div>
-              <Label>Experiencia</Label>
+              <Label>Número de Identificación</Label>
               <Input
-                value={nuevoCoach.experiencia}
-                onChange={(e) => setNuevoCoach({...nuevoCoach, experiencia: e.target.value})}
-                placeholder="Años de experiencia"
+                value={nuevoCoach.numeroIdentificacion}
+                onChange={(e) => setNuevoCoach({...nuevoCoach, numeroIdentificacion: e.target.value})}
+                placeholder="Número de ID"
               />
             </div>
           </div>
@@ -209,7 +208,7 @@ const JugadoresCoachManager = ({ jugadores, coaches, onJugadoresChange, onCoache
                       {coach.tipo}
                     </Badge>
                     <span className="font-medium">{coach.nombre}</span>
-                    <span className="text-sm text-muted-foreground">{coach.experiencia}</span>
+                    <span className="text-sm text-muted-foreground">ID: {coach.numeroIdentificacion}</span>
                   </div>
                   <Button
                     variant="ghost"

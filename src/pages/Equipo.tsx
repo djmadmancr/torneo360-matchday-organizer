@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,9 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Edit, Download, Calendar, BarChart3, Trophy, Bell, User, FileText, CheckCircle, XCircle, Clock, Upload, ArrowLeft } from "lucide-react";
+import { ArrowLeft, Bell, User, Trophy, BarChart3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -15,89 +14,38 @@ import EquipoCard from "@/components/EquipoCard";
 import UniformeSelector from "@/components/UniformeSelector";
 import JugadoresCoachManager from "@/components/JugadoresCoachManager";
 
-interface Torneo {
+interface Jugador {
   id: string;
   nombre: string;
-  categoria: string;
-  tipo: string;
-  formato: string;
-  fechaInicio: string;
-  fechaFin: string;
-  logo: string;
-  maxEquipos: number;
-  equiposInscritos: number;
-  estado: "inscripciones_abiertas" | "inscripciones_cerradas" | "en_curso" | "finalizado";
-  fechaCierre: string;
-  puntajeExtra: string;
-  idaVuelta: {
-    grupos: boolean;
-    eliminatoria: boolean;
-  };
-  diasSemana: string[];
-  partidosPorSemana: string;
-  fechaCreacion: string;
+  posicion: string;
+  numeroIdentificacion: string;
+  edad: number;
 }
 
-interface PerfilOrganizador {
+interface Coach {
   nombre: string;
-  logo: string;
-  encargados: string[];
-  email: string;
-  telefono: string;
+  tipo: "entrenador" | "asistente";
+  numeroIdentificacion: string;
 }
 
-interface Notificacion {
-  id: string;
-  tipo: "inscripcion" | "reprogramacion" | "otra";
-  titulo: string;
-  mensaje: string;
-  fecha: string;
-  equipoSolicitante?: string;
-  torneoId?: string;
-  partidoId?: string;
-  accionRequerida: boolean;
-}
-
-interface EquipoTabla {
-  nombre: string;
-  logo: string;
+interface EstadisticaEquipo {
+  torneoId: string;
+  torneoNombre: string;
   pj: number;
   pg: number;
   pe: number;
   pp: number;
   gf: number;
   gc: number;
-  dg: number;
   pts: number;
-  pAdicionales?: number;
-}
-
-interface Resultado {
-  equipoLocal: string;
-  logoLocal: string;
-  equipoVisitante: string;
-  logoVisitante: string;
-  golesLocal: number;
-  golesVisitante: number;
-  fecha: string;
-}
-
-interface Goleador {
-  nombre: string;
-  equipo: string;
-  logoEquipo: string;
-  goles: number;
+  posicion: number;
 }
 
 const Equipo = () => {
   const navigate = useNavigate();
-  const [mostrarFormulario, setMostrarFormulario] = useState(false);
-  const [mostrarPerfil, setMostrarPerfil] = useState(false);
   const [mostrarNotificaciones, setMostrarNotificaciones] = useState(false);
+  const [mostrarPerfil, setMostrarPerfil] = useState(false);
   const [mostrarEstadisticas, setMostrarEstadisticas] = useState(false);
-  const [mostrarFixtures, setMostrarFixtures] = useState(false);
-  const [torneoSeleccionado, setTorneoSeleccionado] = useState<Torneo | null>(null);
-  const [torneoEditando, setTorneoEditando] = useState<string | null>(null);
 
   const [equipo, setEquipo] = useState({
     id: "EQ-001",
@@ -126,18 +74,8 @@ const Equipo = () => {
       pantaloneta: "#1e40af", 
       medias: "#1e40af"
     },
-    jugadores: [] as Array<{
-      id: string;
-      nombre: string;
-      posicion: string;
-      numero: number;
-      edad: number;
-    }>,
-    coaches: [] as Array<{
-      nombre: string;
-      tipo: "entrenador" | "asistente";
-      experiencia: string;
-    }>
+    jugadores: [] as Jugador[],
+    coaches: [] as Coach[]
   });
 
   const [perfil, setPerfil] = useState({
@@ -148,106 +86,41 @@ const Equipo = () => {
     telefono: "+57 300 123 4567"
   });
 
-  const [torneos, setTorneos] = useState<Torneo[]>([
+  // Estadísticas demo del equipo en diferentes torneos
+  const estadisticasEquipo: EstadisticaEquipo[] = [
     {
-      id: "TRN-001",
-      nombre: "Copa Primavera 2024",
-      categoria: "U20",
-      tipo: "Completo",
-      formato: "Grupos + Eliminatorio",
-      fechaInicio: "2024-07-01",
-      fechaFin: "2024-08-15",
-      logo: "https://images.unsplash.com/photo-1614632537190-23e4b93dc25e?w=100&h=100&fit=crop&crop=center",
-      maxEquipos: 12,
-      equiposInscritos: 8,
-      estado: "inscripciones_abiertas",
-      fechaCierre: "2024-06-25",
-      puntajeExtra: "Penales",
-      idaVuelta: { grupos: true, eliminatoria: false },
-      diasSemana: ["sabado", "domingo"],
-      partidosPorSemana: "2",
-      fechaCreacion: "2024-06-01"
+      torneoId: "TRN-001",
+      torneoNombre: "Copa Primavera 2024",
+      pj: 6,
+      pg: 4,
+      pe: 1,
+      pp: 1,
+      gf: 12,
+      gc: 6,
+      pts: 13,
+      posicion: 1
     },
     {
-      id: "TRN-002",
-      nombre: "Liga Municipal Otoño",
-      categoria: "Libre",
-      tipo: "Eliminatorio",
-      formato: "Eliminatorio Directo",
-      fechaInicio: "2024-06-15",
-      fechaFin: "2024-07-30",
-      logo: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=100&h=100&fit=crop&crop=center",
-      maxEquipos: 16,
-      equiposInscritos: 16,
-      estado: "en_curso",
-      fechaCierre: "2024-05-30",
-      puntajeExtra: "N/A",
-      idaVuelta: { grupos: false, eliminatoria: true },
-      diasSemana: ["viernes", "sabado"],
-      partidosPorSemana: "3",
-      fechaCreacion: "2024-05-15"
-    },
-    {
-      id: "TRN-003",
-      nombre: "Torneo Relámpago Verano",
-      categoria: "U17",
-      tipo: "Relámpago",
-      formato: "Todos contra Todos",
-      fechaInicio: "2024-06-20",
-      fechaFin: "2024-06-25",
-      logo: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=100&h=100&fit=crop&crop=center",
-      maxEquipos: 8,
-      equiposInscritos: 8,
-      estado: "inscripciones_cerradas",
-      fechaCierre: "2024-06-10",
-      puntajeExtra: "Shoot Outs",
-      idaVuelta: { grupos: false, eliminatoria: false },
-      diasSemana: ["domingo"],
-      partidosPorSemana: "4",
-      fechaCreacion: "2024-06-05"
+      torneoId: "TRN-002", 
+      torneoNombre: "Liga Municipal Otoño",
+      pj: 8,
+      pg: 5,
+      pe: 2,
+      pp: 1,
+      gf: 15,
+      gc: 8,
+      pts: 17,
+      posicion: 2
     }
-  ]);
+  ];
 
-  const [notificaciones, setNotificaciones] = useState<Notificacion[]>([
+  const notificaciones = [
     {
       id: "NOT-001",
-      tipo: "inscripcion",
-      titulo: "Nueva solicitud de inscripción",
-      mensaje: "El equipo 'Águilas FC' ha solicitado inscribirse a Copa Primavera 2024",
-      fecha: "2024-06-15",
-      equipoSolicitante: "Águilas FC",
-      torneoId: "TRN-001",
-      accionRequerida: true
-    },
-    {
-      id: "NOT-002",
-      tipo: "reprogramacion",
-      titulo: "Solicitud de reprogramación",
-      mensaje: "El equipo 'Tigres SC' solicita reprogramar el partido del 20/06",
-      fecha: "2024-06-14",
-      equipoSolicitante: "Tigres SC",
-      partidoId: "P001",
-      accionRequerida: true
+      titulo: "Próximo partido",
+      mensaje: "Tienes un partido programado para el sábado 20/06",
+      fecha: "2024-06-15"
     }
-  ]);
-
-  // Datos demo para estadísticas con logos JPG
-  const equiposTabla: EquipoTabla[] = [
-    { nombre: "Águilas FC", logo: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center", pj: 6, pg: 4, pe: 1, pp: 1, gf: 12, gc: 6, dg: 6, pts: 13, pAdicionales: 2 },
-    { nombre: "Tigres SC", logo: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=50&h=50&fit=crop&crop=center", pj: 6, pg: 3, pe: 2, pp: 1, gf: 10, gc: 7, dg: 3, pts: 11, pAdicionales: 0 },
-    { nombre: "Leones United", logo: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=50&h=50&fit=crop&crop=center", pj: 6, pg: 3, pe: 1, pp: 2, gf: 9, gc: 8, dg: 1, pts: 10, pAdicionales: 1 },
-    { nombre: "Pumas FC", logo: "https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=50&h=50&fit=crop&crop=center", pj: 6, pg: 2, pe: 2, pp: 2, gf: 8, gc: 9, dg: -1, pts: 8, pAdicionales: 0 }
-  ];
-
-  const resultados: Resultado[] = [
-    { equipoLocal: "Águilas FC", logoLocal: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center", equipoVisitante: "Tigres SC", logoVisitante: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=50&h=50&fit=crop&crop=center", golesLocal: 2, golesVisitante: 1, fecha: "2024-06-10" },
-    { equipoLocal: "Leones United", logoLocal: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=50&h=50&fit=crop&crop=center", equipoVisitante: "Pumas FC", logoVisitante: "https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=50&h=50&fit=crop&crop=center", golesLocal: 1, golesVisitante: 1, fecha: "2024-06-12" }
-  ];
-
-  const goleadores: Goleador[] = [
-    { nombre: "Carlos López", equipo: "Águilas FC", logoEquipo: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center", goles: 8 },
-    { nombre: "Miguel Torres", equipo: "Tigres SC", logoEquipo: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=50&h=50&fit=crop&crop=center", goles: 6 },
-    { nombre: "Juan Pérez", equipo: "Leones United", logoEquipo: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=50&h=50&fit=crop&crop=center", goles: 5 }
   ];
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -341,10 +214,11 @@ const Equipo = () => {
 
       <div className="container mx-auto px-4 py-4 md:py-8">
         <Tabs defaultValue="perfil" className="max-w-4xl mx-auto">
-          <TabsList className="grid w-full grid-cols-3 text-xs md:text-sm">
+          <TabsList className="grid w-full grid-cols-4 text-xs md:text-sm">
             <TabsTrigger value="perfil">Perfil del Equipo</TabsTrigger>
             <TabsTrigger value="uniformes">Uniformes</TabsTrigger>
             <TabsTrigger value="jugadores">Jugadores & Coach</TabsTrigger>
+            <TabsTrigger value="estadisticas">Estadísticas</TabsTrigger>
           </TabsList>
 
           <TabsContent value="perfil">
@@ -420,10 +294,120 @@ const Equipo = () => {
               onCoachesChange={(coaches) => setEquipo(prev => ({ ...prev, coaches }))}
             />
           </TabsContent>
+
+          <TabsContent value="estadisticas">
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <h3 className="text-lg font-semibold mb-4">Estadísticas en Torneos</h3>
+                
+                {estadisticasEquipo.length > 0 ? (
+                  <div className="space-y-4">
+                    {estadisticasEquipo.map((stats) => (
+                      <Card key={stats.torneoId}>
+                        <CardHeader>
+                          <CardTitle className="flex items-center justify-between">
+                            <span>{stats.torneoNombre}</span>
+                            <Badge variant="outline">Posición #{stats.posicion}</Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                            <div>
+                              <p className="text-2xl font-bold">{stats.pj}</p>
+                              <p className="text-sm text-muted-foreground">Partidos Jugados</p>
+                            </div>
+                            <div>
+                              <p className="text-2xl font-bold text-green-600">{stats.pg}</p>
+                              <p className="text-sm text-muted-foreground">Ganados</p>
+                            </div>
+                            <div>
+                              <p className="text-2xl font-bold text-yellow-600">{stats.pe}</p>
+                              <p className="text-sm text-muted-foreground">Empatados</p>
+                            </div>
+                            <div>
+                              <p className="text-2xl font-bold text-red-600">{stats.pp}</p>
+                              <p className="text-sm text-muted-foreground">Perdidos</p>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-4 text-center mt-4 pt-4 border-t">
+                            <div>
+                              <p className="text-xl font-bold">{stats.gf}</p>
+                              <p className="text-sm text-muted-foreground">Goles a Favor</p>
+                            </div>
+                            <div>
+                              <p className="text-xl font-bold">{stats.gc}</p>
+                              <p className="text-sm text-muted-foreground">Goles en Contra</p>
+                            </div>
+                            <div>
+                              <p className="text-xl font-bold text-primary">{stats.pts}</p>
+                              <p className="text-sm text-muted-foreground">Puntos</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground">No estás participando en ningún torneo actualmente.</p>
+                )}
+              </div>
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
 
       {/* Modals */}
+      <Dialog open={mostrarPerfil} onOpenChange={setMostrarPerfil}>
+        <DialogContent className="w-[95vw] max-w-md mx-auto">
+          <DialogHeader>
+            <DialogTitle>Perfil del Equipo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-center gap-4">
+              <img 
+                src={perfil.logo} 
+                alt={perfil.nombre}
+                className="w-16 h-16 rounded-lg object-cover"
+              />
+              <div>
+                <h3 className="font-semibold">{perfil.nombre}</h3>
+                <p className="text-sm text-muted-foreground">{perfil.email}</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-sm font-medium">Encargados</Label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {perfil.encargados.map((encargado, index) => (
+                    <Badge key={index} variant="secondary">{encargado}</Badge>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Teléfono</Label>
+                <p className="text-sm">{perfil.telefono}</p>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={mostrarNotificaciones} onOpenChange={setMostrarNotificaciones}>
+        <DialogContent className="w-[95vw] max-w-lg mx-auto max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Notificaciones</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {notificaciones.map((notif) => (
+              <div key={notif.id} className="p-4 border rounded-lg space-y-2">
+                <h4 className="font-medium">{notif.titulo}</h4>
+                <p className="text-sm text-muted-foreground">{notif.mensaje}</p>
+                <div className="text-xs text-muted-foreground">{notif.fecha}</div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

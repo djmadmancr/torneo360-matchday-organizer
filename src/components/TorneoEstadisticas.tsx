@@ -60,15 +60,15 @@ interface Goleador {
 
 interface TorneoEstadisticasProps {
   torneo: Torneo;
-  equipos: EquipoTabla[];
-  resultados: Resultado[];
-  goleadores: Goleador[];
+  equiposTorneo: EquipoTabla[];
+  resultadosTorneo: Resultado[];
+  goleadoresTorneo: Goleador[];
 }
 
-const TorneoEstadisticas = ({ torneo, equipos, resultados, goleadores }: TorneoEstadisticasProps) => {
-  const equiposFiltrados = equipos.slice(0, 6); // Solo mostrar los primeros 6 equipos
-  const resultadosFiltrados = resultados.slice(0, 5); // Solo mostrar los últimos 5 resultados
-  const goleadoresFiltrados = goleadores.slice(0, 5); // Solo mostrar los primeros 5 goleadores
+const TorneoEstadisticas = ({ torneo, equiposTorneo, resultadosTorneo, goleadoresTorneo }: TorneoEstadisticasProps) => {
+  const equiposFiltrados = equiposTorneo.slice(0, 6);
+  const resultadosFiltrados = resultadosTorneo.slice(0, 5);
+  const goleadoresFiltrados = goleadoresTorneo.slice(0, 5);
 
   return (
     <div className="space-y-6">

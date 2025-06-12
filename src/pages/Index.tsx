@@ -2,19 +2,32 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { Users, Shield, UserCheck } from "lucide-react";
+import { Users, Shield, UserCheck, Settings } from "lucide-react";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const Index = () => {
   const navigate = useNavigate();
+  const [mostrarSuperAdmin, setMostrarSuperAdmin] = useState(false);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-6">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-primary mb-2">⚽ Torneo360</h1>
-            <p className="text-muted-foreground">Gestión completa de torneos de fútbol</p>
+          <div className="flex items-center justify-between">
+            <div className="text-center flex-1">
+              <h1 className="text-4xl font-bold text-primary mb-2">⚽ Torneo360</h1>
+              <p className="text-muted-foreground">Gestión completa de torneos de fútbol</p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setMostrarSuperAdmin(true)}
+              className="text-xs text-muted-foreground hover:text-primary opacity-30 hover:opacity-100"
+            >
+              <Settings className="w-3 h-3" />
+            </Button>
           </div>
         </div>
       </div>
@@ -113,6 +126,67 @@ const Index = () => {
           </div>
         </div>
       </div>
+
+      {/* Super Admin Modal */}
+      <Dialog open={mostrarSuperAdmin} onOpenChange={setMostrarSuperAdmin}>
+        <DialogContent className="w-[95vw] max-w-2xl mx-auto">
+          <DialogHeader>
+            <DialogTitle>🔐 Dashboard Super Administrador</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="text-center mb-6">
+              <p className="text-muted-foreground">
+                Gestiona usuarios y perfiles del sistema
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="p-4 text-center">
+                <Shield className="w-8 h-8 mx-auto mb-2 text-blue-600" />
+                <h3 className="font-semibold">Organizadores</h3>
+                <p className="text-sm text-muted-foreground mb-3">5 activos</p>
+                <Button size="sm" variant="outline" className="w-full">
+                  Gestionar
+                </Button>
+              </Card>
+              
+              <Card className="p-4 text-center">
+                <Users className="w-8 h-8 mx-auto mb-2 text-green-600" />
+                <h3 className="font-semibold">Equipos</h3>
+                <p className="text-sm text-muted-foreground mb-3">24 registrados</p>
+                <Button size="sm" variant="outline" className="w-full">
+                  Gestionar
+                </Button>
+              </Card>
+              
+              <Card className="p-4 text-center">
+                <UserCheck className="w-8 h-8 mx-auto mb-2 text-orange-600" />
+                <h3 className="font-semibold">Fiscales</h3>
+                <p className="text-sm text-muted-foreground mb-3">12 activos</p>
+                <Button size="sm" variant="outline" className="w-full">
+                  Gestionar
+                </Button>
+              </Card>
+            </div>
+            
+            <div className="space-y-3">
+              <Button className="w-full">
+                + Crear Nuevo Usuario
+              </Button>
+              <Button variant="outline" className="w-full">
+                📊 Reportes del Sistema
+              </Button>
+              <Button variant="outline" className="w-full">
+                ⚙️ Configuración Global
+              </Button>
+            </div>
+            
+            <div className="text-center text-xs text-muted-foreground">
+              Solo usuarios con permisos de super administrador pueden acceder a esta sección
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
