@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import EquipoCard from "@/components/EquipoCard";
 import UniformeSelector from "@/components/UniformeSelector";
+import JugadoresCoachManager from "@/components/JugadoresCoachManager";
 
 interface Torneo {
   id: string;
@@ -125,7 +126,18 @@ const Equipo = () => {
       pantaloneta: "#1e40af", 
       medias: "#1e40af"
     },
-    jugadores: 0
+    jugadores: [] as Array<{
+      id: string;
+      nombre: string;
+      posicion: string;
+      numero: number;
+      edad: number;
+    }>,
+    coaches: [] as Array<{
+      nombre: string;
+      tipo: "entrenador" | "asistente";
+      experiencia: string;
+    }>
   });
 
   const [perfil, setPerfil] = useState({
@@ -270,7 +282,7 @@ const Equipo = () => {
     nombre: equipo.nombre,
     logo: equipo.logo ? URL.createObjectURL(equipo.logo) : "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=100&h=100&fit=crop&crop=center",
     colores: equipo.colores,
-    jugadores: equipo.jugadores
+    jugadores: equipo.jugadores.length
   };
 
   return (
@@ -329,9 +341,10 @@ const Equipo = () => {
 
       <div className="container mx-auto px-4 py-4 md:py-8">
         <Tabs defaultValue="perfil" className="max-w-4xl mx-auto">
-          <TabsList className="grid w-full grid-cols-2 text-xs md:text-sm">
+          <TabsList className="grid w-full grid-cols-3 text-xs md:text-sm">
             <TabsTrigger value="perfil">Perfil del Equipo</TabsTrigger>
             <TabsTrigger value="uniformes">Uniformes</TabsTrigger>
+            <TabsTrigger value="jugadores">Jugadores & Coach</TabsTrigger>
           </TabsList>
 
           <TabsContent value="perfil">
@@ -356,16 +369,6 @@ const Equipo = () => {
                       type="file"
                       id="logo"
                       onChange={handleLogoChange}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="jugadores">Número de Jugadores</Label>
-                    <Input
-                      type="number"
-                      id="jugadores"
-                      value={equipo.jugadores}
-                      onChange={(e) => setEquipo(prevState => ({ ...prevState, jugadores: parseInt(e.target.value) }))}
                     />
                   </div>
                 </div>
@@ -407,6 +410,15 @@ const Equipo = () => {
                 />
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="jugadores">
+            <JugadoresCoachManager
+              jugadores={equipo.jugadores}
+              coaches={equipo.coaches}
+              onJugadoresChange={(jugadores) => setEquipo(prev => ({ ...prev, jugadores }))}
+              onCoachesChange={(coaches) => setEquipo(prev => ({ ...prev, coaches }))}
+            />
           </TabsContent>
         </Tabs>
       </div>

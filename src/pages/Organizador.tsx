@@ -12,6 +12,8 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import TorneoFormModal from "@/components/TorneoFormModal";
+import TorneoEstadisticas from "@/components/TorneoEstadisticas";
+import OrganizadorDashboard from "@/components/OrganizadorDashboard";
 
 interface Torneo {
   id: string;
@@ -94,6 +96,7 @@ const Organizador = () => {
   const [mostrarNotificaciones, setMostrarNotificaciones] = useState(false);
   const [mostrarEstadisticas, setMostrarEstadisticas] = useState(false);
   const [mostrarFixtures, setMostrarFixtures] = useState(false);
+  const [mostrarDashboard, setMostrarDashboard] = useState(false);
   const [torneoSeleccionado, setTorneoSeleccionado] = useState<Torneo | null>(null);
   const [torneoEditando, setTorneoEditando] = useState<string | null>(null);
 
@@ -219,10 +222,10 @@ const Organizador = () => {
       categoria: data.categoria,
       tipo: data.tipoFutbol,
       formato: data.formato,
-      fechaInicio: "",
-      fechaFin: "",
+      fechaInicio: data.fechaInicio || "",
+      fechaFin: data.fechaFin || "",
       logo: "https://images.unsplash.com/photo-1614632537190-23e4b93dc25e?w=100&h=100&fit=crop&crop=center",
-      maxEquipos: 16,
+      maxEquipos: data.maxEquipos || 16,
       equiposInscritos: 0,
       estado: "inscripciones_abiertas",
       fechaCierre: data.fechaCierre,
@@ -238,11 +241,42 @@ const Organizador = () => {
   };
 
   const handleEditarTorneo = (torneoId: string) => {
+    const torneo = torneos.find(t => t.id === torneoId);
+    if (!torneo) return;
+
+    // Permitir edición si las inscripciones están abiertas o cerradas, pero no si ya comenzó
+    if (torneo.estado === "en_curso" || torneo.estado === "finalizado") {
+      toast.error("No se puede editar un torneo que ya ha iniciado o finalizado");
+      return;
+    }
+
     setTorneoEditando(torneoId);
     setMostrarFormulario(true);
   };
 
   const torneoParaEditar = torneoEditando ? torneos.find(t => t.id === torneoEditando) : null;
+
+  // Generar datos específicos por torneo para las estadísticas
+  const generarDatosPorTorneo = (torneo: Torneo) => {
+    // Simular datos específicos del torneo basados en su ID
+    const factor = parseInt(torneo.id.split('-')[1]) || 1;
+    
+    const equiposTorneo = equiposTabla.map((equipo, index) => ({
+      ...equipo,
+      pts: equipo.pts + (factor % 3) + index,
+      gf: equipo.gf + (factor % 5),
+      gc: equipo.gc + (factor % 4)
+    })).sort((a, b) => b.pts - a.pts);
+
+    const resultadosTorneo = resultados.filter((_, index) => index < (factor % 3) + 1);
+    
+    const goleadoresTorneo = goleadores.map((goleador, index) => ({
+      ...goleador,
+      goles: goleador.goles + (factor % 4) + index
+    })).sort((a, b) => b.goles - a.goles);
+
+    return { equiposTorneo, resultadosTorneo, goleadoresTorneo };
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
@@ -321,6 +355,14 @@ const Organizador = () => {
                   <Trophy className="w-4 h-4 mr-2" />
                   Crear Torneo
                 </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => setMostrarDashboard(true)}
+                >
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Dashboard General
+                </Button>
                 <Button variant="outline" className="w-full">
                   <Download className="w-4 h-4 mr-2" />
                   Descargar Reportes
@@ -392,13 +434,15 @@ const Organizador = () => {
                                 <p className="text-sm text-muted-foreground">{torneo.categoria}</p>
                               </div>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditarTorneo(torneo.id)}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
+                            {(torneo.estado === "inscripciones_abiertas" || torneo.estado === "inscripciones_cerradas") && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditarTorneo(torneo.id)}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                            )}
                           </div>
                         </CardHeader>
                         <CardContent className="space-y-3">
@@ -605,6 +649,35 @@ const Organizador = () => {
         torneoId={generarIdTorneo()}
         torneoEditando={torneoParaEditar}
       />
+
+      {/* Tournament-specific statistics modal */}
+      <Dialog open={mostrarEstadisticas} onOpenChange={setMostrarEstadisticas}>
+        <DialogContent className="w-[95vw] max-w-6xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>Estadísticas del Torneo</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto max-h-[70vh]">
+            {torneoSeleccionado && (
+              <TorneoEstadisticas
+                torneo={torneoSeleccionado}
+                {...generarDatosPorTorneo(torneoSeleccionado)}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* General dashboard modal */}
+      <Dialog open={mostrarDashboard} onOpenChange={setMostrarDashboard}>
+        <DialogContent className="w-[95vw] max-w-6xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>Dashboard General - Reporte de Torneos</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto max-h-[70vh]">
+            <OrganizadorDashboard torneos={torneos} />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Perfil Modal */}
       <Dialog open={mostrarPerfil} onOpenChange={setMostrarPerfil}>
