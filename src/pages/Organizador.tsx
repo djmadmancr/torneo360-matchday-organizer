@@ -3,17 +3,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Edit, Download, Calendar, BarChart3, Trophy, Bell, User, CheckCircle, XCircle, ArrowLeft, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { 
+  User, Trophy, Users, BarChart3, ArrowLeft, LogOut, Plus, Edit, 
+  Calendar, MapPin, Upload, Eye, TrendingUp 
+} from "lucide-react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import TorneoFormModal from "@/components/TorneoFormModal";
 import TorneoEstadisticas from "@/components/TorneoEstadisticas";
 import OrganizadorDashboard from "@/components/OrganizadorDashboard";
+import { useAuth } from "@/contexts/AuthContext";
+import { User as UserType, OrganizadorPerfil } from "@/types/auth";
 
 interface Torneo {
   id: string;
@@ -101,12 +102,13 @@ const Organizador = () => {
   const [torneoSeleccionado, setTorneoSeleccionado] = useState<Torneo | null>(null);
   const [torneoEditando, setTorneoEditando] = useState<string | null>(null);
 
-  const [perfil, setPerfil] = useState<PerfilOrganizador>({
-    nombre: "Liga Municipal de Fútbol",
-    logo: "https://images.unsplash.com/photo-1614632537190-23e4b93dc25e?w=100&h=100&fit=crop&crop=center",
-    encargados: ["Carlos Rodríguez", "Ana Martínez"],
-    email: "admin@ligamunicipal.com",
-    telefono: "+57 300 123 4567"
+  const { user } = useAuth();
+  const [perfil, setPerfil] = useState<OrganizadorPerfil>({
+    nombre: user?.nombre || "Liga Municipal de Fútbol",
+    logo: user?.logo || "https://images.unsplash.com/photo-1614632537190-23e4b93dc25e?w=100&h=100&fit=crop&crop=center",
+    encargados: user?.encargados || ["Carlos Rodríguez", "Ana Martínez"],
+    email: user?.email || "admin@ligamunicipal.com",
+    telefono: user?.telefono || "+57 300 123 4567"
   });
 
   const [torneos, setTorneos] = useState<Torneo[]>([

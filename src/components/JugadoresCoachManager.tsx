@@ -49,9 +49,15 @@ const JugadoresCoachManager = ({ jugadores, coaches, onJugadoresChange, onCoache
       return;
     }
 
+    // Verificar que no exista otro jugador con el mismo número de identificación
+    if (jugadores.some(j => j.numeroIdentificacion === nuevoJugador.numeroIdentificacion)) {
+      toast.error("Ya existe un jugador con ese número de identificación");
+      return;
+    }
+
     const jugadorConId: Jugador = {
       ...nuevoJugador,
-      id: `JUG-${Date.now()}`
+      id: `JUG-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     };
 
     onJugadoresChange([...jugadores, jugadorConId]);
@@ -67,6 +73,12 @@ const JugadoresCoachManager = ({ jugadores, coaches, onJugadoresChange, onCoache
   const agregarCoach = () => {
     if (!nuevoCoach.nombre || !nuevoCoach.numeroIdentificacion) {
       toast.error("Por favor completa todos los campos del coach");
+      return;
+    }
+
+    // Verificar que no exista otro coach con el mismo número de identificación
+    if (coaches.some(c => c.numeroIdentificacion === nuevoCoach.numeroIdentificacion)) {
+      toast.error("Ya existe un coach con ese número de identificación");
       return;
     }
 
