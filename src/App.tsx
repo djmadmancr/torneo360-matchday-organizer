@@ -24,13 +24,13 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<Index />} />
-      {user?.tipos.includes('organizador') && (
+      {user?.tipos?.includes('organizador') && (
         <Route path="/organizador" element={<Organizador />} />
       )}
-      {user?.tipos.includes('equipo') && (
+      {user?.tipos?.includes('equipo') && (
         <Route path="/equipo" element={<Equipo />} />
       )}
-      {user?.tipos.includes('fiscal') && (
+      {user?.tipos?.includes('fiscal') && (
         <Route path="/fiscal" element={<Fiscal />} />
       )}
       <Route path="*" element={<NotFound />} />

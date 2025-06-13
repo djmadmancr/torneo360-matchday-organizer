@@ -8,16 +8,17 @@ import ColorSelector from "./ColorSelector";
 interface UniformeSelectorProps {
   colores: {
     camiseta: string;
+    camisetaSecundario?: string;
     pantaloneta: string;
     medias: string;
   };
-  onChange: (colores: { camiseta: string; pantaloneta: string; medias: string }) => void;
+  onChange: (colores: { camiseta: string; camisetaSecundario?: string; pantaloneta: string; medias: string }) => void;
 }
 
 const UniformeSelector: React.FC<UniformeSelectorProps> = ({ colores, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleColorChange = (tipo: 'camiseta' | 'pantaloneta' | 'medias', color: string) => {
+  const handleColorChange = (tipo: 'camiseta' | 'camisetaSecundario' | 'pantaloneta' | 'medias', color: string) => {
     onChange({
       ...colores,
       [tipo]: color
@@ -32,10 +33,14 @@ const UniformeSelector: React.FC<UniformeSelectorProps> = ({ colores, onChange }
         <div className="flex items-center justify-center gap-8">
           <div className="text-center">
             <div className="w-16 h-20 mx-auto mb-2 relative">
-              {/* Camiseta */}
+              {/* Camiseta con dos colores */}
               <div 
-                className="w-16 h-12 rounded-t-lg border-2 border-gray-300"
-                style={{ backgroundColor: colores.camiseta }}
+                className="w-16 h-12 rounded-t-lg border-2 border-gray-300 relative overflow-hidden"
+                style={{ 
+                  background: colores.camisetaSecundario 
+                    ? `linear-gradient(45deg, ${colores.camiseta} 50%, ${colores.camisetaSecundario} 50%)`
+                    : colores.camiseta 
+                }}
               />
               {/* Pantaloneta */}
               <div 
@@ -65,8 +70,17 @@ const UniformeSelector: React.FC<UniformeSelectorProps> = ({ colores, onChange }
                 className="w-4 h-4 rounded border"
                 style={{ backgroundColor: colores.camiseta }}
               />
-              <span>Camiseta</span>
+              <span>Camiseta Principal</span>
             </div>
+            {colores.camisetaSecundario && (
+              <div className="flex items-center gap-2">
+                <div 
+                  className="w-4 h-4 rounded border"
+                  style={{ backgroundColor: colores.camisetaSecundario }}
+                />
+                <span>Camiseta Secundario</span>
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <div 
                 className="w-4 h-4 rounded border"
@@ -95,9 +109,12 @@ const UniformeSelector: React.FC<UniformeSelectorProps> = ({ colores, onChange }
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-4 mt-4">
           <ColorSelector
-            label="Color de la camiseta"
+            label="Color principal de la camiseta"
             value={colores.camiseta}
             onChange={(color) => handleColorChange('camiseta', color)}
+            allowDualColor={true}
+            secondValue={colores.camisetaSecundario}
+            onSecondChange={(color) => handleColorChange('camisetaSecundario', color)}
           />
           <ColorSelector
             label="Color de la pantaloneta"

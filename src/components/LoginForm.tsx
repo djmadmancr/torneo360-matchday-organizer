@@ -16,6 +16,7 @@ const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showSuperAdmin, setShowSuperAdmin] = useState(false);
+  const [backgroundImage, setBackgroundImage] = useState('');
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,7 +33,7 @@ const LoginForm = () => {
       const success = await login(username, password);
       
       if (success) {
-        toast.success('¡Bienvenido a Torneo360!');
+        toast.success('¡Bienvenido a Global Link Soccer!');
       } else {
         toast.error('Credenciales incorrectas');
       }
@@ -43,9 +44,28 @@ const LoginForm = () => {
     }
   };
 
+  const handleBackgroundImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setBackgroundImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{
+        backgroundImage: backgroundImage ? `url(${backgroundImage})` : 'linear-gradient(to bottom right, rgb(240 253 244), rgb(239 246 255))',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm">
         <CardHeader className="text-center relative">
           <Button
             variant="ghost"
@@ -55,7 +75,7 @@ const LoginForm = () => {
           >
             <Settings className="w-3 h-3" />
           </Button>
-          <div className="text-4xl font-bold text-primary mb-2">⚽ Torneo360</div>
+          <div className="text-4xl font-bold text-primary mb-2">⚽ Global Link Soccer</div>
           <CardTitle>Iniciar Sesión</CardTitle>
         </CardHeader>
         <CardContent>
@@ -122,6 +142,17 @@ const LoginForm = () => {
               <p><strong>Equipo:</strong> equipo1 / team2024</p>
               <p><strong>Fiscal:</strong> fiscal1 / ref2024</p>
             </div>
+          </div>
+
+          <div className="mt-4">
+            <Label htmlFor="background-image" className="text-sm">Imagen de fondo (opcional)</Label>
+            <Input
+              id="background-image"
+              type="file"
+              accept="image/*"
+              onChange={handleBackgroundImageChange}
+              className="mt-1"
+            />
           </div>
         </CardContent>
       </Card>
