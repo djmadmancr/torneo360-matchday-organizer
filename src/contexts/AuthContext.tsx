@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { User, AuthContextType } from '@/types/auth';
 
@@ -18,7 +19,7 @@ const initialUsers: User[] = [
         descripcion: 'Organización de torneos locales',
         telefono: '+57 300 123 4567',
         direccion: 'Calle 123, Ciudad',
-        torneos: ['TRN-001', 'TRN-002']
+        torneos: []
       },
       equipo: {
         nombreEquipo: 'Águilas FC',
@@ -37,25 +38,45 @@ const initialUsers: User[] = [
           { nombre: 'Pedro López', tipo: 'entrenador', numeroIdentificacion: '11223' },
           { nombre: 'Ana Torres', tipo: 'asistente', numeroIdentificacion: '44556' }
         ],
-        torneos: ['TRN-001']
+        torneos: []
       },
       fiscal: {
         nombre: 'Laura Pérez',
         experiencia: 5,
         certificaciones: ['FIFA', 'CONMEBOL'],
-        torneos: ['TRN-002']
+        torneos: []
       }
     }
   },
   {
     id: 'user-002',
-    username: 'equipo1',
-    password: 'password',
-    tipos: ['equipo'],
-    nombre: 'Equipo 1 User',
-    email: 'equipo1@example.com',
+    username: 'organizador1',
+    password: 'org2024',
+    tipos: ['organizador'],
+    nombre: 'Carlos Rodríguez',
+    email: 'carlos@organizador.com',
     activo: true,
     fechaCreacion: '2024-02-15',
+    perfiles: {
+      organizador: {
+        nombreOrganizacion: 'Liga Profesional',
+        logo: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=100&h=100&fit=crop&crop=center',
+        descripcion: 'Organizador de torneos profesionales',
+        telefono: '+57 311 222 3344',
+        direccion: 'Carrera 456, Localidad',
+        torneos: []
+      }
+    }
+  },
+  {
+    id: 'user-003',
+    username: 'equipo1',
+    password: 'team2024',
+    tipos: ['equipo'],
+    nombre: 'Leones FC Manager',
+    email: 'manager@leonesfc.com',
+    activo: true,
+    fechaCreacion: '2024-03-01',
     perfiles: {
       equipo: {
         nombreEquipo: 'Leones FC',
@@ -74,45 +95,25 @@ const initialUsers: User[] = [
           { nombre: 'Elena Ruiz', tipo: 'entrenador', numeroIdentificacion: '77889' },
           { nombre: 'Javier Vargas', tipo: 'asistente', numeroIdentificacion: '99001' }
         ],
-        torneos: ['TRN-002']
-      }
-    }
-  },
-  {
-    id: 'user-003',
-    username: 'fiscal1',
-    password: 'password',
-    tipos: ['fiscal'],
-    nombre: 'Fiscal 1 User',
-    email: 'fiscal1@example.com',
-    activo: true,
-    fechaCreacion: '2024-03-01',
-    perfiles: {
-      fiscal: {
-        nombre: 'Ana Gómez',
-        experiencia: 3,
-        certificaciones: ['LOCAL'],
-        torneos: ['TRN-001']
+        torneos: []
       }
     }
   },
   {
     id: 'user-004',
-    username: 'organizador1',
-    password: 'password',
-    tipos: ['organizador'],
-    nombre: 'Organizador 1 User',
-    email: 'organizador1@example.com',
+    username: 'fiscal1',
+    password: 'ref2024',
+    tipos: ['fiscal'],
+    nombre: 'Ana Gómez',
+    email: 'ana@fiscal.com',
     activo: true,
     fechaCreacion: '2024-04-10',
     perfiles: {
-      organizador: {
-        nombreOrganizacion: 'Liga Amistad',
-        logo: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=100&h=100&fit=crop&crop=center',
-        descripcion: 'Torneos para jóvenes talentos',
-        telefono: '+57 311 222 3344',
-        direccion: 'Carrera 456, Localidad',
-        torneos: ['TRN-003']
+      fiscal: {
+        nombre: 'Ana Gómez',
+        experiencia: 3,
+        certificaciones: ['LOCAL'],
+        torneos: []
       }
     }
   }
@@ -125,35 +126,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const savedUsers = localStorage.getItem('globalLinkSoccerUsers');
     return savedUsers ? JSON.parse(savedUsers) : initialUsers;
   });
+  
   const [user, setUser] = useState<User | null>(() => {
     const storedUser = localStorage.getItem('globalLinkSoccerUser');
     return storedUser ? JSON.parse(storedUser) : null;
   });
+  
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!user);
+  
   const [currentProfile, setCurrentProfile] = useState<'organizador' | 'equipo' | 'fiscal' | null>(() => {
     const storedProfile = localStorage.getItem('globalLinkSoccerCurrentProfile');
     return storedProfile ? (storedProfile as 'organizador' | 'equipo' | 'fiscal') : null;
   });
 
+  // Guardar usuarios en localStorage cada vez que cambien
   useEffect(() => {
     localStorage.setItem('globalLinkSoccerUsers', JSON.stringify(users));
   }, [users]);
 
+  // Guardar usuario actual en localStorage
   useEffect(() => {
-    localStorage.setItem('globalLinkSoccerUser', JSON.stringify(user));
-    setIsAuthenticated(!!user);
+    if (user) {
+      localStorage.setItem('globalLinkSoccerUser', JSON.stringify(user));
+      setIsAuthenticated(true);
+    } else {
+      localStorage.removeItem('globalLinkSoccerUser');
+      setIsAuthenticated(false);
+    }
   }, [user]);
 
+  // Guardar perfil actual en localStorage
   useEffect(() => {
-    localStorage.setItem('globalLinkSoccerCurrentProfile', currentProfile || '');
+    if (currentProfile) {
+      localStorage.setItem('globalLinkSoccerCurrentProfile', currentProfile);
+    } else {
+      localStorage.removeItem('globalLinkSoccerCurrentProfile');
+    }
   }, [currentProfile]);
 
   const login = async (username: string, password: string): Promise<boolean> => {
-    const foundUser = users.find(u => u.username === username && u.password === password);
+    const foundUser = users.find(u => u.username === username && u.password === password && u.activo);
     if (foundUser) {
       setUser(foundUser);
       setIsAuthenticated(true);
-      localStorage.setItem('globalLinkSoccerUser', JSON.stringify(foundUser));
       return true;
     } else {
       setIsAuthenticated(false);
@@ -165,13 +180,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setIsAuthenticated(false);
     setCurrentProfile(null);
-    localStorage.removeItem('globalLinkSoccerUser');
-    localStorage.removeItem('globalLinkSoccerCurrentProfile');
   };
 
   const setCurrentProfileType = (tipo: 'organizador' | 'equipo' | 'fiscal') => {
     setCurrentProfile(tipo);
-    localStorage.setItem('globalLinkSoccerCurrentProfile', tipo);
   };
 
   const updateUserProfile = (tipo: 'organizador' | 'equipo' | 'fiscal', profileData: any) => {
@@ -187,17 +199,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setUser(updatedUser);
     
+    // Actualizar también en la lista de usuarios
     setUsers(prevUsers => 
       prevUsers.map(u => u.id === user.id ? updatedUser : u)
     );
-
-    const updatedUsers = users.map(u => u.id === user.id ? updatedUser : u);
-    localStorage.setItem('globalLinkSoccerUsers', JSON.stringify(updatedUsers));
   };
 
   const updateUsers = (newUsers: User[]) => {
     setUsers(newUsers);
-    localStorage.setItem('globalLinkSoccerUsers', JSON.stringify(newUsers));
   };
 
   const value: AuthContextType = {

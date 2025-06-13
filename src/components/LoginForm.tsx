@@ -16,7 +16,6 @@ const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showSuperAdmin, setShowSuperAdmin] = useState(false);
-  const [backgroundImage, setBackgroundImage] = useState('');
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -44,22 +43,11 @@ const LoginForm = () => {
     }
   };
 
-  const handleBackgroundImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setBackgroundImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   return (
     <div 
       className="min-h-screen flex items-center justify-center p-4"
       style={{
-        backgroundImage: backgroundImage ? `url(${backgroundImage})` : 'linear-gradient(to bottom right, rgb(240 253 244), rgb(239 246 255))',
+        backgroundImage: `url(/lovable-uploads/42e8c109-4456-4ead-811c-acae29f37a54.png)`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat'
@@ -134,30 +122,9 @@ const LoginForm = () => {
               )}
             </Button>
           </form>
-
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <h4 className="font-semibold mb-2">Credenciales de Prueba:</h4>
-            <div className="space-y-1 text-sm">
-              <p><strong>Organizador:</strong> organizador1 / org2024</p>
-              <p><strong>Equipo:</strong> equipo1 / team2024</p>
-              <p><strong>Fiscal:</strong> fiscal1 / ref2024</p>
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <Label htmlFor="background-image" className="text-sm">Imagen de fondo (opcional)</Label>
-            <Input
-              id="background-image"
-              type="file"
-              accept="image/*"
-              onChange={handleBackgroundImageChange}
-              className="mt-1"
-            />
-          </div>
         </CardContent>
       </Card>
 
-      {/* Super Admin Modal */}
       <Dialog open={showSuperAdmin} onOpenChange={setShowSuperAdmin}>
         <DialogContent className="w-[95vw] max-w-6xl mx-auto max-h-[90vh] overflow-y-auto">
           <DialogHeader>

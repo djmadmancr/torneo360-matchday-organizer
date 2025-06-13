@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Bell, User, Trophy, BarChart3, Save } from "lucide-react";
+import { ArrowLeft, Bell, User, Trophy, BarChart3, Save, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -15,6 +15,7 @@ import JugadoresCoachManager from "@/components/JugadoresCoachManager";
 import { useAuth } from "@/contexts/AuthContext";
 import { EquipoPerfil, Jugador, Coach } from "@/types/auth";
 import PlayerStatistics from "@/components/PlayerStatistics";
+import TorneosPublicos from "@/components/TorneosPublicos";
 
 interface EstadisticaEquipo {
   torneoId: string;
@@ -37,86 +38,95 @@ const Equipo = () => {
 
   const equipoPerfil = user?.perfiles?.equipo as EquipoPerfil;
 
-  const [equipo, setEquipo] = useState({
-    id: user?.id || "EQ-001",
-    nombre: equipoPerfil?.nombreEquipo || "Águilas FC",
-    logo: null as File | null,
-    uniformes: {
-      principal: {
-        camiseta: {
-          principal: equipoPerfil?.colores?.principal || "#1e40af",
-          secundario: "#ffffff"
+  const [equipo, setEquipo] = useState(() => {
+    const saved = localStorage.getItem(`equipo_${user?.id}`);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+    return {
+      id: user?.id || "EQ-001",
+      nombre: equipoPerfil?.nombreEquipo || "Águilas FC",
+      logo: equipoPerfil?.logo || "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=100&h=100&fit=crop&crop=center",
+      uniformes: {
+        principal: {
+          camiseta: {
+            principal: equipoPerfil?.colores?.principal || "#1e40af",
+            secundario: "#ffffff"
+          },
+          pantaloneta: equipoPerfil?.colores?.principal || "#1e40af",
+          medias: equipoPerfil?.colores?.principal || "#1e40af"
         },
-        pantaloneta: equipoPerfil?.colores?.principal || "#1e40af",
+        alternativo: {
+          camiseta: {
+            principal: "#ffffff",
+            secundario: equipoPerfil?.colores?.principal || "#1e40af"
+          },
+          pantaloneta: "#ffffff",
+          medias: "#ffffff"
+        }
+      },
+      colores: {
+        camiseta: equipoPerfil?.colores?.principal || "#1e40af",
+        pantaloneta: equipoPerfil?.colores?.principal || "#1e40af", 
         medias: equipoPerfil?.colores?.principal || "#1e40af"
       },
-      alternativo: {
-        camiseta: {
-          principal: "#ffffff",
-          secundario: equipoPerfil?.colores?.principal || "#1e40af"
-        },
-        pantaloneta: "#ffffff",
-        medias: "#ffffff"
+      jugadores: equipoPerfil?.jugadores || [] as Jugador[],
+      coaches: equipoPerfil?.coaches || [] as Coach[],
+      encargados: ["Manager Principal"],
+      telefono: "+57 300 123 4567",
+      email: user?.email || "info@equipo.com"
+    };
+  });
+
+  // Notificaciones específicas del equipo
+  const [notificaciones, setNotificaciones] = useState(() => {
+    const saved = localStorage.getItem('notificacionesEquipo');
+    const allNotifications = saved ? JSON.parse(saved) : [];
+    return allNotifications.filter((n: any) => n.equipoId === user?.id);
+  });
+
+  // Estadísticas del equipo
+  const [estadisticasEquipo, setEstadisticasEquipo] = useState(() => {
+    const saved = localStorage.getItem(`estadisticas_${user?.id}`);
+    return saved ? JSON.parse(saved) : [
+      {
+        torneoId: "TRN-001",
+        torneoNombre: "Copa Primavera 2024",
+        pj: 6, pg: 4, pe: 1, pp: 1,
+        gf: 12, gc: 6, pts: 13, posicion: 1
       }
-    },
-    colores: {
-      camiseta: equipoPerfil?.colores?.principal || "#1e40af",
-      pantaloneta: equipoPerfil?.colores?.principal || "#1e40af", 
-      medias: equipoPerfil?.colores?.principal || "#1e40af"
-    },
-    jugadores: equipoPerfil?.jugadores || [] as Jugador[],
-    coaches: equipoPerfil?.coaches || [] as Coach[]
+    ];
   });
 
-  const [perfil, setPerfil] = useState({
-    nombre: equipoPerfil?.nombreEquipo || "Águilas FC",
-    logo: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=100&h=100&fit=crop&crop=center",
-    encargados: ["Carlos Rodríguez", "Ana Martínez"],
-    email: user?.email || "info@aguilasfc.com",
-    telefono: "+57 300 123 4567"
-  });
-
-  // Estadísticas demo del equipo en diferentes torneos
-  const estadisticasEquipo: EstadisticaEquipo[] = [
-    {
-      torneoId: "TRN-001",
-      torneoNombre: "Copa Primavera 2024",
-      pj: 6,
-      pg: 4,
-      pe: 1,
-      pp: 1,
-      gf: 12,
-      gc: 6,
-      pts: 13,
-      posicion: 1
-    },
-    {
-      torneoId: "TRN-002", 
-      torneoNombre: "Liga Municipal Otoño",
-      pj: 8,
-      pg: 5,
-      pe: 2,
-      pp: 1,
-      gf: 15,
-      gc: 8,
-      pts: 17,
-      posicion: 2
+  // Efecto para guardar datos del equipo
+  useEffect(() => {
+    if (user?.id) {
+      localStorage.setItem(`equipo_${user.id}`, JSON.stringify(equipo));
     }
-  ];
+  }, [equipo, user?.id]);
 
-  const notificaciones = [
-    {
-      id: "NOT-001",
-      titulo: "Próximo partido",
-      mensaje: "Tienes un partido programado para el sábado 20/06",
-      fecha: "2024-06-15"
-    }
-  ];
+  // Efecto para actualizar notificaciones
+  useEffect(() => {
+    const actualizarNotificaciones = () => {
+      const saved = localStorage.getItem('notificacionesEquipo');
+      const allNotifications = saved ? JSON.parse(saved) : [];
+      setNotificaciones(allNotifications.filter((n: any) => n.equipoId === user?.id));
+    };
+
+    actualizarNotificaciones();
+    const interval = setInterval(actualizarNotificaciones, 5000);
+    return () => clearInterval(interval);
+  }, [user?.id]);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setEquipo(prevState => ({ ...prevState, logo: file }));
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const newLogo = e.target?.result as string;
+        setEquipo(prevState => ({ ...prevState, logo: newLogo }));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -143,6 +153,7 @@ const Equipo = () => {
   const handleSaveChanges = () => {
     const updatedProfile: EquipoPerfil = {
       nombreEquipo: equipo.nombre,
+      logo: equipo.logo,
       colores: {
         principal: equipo.colores.camiseta,
         secundario: equipo.colores.pantaloneta
@@ -158,10 +169,14 @@ const Equipo = () => {
     toast.success('Cambios guardados exitosamente');
   };
 
+  const handleSolicitudEnviada = (torneoId: string, organizadorId: string) => {
+    console.log(`Solicitud enviada para torneo ${torneoId} al organizador ${organizadorId}`);
+  };
+
   const equipoParaCard = {
     id: equipo.id,
     nombre: equipo.nombre,
-    logo: equipo.logo ? URL.createObjectURL(equipo.logo) : "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=100&h=100&fit=crop&crop=center",
+    logo: typeof equipo.logo === 'string' ? equipo.logo : "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=100&h=100&fit=crop&crop=center",
     colores: equipo.colores,
     jugadores: equipo.jugadores.length
   };
@@ -182,8 +197,8 @@ const Equipo = () => {
               </Button>
               <div className="flex items-center gap-3">
                 <img 
-                  src={perfil.logo} 
-                  alt={perfil.nombre}
+                  src={equipoParaCard.logo} 
+                  alt={equipo.nombre}
                   className="w-8 h-8 rounded-full object-cover"
                 />
                 <div>
@@ -229,12 +244,13 @@ const Equipo = () => {
       </div>
 
       <div className="container mx-auto px-4 py-4 md:py-8">
-        <Tabs defaultValue="perfil" className="max-w-4xl mx-auto">
-          <TabsList className="grid w-full grid-cols-4 text-xs md:text-sm">
+        <Tabs defaultValue="perfil" className="max-w-6xl mx-auto">
+          <TabsList className="grid w-full grid-cols-5 text-xs md:text-sm">
             <TabsTrigger value="perfil">Perfil & Estadísticas</TabsTrigger>
             <TabsTrigger value="uniformes">Uniformes</TabsTrigger>
             <TabsTrigger value="jugadores">Jugadores & Coach</TabsTrigger>
             <TabsTrigger value="goleadores">Goleadores</TabsTrigger>
+            <TabsTrigger value="torneos">Torneos</TabsTrigger>
           </TabsList>
 
           <TabsContent value="perfil">
@@ -243,17 +259,16 @@ const Equipo = () => {
                 <h3 className="text-lg font-semibold mb-4">Vista Previa del Equipo</h3>
                 <EquipoCard 
                   equipo={equipoParaCard}
-                  onEdit={() => {}}
+                  onEdit={() => setMostrarPerfil(true)}
                 />
               </div>
 
-              {/* Estadísticas del equipo */}
               <div className="bg-white p-6 rounded-lg shadow-sm">
                 <h3 className="text-lg font-semibold mb-4">Estadísticas en Torneos</h3>
                 
                 {estadisticasEquipo.length > 0 ? (
                   <div className="space-y-4">
-                    {estadisticasEquipo.map((stats) => (
+                    {estadisticasEquipo.map((stats: any) => (
                       <Card key={stats.torneoId}>
                         <CardHeader>
                           <CardTitle className="flex items-center justify-between">
@@ -350,6 +365,20 @@ const Equipo = () => {
               />
             </div>
           </TabsContent>
+
+          <TabsContent value="torneos">
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <h3 className="text-lg font-semibold mb-4">Torneos Públicos Disponibles</h3>
+                <TorneosPublicos
+                  userId={user?.id || ''}
+                  nombreEquipo={equipo.nombre}
+                  categoria={equipoPerfil?.categoria || 'Primera División'}
+                  onSolicitudEnviada={handleSolicitudEnviada}
+                />
+              </div>
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -362,8 +391,8 @@ const Equipo = () => {
           <div className="space-y-4 py-4">
             <div className="flex items-center gap-4">
               <img 
-                src={perfil.logo} 
-                alt={perfil.nombre}
+                src={equipoParaCard.logo} 
+                alt={equipo.nombre}
                 className="w-16 h-16 rounded-lg object-cover"
               />
               <div className="flex-1">
@@ -374,29 +403,42 @@ const Equipo = () => {
                   onChange={(e) => setEquipo(prev => ({ ...prev, nombre: e.target.value }))}
                 />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="logo">Logo del Equipo</Label>
-              <Input
-                type="file"
-                id="logo"
-                onChange={handleLogoChange}
-              />
+              <Button variant="outline" size="sm" asChild>
+                <label htmlFor="logo-upload" className="cursor-pointer">
+                  <Upload className="w-4 h-4" />
+                  <input
+                    id="logo-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoChange}
+                    className="hidden"
+                  />
+                </label>
+              </Button>
             </div>
 
             <div className="space-y-3">
               <div>
+                <Label>Email</Label>
+                <Input 
+                  value={equipo.email}
+                  onChange={(e) => setEquipo(prev => ({ ...prev, email: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>Teléfono</Label>
+                <Input 
+                  value={equipo.telefono}
+                  onChange={(e) => setEquipo(prev => ({ ...prev, telefono: e.target.value }))}
+                />
+              </div>
+              <div>
                 <Label className="text-sm font-medium">Encargados</Label>
                 <div className="flex flex-wrap gap-2 mt-1">
-                  {perfil.encargados.map((encargado, index) => (
+                  {equipo.encargados.map((encargado: string, index: number) => (
                     <Badge key={index} variant="secondary">{encargado}</Badge>
                   ))}
                 </div>
-              </div>
-              <div>
-                <Label className="text-sm font-medium">Teléfono</Label>
-                <Input value={perfil.telefono} onChange={(e) => setPerfil(prev => ({ ...prev, telefono: e.target.value }))} />
               </div>
             </div>
 
@@ -413,13 +455,22 @@ const Equipo = () => {
             <DialogTitle>Notificaciones</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {notificaciones.map((notif) => (
-              <div key={notif.id} className="p-4 border rounded-lg space-y-2">
-                <h4 className="font-medium">{notif.titulo}</h4>
-                <p className="text-sm text-muted-foreground">{notif.mensaje}</p>
-                <div className="text-xs text-muted-foreground">{notif.fecha}</div>
-              </div>
-            ))}
+            {notificaciones.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                No tienes notificaciones
+              </p>
+            ) : (
+              notificaciones.map((notif: any) => (
+                <div key={notif.id} className="p-4 border rounded-lg space-y-2">
+                  <h4 className="font-medium">{notif.titulo}</h4>
+                  <p className="text-sm text-muted-foreground">{notif.mensaje}</p>
+                  <div className="text-xs text-muted-foreground">{notif.fecha}</div>
+                  <Badge variant={notif.tipo === 'aprobacion' ? 'default' : 'destructive'}>
+                    {notif.tipo === 'aprobacion' ? 'Aprobada' : 'Rechazada'}
+                  </Badge>
+                </div>
+              ))
+            )}
           </div>
         </DialogContent>
       </Dialog>

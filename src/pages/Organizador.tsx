@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useNavigate } from "react-router-dom";
 import { 
   User, Trophy, Users, BarChart3, ArrowLeft, LogOut, Plus, Edit, 
-  Calendar, MapPin, Upload, Eye, TrendingUp, Bell, Download, CheckCircle, XCircle
+  Calendar, MapPin, Upload, Eye, TrendingUp, Bell, Download, CheckCircle, XCircle, Play
 } from "lucide-react";
 import { toast } from "sonner";
 import TorneoFormModal from "@/components/TorneoFormModal";
@@ -41,6 +41,11 @@ interface Torneo {
   diasSemana: string[];
   partidosPorSemana: string;
   fechaCreacion: string;
+  esPublico?: boolean;
+  edadMinima?: number;
+  edadMaxima?: number;
+  descripcion?: string;
+  ubicacion?: string;
 }
 
 interface PerfilOrganizador {
@@ -53,7 +58,7 @@ interface PerfilOrganizador {
 
 interface Notificacion {
   id: string;
-  tipo: "inscripcion" | "reprogramacion" | "otra";
+  tipo: "inscripcion" | "reprogramacion" | "otra" | "aprobacion" | "rechazo";
   titulo: string;
   mensaje: string;
   fecha: string;
@@ -61,6 +66,8 @@ interface Notificacion {
   torneoId?: string;
   partidoId?: string;
   accionRequerida: boolean;
+  equipoId?: string;
+  mensajeEquipo?: string;
 }
 
 interface EquipoTabla {
@@ -103,10 +110,11 @@ const Organizador = () => {
   const [mostrarNotificaciones, setMostrarNotificaciones] = useState(false);
   const [mostrarEstadisticas, setMostrarEstadisticas] = useState(false);
   const [mostrarDashboard, setMostrarDashboard] = useState(false);
+  const [mostrarFixture, setMostrarFixture] = useState(false);
   const [torneoSeleccionado, setTorneoSeleccionado] = useState<Torneo | null>(null);
   const [torneoEditando, setTorneoEditando] = useState<string | null>(null);
 
-  const { user } = useAuth();
+  const { user, updateUserProfile } = useAuth();
   const organizadorPerfil = user?.perfiles?.organizador as OrganizadorPerfil;
   
   const [perfil, setPerfil] = useState<{
@@ -117,96 +125,187 @@ const Organizador = () => {
     telefono: string;
   }>({
     nombre: organizadorPerfil?.nombreOrganizacion || user?.nombre || "Liga Municipal de Fútbol",
-    logo: "https://images.unsplash.com/photo-1614632537190-23e4b93dc25e?w=100&h=100&fit=crop&crop=center",
+    logo: organizadorPerfil?.logo || "https://images.unsplash.com/photo-1614632537190-23e4b93dc25e?w=100&h=100&fit=crop&crop=center",
     encargados: ["Carlos Rodríguez", "Ana Martínez"],
     email: user?.email || "admin@ligamunicipal.com",
     telefono: organizadorPerfil?.telefono || "+57 300 123 4567"
   });
 
-  const [torneos, setTorneos] = useState<Torneo[]>([
-    {
-      id: "TRN-001",
-      nombre: "Copa Primavera 2024",
-      categoria: "U20",
-      tipo: "Completo",
-      formato: "Grupos + Eliminatorio",
-      fechaInicio: "2024-07-01",
-      fechaFin: "2024-08-15",
-      logo: "https://images.unsplash.com/photo-1614632537190-23e4b93dc25e?w=100&h=100&fit=crop&crop=center",
-      maxEquipos: 12,
-      equiposInscritos: 8,
+  // Estado de torneos específico del usuario
+  const [torneos, setTorneos] = useState<Torneo[]>(() => {
+    const savedTorneos = localStorage.getItem(`torneos_${user?.id}`);
+    return savedTorneos ? JSON.parse(savedTorneos) : [];
+  });
+
+  // Estado de notificaciones específico del usuario
+  const [notificaciones, setNotificaciones] = useState<Notificacion[]>(() => {
+    const savedNotificaciones = localStorage.getItem('notificaciones');
+    const allNotificaciones = savedNotificaciones ? JSON.parse(savedNotificaciones) : [];
+    return allNotificaciones.filter((n: any) => n.organizadorId === user?.id);
+  });
+
+  // Efecto para guardar torneos cuando cambien
+  useEffect(() => {
+    if (user?.id) {
+      localStorage.setItem(`torneos_${user.id}`, JSON.stringify(torneos));
+      
+      // También actualizar torneos públicos
+      const torneosPublicos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
+      const torneosPublicosActualizados = torneosPublicos.filter((t: any) => t.organizadorId !== user.id);
+      const torneosPublicosNuevos = torneos
+        .filter(t => t.esPublico)
+        .map(t => ({
+          ...t,
+          organizadorId: user.id,
+          organizadorNombre: perfil.nombre
+        }));
+      
+      localStorage.setItem('torneosPublicos', JSON.stringify([...torneosPublicosActualizados, ...torneosPublicosNuevos]));
+    }
+  }, [torneos, user?.id, perfil.nombre]);
+
+  // Efecto para actualizar notificaciones periódicamente
+  useEffect(() => {
+    const actualizarNotificaciones = () => {
+      const savedNotificaciones = localStorage.getItem('notificaciones');
+      const allNotificaciones = savedNotificaciones ? JSON.parse(savedNotificaciones) : [];
+      setNotificaciones(allNotificaciones.filter((n: any) => n.organizadorId === user?.id));
+    };
+
+    actualizarNotificaciones();
+    const interval = setInterval(actualizarNotificaciones, 5000); // Actualizar cada 5 segundos
+
+    return () => clearInterval(interval);
+  }, [user?.id]);
+
+  const generarIdTorneo = () => {
+    const numeroAleatorio = Math.floor(Math.random() * 900) + 100;
+    return `TRN-${numeroAleatorio}`;
+  };
+
+  const handleCrearTorneo = (data: any) => {
+    const nuevoTorneo: Torneo = {
+      id: data.torneoId,
+      nombre: data.nombreTorneo,
+      categoria: data.categoria,
+      tipo: data.tipoFutbol,
+      formato: data.formato,
+      fechaInicio: data.fechaInicio || "",
+      fechaFin: data.fechaFin || "",
+      logo: data.logo || "https://images.unsplash.com/photo-1614632537190-23e4b93dc25e?w=100&h=100&fit=crop&crop=center",
+      maxEquipos: data.maxEquipos || 16,
+      equiposInscritos: 0,
       estado: "inscripciones_abiertas",
-      fechaCierre: "2024-06-25",
-      puntajeExtra: "Penales",
-      idaVuelta: { grupos: true, eliminatoria: false },
-      diasSemana: ["sabado", "domingo"],
-      partidosPorSemana: "2",
-      fechaCreacion: "2024-06-01"
-    },
-    {
-      id: "TRN-002",
-      nombre: "Liga Municipal Otoño",
-      categoria: "Libre",
-      tipo: "Eliminatorio",
-      formato: "Eliminatorio Directo",
-      fechaInicio: "2024-06-15",
-      fechaFin: "2024-07-30",
-      logo: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=100&h=100&fit=crop&crop=center",
-      maxEquipos: 16,
-      equiposInscritos: 16,
-      estado: "en_curso",
-      fechaCierre: "2024-05-30",
-      puntajeExtra: "N/A",
-      idaVuelta: { grupos: false, eliminatoria: true },
-      diasSemana: ["viernes", "sabado"],
-      partidosPorSemana: "3",
-      fechaCreacion: "2024-05-15"
-    },
-    {
-      id: "TRN-003",
-      nombre: "Torneo Relámpago Verano",
-      categoria: "U17",
-      tipo: "Relámpago",
-      formato: "Todos contra Todos",
-      fechaInicio: "2024-06-20",
-      fechaFin: "2024-06-25",
-      logo: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=100&h=100&fit=crop&crop=center",
-      maxEquipos: 8,
-      equiposInscritos: 8,
-      estado: "inscripciones_cerradas",
-      fechaCierre: "2024-06-10",
-      puntajeExtra: "Shoot Outs",
-      idaVuelta: { grupos: false, eliminatoria: false },
-      diasSemana: ["domingo"],
-      partidosPorSemana: "4",
-      fechaCreacion: "2024-06-05"
-    }
-  ]);
+      fechaCierre: data.fechaCierre,
+      puntajeExtra: data.puntajeExtra,
+      idaVuelta: data.idaVuelta,
+      diasSemana: data.diasSemana,
+      partidosPorSemana: data.partidosPorSemana,
+      fechaCreacion: new Date().toISOString().split('T')[0],
+      esPublico: data.esPublico || false,
+      edadMinima: data.edadMinima,
+      edadMaxima: data.edadMaxima,
+      descripcion: data.descripcion,
+      ubicacion: data.ubicacion
+    };
 
-  const [notificaciones, setNotificaciones] = useState<Notificacion[]>([
-    {
-      id: "NOT-001",
-      tipo: "inscripcion",
-      titulo: "Nueva solicitud de inscripción",
-      mensaje: "El equipo 'Águilas FC' ha solicitado inscribirse a Copa Primavera 2024",
-      fecha: "2024-06-15",
-      equipoSolicitante: "Águilas FC",
-      torneoId: "TRN-001",
-      accionRequerida: true
-    },
-    {
-      id: "NOT-002",
-      tipo: "reprogramacion",
-      titulo: "Solicitud de reprogramación",
-      mensaje: "El equipo 'Tigres SC' solicita reprogramar el partido del 20/06",
-      fecha: "2024-06-14",
-      equipoSolicitante: "Tigres SC",
-      partidoId: "P001",
-      accionRequerida: true
-    }
-  ]);
+    setTorneos(prev => [...prev, nuevoTorneo]);
+    toast.success("Torneo creado exitosamente");
+  };
 
-  // Datos demo para equipos con información de torneos
+  const handleEditarTorneo = (torneoId: string) => {
+    const torneo = torneos.find(t => t.id === torneoId);
+    if (!torneo) return;
+
+    if (torneo.estado === "en_curso" || torneo.estado === "finalizado") {
+      toast.error("No se puede editar un torneo que ya ha iniciado o finalizado");
+      return;
+    }
+
+    setTorneoEditando(torneoId);
+    setMostrarFormulario(true);
+  };
+
+  const handleIniciarTorneo = (torneoId: string) => {
+    setTorneos(prev => prev.map(torneo => 
+      torneo.id === torneoId 
+        ? { ...torneo, estado: "en_curso" as const }
+        : torneo
+    ));
+    toast.success("Torneo iniciado exitosamente");
+  };
+
+  const handleCerrarInscripciones = (torneoId: string) => {
+    setTorneos(prev => prev.map(torneo => 
+      torneo.id === torneoId 
+        ? { ...torneo, estado: "inscripciones_cerradas" as const }
+        : torneo
+    ));
+    toast.success("Inscripciones cerradas");
+  };
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const newLogo = e.target?.result as string;
+        setPerfil(prev => ({ ...prev, logo: newLogo }));
+        
+        // Actualizar perfil en el contexto
+        if (organizadorPerfil) {
+          updateUserProfile('organizador', {
+            ...organizadorPerfil,
+            logo: newLogo
+          });
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const torneoParaEditar = torneoEditando ? torneos.find(t => t.id === torneoEditando) : null;
+
+  // Generar datos específicos por torneo para las estadísticas
+  const generarDatosPorTorneo = (torneo: Torneo) => {
+    // Simular datos específicos del torneo basados en su ID
+    const factor = parseInt(torneo.id.split('-')[1]) || 1;
+    
+    const equiposTorneo = equiposTabla.map((equipo, index) => ({
+      ...equipo,
+      pts: equipo.pts + (factor % 3) + index,
+      gf: equipo.gf + (factor % 5),
+      gc: equipo.gc + (factor % 4)
+    })).sort((a, b) => b.pts - a.pts);
+
+    const resultadosTorneo = resultados.filter((_, index) => index < (factor % 3) + 1);
+    
+    const goleadoresTorneo = goleadores.map((goleador, index) => ({
+      ...goleador,
+      goles: goleador.goles + (factor % 4) + index
+    })).sort((a, b) => b.goles - a.goles);
+
+    return { equiposTorneo, resultadosTorneo, goleadoresTorneo };
+  };
+
+  const equiposDemo = [
+    { id: "EQ-001", nombre: "Águilas FC", logo: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center" },
+    { id: "EQ-002", nombre: "Tigres SC", logo: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=50&h=50&fit=crop&crop=center" },
+    { id: "EQ-003", nombre: "Leones United", logo: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=50&h=50&fit=crop&crop=center" },
+    { id: "EQ-004", nombre: "Pumas FC", logo: "https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=50&h=50&fit=crop&crop=center" }
+  ];
+
+  const resultados: Resultado[] = [
+    { equipoLocal: "Águilas FC", logoLocal: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center", equipoVisitante: "Tigres SC", logoVisitante: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=50&h=50&fit=crop&crop=center", golesLocal: 2, golesVisitante: 1, fecha: "2024-06-10" },
+    { equipoLocal: "Leones United", logoLocal: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=50&h=50&fit=crop&crop=center", equipoVisitante: "Pumas FC", logoVisitante: "https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=50&h=50&fit=crop&crop=center", golesLocal: 1, golesVisitante: 1, fecha: "2024-06-12" }
+  ];
+
+  const goleadores: Goleador[] = [
+    { nombre: "Carlos López", equipo: "Águilas FC", logoEquipo: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center", goles: 8 },
+    { nombre: "Miguel Torres", equipo: "Tigres SC", logoEquipo: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=50&h=50&fit=crop&crop=center", goles: 6 },
+    { nombre: "Juan Pérez", equipo: "Leones United", logoEquipo: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=50&h=50&fit=crop&crop=center", goles: 5 }
+  ];
+
   const equiposTabla: EquipoTabla[] = [
     { 
       nombre: "Águilas FC", 
@@ -247,102 +346,6 @@ const Organizador = () => {
     }
   ];
 
-  const resultados: Resultado[] = [
-    { equipoLocal: "Águilas FC", logoLocal: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center", equipoVisitante: "Tigres SC", logoVisitante: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=50&h=50&fit=crop&crop=center", golesLocal: 2, golesVisitante: 1, fecha: "2024-06-10" },
-    { equipoLocal: "Leones United", logoLocal: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=50&h=50&fit=crop&crop=center", equipoVisitante: "Pumas FC", logoVisitante: "https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=50&h=50&fit=crop&crop=center", golesLocal: 1, golesVisitante: 1, fecha: "2024-06-12" }
-  ];
-
-  const goleadores: Goleador[] = [
-    { nombre: "Carlos López", equipo: "Águilas FC", logoEquipo: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center", goles: 8 },
-    { nombre: "Miguel Torres", equipo: "Tigres SC", logoEquipo: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=50&h=50&fit=crop&crop=center", goles: 6 },
-    { nombre: "Juan Pérez", equipo: "Leones United", logoEquipo: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=50&h=50&fit=crop&crop=center", goles: 5 }
-  ];
-
-  const generarIdTorneo = () => {
-    const numeroAleatorio = Math.floor(Math.random() * 900) + 100;
-    return `TRN-${numeroAleatorio}`;
-  };
-
-  const handleCrearTorneo = (data: any) => {
-    const nuevoTorneo: Torneo = {
-      id: data.torneoId,
-      nombre: data.nombreTorneo,
-      categoria: data.categoria,
-      tipo: data.tipoFutbol,
-      formato: data.formato,
-      fechaInicio: data.fechaInicio || "",
-      fechaFin: data.fechaFin || "",
-      logo: "https://images.unsplash.com/photo-1614632537190-23e4b93dc25e?w=100&h=100&fit=crop&crop=center",
-      maxEquipos: data.maxEquipos || 16,
-      equiposInscritos: 0,
-      estado: "inscripciones_abiertas",
-      fechaCierre: data.fechaCierre,
-      puntajeExtra: data.puntajeExtra,
-      idaVuelta: data.idaVuelta,
-      diasSemana: data.diasSemana,
-      partidosPorSemana: data.partidosPorSemana,
-      fechaCreacion: new Date().toISOString().split('T')[0]
-    };
-
-    setTorneos(prev => [...prev, nuevoTorneo]);
-    toast.success("Torneo creado exitosamente");
-  };
-
-  const handleEditarTorneo = (torneoId: string) => {
-    const torneo = torneos.find(t => t.id === torneoId);
-    if (!torneo) return;
-
-    if (torneo.estado === "en_curso" || torneo.estado === "finalizado") {
-      toast.error("No se puede editar un torneo que ya ha iniciado o finalizado");
-      return;
-    }
-
-    setTorneoEditando(torneoId);
-    setMostrarFormulario(true);
-  };
-
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPerfil(prev => ({ ...prev, logo: e.target?.result as string }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const torneoParaEditar = torneoEditando ? torneos.find(t => t.id === torneoEditando) : null;
-
-  // Generar datos específicos por torneo para las estadísticas
-  const generarDatosPorTorneo = (torneo: Torneo) => {
-    // Simular datos específicos del torneo basados en su ID
-    const factor = parseInt(torneo.id.split('-')[1]) || 1;
-    
-    const equiposTorneo = equiposTabla.map((equipo, index) => ({
-      ...equipo,
-      pts: equipo.pts + (factor % 3) + index,
-      gf: equipo.gf + (factor % 5),
-      gc: equipo.gc + (factor % 4)
-    })).sort((a, b) => b.pts - a.pts);
-
-    const resultadosTorneo = resultados.filter((_, index) => index < (factor % 3) + 1);
-    
-    const goleadoresTorneo = goleadores.map((goleador, index) => ({
-      ...goleador,
-      goles: goleador.goles + (factor % 4) + index
-    })).sort((a, b) => b.goles - a.goles);
-
-    return { equiposTorneo, resultadosTorneo, goleadoresTorneo };
-  };
-
-  const equiposDemo = [
-    { id: "EQ-001", nombre: "Águilas FC", logo: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center" },
-    { id: "EQ-002", nombre: "Tigres SC", logo: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=50&h=50&fit=crop&crop=center" },
-    { id: "EQ-003", nombre: "Leones United", logo: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=50&h=50&fit=crop&crop=center" },
-    { id: "EQ-004", nombre: "Pumas FC", logo: "https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=50&h=50&fit=crop&crop=center" }
-  ];
-
   const aprobarNotificacion = (notificacionId: string) => {
     const notificacion = notificaciones.find(n => n.id === notificacionId);
     if (!notificacion) return;
@@ -354,10 +357,30 @@ const Organizador = () => {
           ? { ...torneo, equiposInscritos: torneo.equiposInscritos + 1 }
           : torneo
       ));
+      
+      // Crear notificación para el equipo
+      const notificacionEquipo = {
+        id: `NOT-${Date.now()}`,
+        tipo: 'aprobacion',
+        titulo: 'Inscripción Aprobada',
+        mensaje: `Tu solicitud para ${notificacion.mensaje.split(' a ')[1]} ha sido aprobada`,
+        fecha: new Date().toISOString().split('T')[0],
+        equipoId: notificacion.equipoId,
+        accionRequerida: false
+      };
+
+      const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
+      notificacionesEquipo.push(notificacionEquipo);
+      localStorage.setItem('notificacionesEquipo', JSON.stringify(notificacionesEquipo));
+
       toast.success(`Inscripción de ${notificacion.equipoSolicitante} aprobada`);
     }
 
-    // Eliminar notificación
+    // Eliminar notificación del localStorage general
+    const todasNotificaciones = JSON.parse(localStorage.getItem('notificaciones') || '[]');
+    const notificacionesActualizadas = todasNotificaciones.filter((n: any) => n.id !== notificacionId);
+    localStorage.setItem('notificaciones', JSON.stringify(notificacionesActualizadas));
+    
     setNotificaciones(prev => prev.filter(n => n.id !== notificacionId));
   };
 
@@ -365,7 +388,28 @@ const Organizador = () => {
     const notificacion = notificaciones.find(n => n.id === notificacionId);
     if (!notificacion) return;
 
+    // Crear notificación para el equipo
+    const notificacionEquipo = {
+      id: `NOT-${Date.now()}`,
+      tipo: 'rechazo',
+      titulo: 'Inscripción Rechazada',
+      mensaje: `Tu solicitud para ${notificacion.mensaje.split(' a ')[1]} ha sido rechazada`,
+      fecha: new Date().toISOString().split('T')[0],
+      equipoId: notificacion.equipoId,
+      accionRequerida: false
+    };
+
+    const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
+    notificacionesEquipo.push(notificacionEquipo);
+    localStorage.setItem('notificacionesEquipo', JSON.stringify(notificacionesEquipo));
+
     toast.error(`Solicitud de ${notificacion.equipoSolicitante} rechazada`);
+    
+    // Eliminar notificación del localStorage general
+    const todasNotificaciones = JSON.parse(localStorage.getItem('notificaciones') || '[]');
+    const notificacionesActualizadas = todasNotificaciones.filter((n: any) => n.id !== notificacionId);
+    localStorage.setItem('notificaciones', JSON.stringify(notificacionesActualizadas));
+    
     setNotificaciones(prev => prev.filter(n => n.id !== notificacionId));
   };
 
@@ -379,11 +423,45 @@ const Organizador = () => {
             ? { ...torneo, equiposInscritos: torneo.equiposInscritos + 1 }
             : torneo
         ));
+
+        // Crear notificación para el equipo
+        const notificacionEquipo = {
+          id: `NOT-${Date.now() + Math.random()}`,
+          tipo: 'aprobacion',
+          titulo: 'Inscripción Aprobada',
+          mensaje: `Tu solicitud para ${notificacion.mensaje.split(' a ')[1]} ha sido aprobada`,
+          fecha: new Date().toISOString().split('T')[0],
+          equipoId: notificacion.equipoId,
+          accionRequerida: false
+        };
+
+        const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
+        notificacionesEquipo.push(notificacionEquipo);
+        localStorage.setItem('notificacionesEquipo', JSON.stringify(notificacionesEquipo));
       }
     });
 
+    // Eliminar todas las notificaciones pendientes
+    const todasNotificaciones = JSON.parse(localStorage.getItem('notificaciones') || '[]');
+    const notificacionesActualizadas = todasNotificaciones.filter((n: any) => 
+      !notificacionesPendientes.some(np => np.id === n.id)
+    );
+    localStorage.setItem('notificaciones', JSON.stringify(notificacionesActualizadas));
+
     setNotificaciones(prev => prev.filter(n => !n.accionRequerida));
     toast.success("Todas las solicitudes han sido aprobadas");
+  };
+
+  const guardarPerfil = () => {
+    if (organizadorPerfil) {
+      updateUserProfile('organizador', {
+        ...organizadorPerfil,
+        nombreOrganizacion: perfil.nombre,
+        logo: perfil.logo,
+        telefono: perfil.telefono
+      });
+      toast.success('Perfil actualizado exitosamente');
+    }
   };
 
   return (
@@ -472,7 +550,7 @@ const Organizador = () => {
                   <BarChart3 className="w-4 h-4 mr-2" />
                   Dashboard General
                 </Button>
-                <ReportDownloader torneos={torneos} />
+                <ReportDownloader torneos={torneos} organizadorNombre={perfil.nombre} />
               </CardContent>
             </Card>
 
@@ -500,10 +578,9 @@ const Organizador = () => {
           {/* Main Content Area */}
           <div className="flex-1">
             <Tabs defaultValue="torneos" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="torneos">Torneos</TabsTrigger>
-                <TabsTrigger value="equipos">Equipos</TabsTrigger>
-                <TabsTrigger value="fixtures">Fixtures</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="torneos">Mis Torneos</TabsTrigger>
+                <TabsTrigger value="equipos">Equipos Registrados</TabsTrigger>
               </TabsList>
 
               <TabsContent value="torneos">
@@ -514,7 +591,7 @@ const Organizador = () => {
                       setTorneoEditando(null);
                       setMostrarFormulario(true);
                     }}>
-                      <Trophy className="w-4 h-4 mr-2" />
+                      <Plus className="w-4 h-4 mr-2" />
                       Nuevo Torneo
                     </Button>
                   </div>
@@ -555,6 +632,7 @@ const Organizador = () => {
                             <span className="text-muted-foreground">Formato:</span>
                             <span>{torneo.formato}</span>
                           </div>
+                          
                           <div className="flex items-center justify-between">
                             <Badge variant={
                               torneo.estado === "en_curso" ? "default" :
@@ -563,6 +641,58 @@ const Organizador = () => {
                             }>
                               {torneo.estado.replace("_", " ")}
                             </Badge>
+                            {torneo.esPublico && (
+                              <Badge variant="outline">Público</Badge>
+                            )}
+                          </div>
+
+                          <div className="flex gap-2 pt-2">
+                            {torneo.estado === "inscripciones_abiertas" && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleCerrarInscripciones(torneo.id)}
+                              >
+                                Cerrar Inscripciones
+                              </Button>
+                            )}
+                            
+                            {torneo.estado === "inscripciones_cerradas" && (
+                              <>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleIniciarTorneo(torneo.id)}
+                                >
+                                  <Play className="w-4 h-4 mr-1" />
+                                  Iniciar
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => {
+                                    setTorneoSeleccionado(torneo);
+                                    setMostrarFixture(true);
+                                  }}
+                                >
+                                  Fixture
+                                </Button>
+                              </>
+                            )}
+
+                            {torneo.estado === "en_curso" && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => {
+                                  setTorneoSeleccionado(torneo);
+                                  setMostrarFixture(true);
+                                }}
+                              >
+                                Ver Fixture
+                              </Button>
+                            )}
+                            
                             <Button 
                               variant="outline" 
                               size="sm"
@@ -641,28 +771,6 @@ const Organizador = () => {
                   </div>
                 </div>
               </TabsContent>
-
-              <TabsContent value="fixtures">
-                <div className="space-y-6">
-                  <h2 className="text-2xl font-bold">Fixtures de Torneos</h2>
-                  {torneos.length > 0 ? (
-                    <div className="space-y-6">
-                      {torneos.map((torneo) => (
-                        <Card key={torneo.id}>
-                          <CardHeader>
-                            <CardTitle>{torneo.nombre}</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <FixtureGenerator torneo={torneo} equipos={equiposDemo} />
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-center text-muted-foreground">No hay torneos para generar fixtures</p>
-                  )}
-                </div>
-              </TabsContent>
             </Tabs>
           </div>
         </div>
@@ -689,8 +797,23 @@ const Organizador = () => {
             {torneoSeleccionado && (
               <TorneoEstadisticas
                 torneo={torneoSeleccionado}
-                {...generarDatosPorTorneo(torneoSeleccionado)}
+                equiposTorneo={[]}
+                resultadosTorneo={[]}
+                goleadoresTorneo={[]}
               />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={mostrarFixture} onOpenChange={setMostrarFixture}>
+        <DialogContent className="w-[95vw] max-w-6xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>Fixture del Torneo</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto max-h-[70vh]">
+            {torneoSeleccionado && (
+              <FixtureGenerator torneo={torneoSeleccionado} equipos={equiposDemo} />
             )}
           </div>
         </DialogContent>
@@ -758,14 +881,9 @@ const Organizador = () => {
                   onChange={(e) => setPerfil(prev => ({ ...prev, telefono: e.target.value }))}
                 />
               </div>
-              <div>
-                <Label className="text-sm font-medium">Encargados</Label>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {perfil.encargados.map((encargado, index) => (
-                    <Badge key={index} variant="secondary">{encargado}</Badge>
-                  ))}
-                </div>
-              </div>
+              <Button onClick={guardarPerfil} className="w-full">
+                Guardar Cambios
+              </Button>
             </div>
           </div>
         </DialogContent>
@@ -788,42 +906,53 @@ const Organizador = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {notificaciones.map((notif) => (
-              <div key={notif.id} className="p-4 border rounded-lg space-y-2">
-                <div className="flex items-start justify-between">
-                  <h4 className="font-medium">{notif.titulo}</h4>
-                  <Badge variant={notif.accionRequerida ? "destructive" : "secondary"}>
-                    {notif.accionRequerida ? "Acción requerida" : "Informativa"}
-                  </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">{notif.mensaje}</p>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{notif.fecha}</span>
-                  <span>{notif.equipoSolicitante}</span>
-                </div>
-                {notif.accionRequerida && (
-                  <div className="flex gap-2 pt-2">
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => aprobarNotificacion(notif.id)}
-                      className="bg-green-50 hover:bg-green-100 border-green-200"
-                    >
-                      <CheckCircle className="w-4 h-4 mr-1" />
-                      Aprobar
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="destructive"
-                      onClick={() => rechazarNotificacion(notif.id)}
-                    >
-                      <XCircle className="w-4 h-4 mr-1" />
-                      Rechazar
-                    </Button>
+            {notificaciones.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                No tienes notificaciones pendientes
+              </p>
+            ) : (
+              notificaciones.map((notif) => (
+                <div key={notif.id} className="p-4 border rounded-lg space-y-2">
+                  <div className="flex items-start justify-between">
+                    <h4 className="font-medium">{notif.titulo}</h4>
+                    <Badge variant={notif.accionRequerida ? "destructive" : "secondary"}>
+                      {notif.accionRequerida ? "Acción requerida" : "Informativa"}
+                    </Badge>
                   </div>
-                )}
-              </div>
-            ))}
+                  <p className="text-sm text-muted-foreground">{notif.mensaje}</p>
+                  {notif.mensajeEquipo && (
+                    <div className="text-xs bg-muted p-2 rounded">
+                      <strong>Mensaje del equipo:</strong> {notif.mensajeEquipo}
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{notif.fecha}</span>
+                    <span>{notif.equipoSolicitante}</span>
+                  </div>
+                  {notif.accionRequerida && (
+                    <div className="flex gap-2 pt-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => aprobarNotificacion(notif.id)}
+                        className="bg-green-50 hover:bg-green-100 border-green-200"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        Aprobar
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="destructive"
+                        onClick={() => rechazarNotificacion(notif.id)}
+                      >
+                        <XCircle className="w-4 h-4 mr-1" />
+                        Rechazar
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </DialogContent>
       </Dialog>
