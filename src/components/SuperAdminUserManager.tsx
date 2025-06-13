@@ -25,7 +25,7 @@ const SuperAdminUserManager = () => {
     email: ''
   });
 
-  const createDefaultProfile = (tipo: 'organizador' | 'equipo' | 'fiscal', nombre: string): OrganizadorPerfil | EquipoPerfil | FiscalPerfil => {
+  const createDefaultProfile = (tipo: 'organizador' | 'equipo' | 'fiscal', nombre: string) => {
     switch (tipo) {
       case 'organizador':
         return {
@@ -52,6 +52,8 @@ const SuperAdminUserManager = () => {
           certificaciones: [],
           torneos: []
         } as FiscalPerfil;
+      default:
+        throw new Error(`Tipo de perfil no válido: ${tipo}`);
     }
   };
 
@@ -66,7 +68,12 @@ const SuperAdminUserManager = () => {
       return;
     }
 
-    const perfiles: any = {};
+    const perfiles: Partial<{
+      organizador: OrganizadorPerfil;
+      equipo: EquipoPerfil;
+      fiscal: FiscalPerfil;
+    }> = {};
+
     newUser.tipos.forEach(tipo => {
       perfiles[tipo] = createDefaultProfile(tipo, newUser.nombre);
     });

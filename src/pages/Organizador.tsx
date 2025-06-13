@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -106,7 +105,7 @@ const Organizador = () => {
   const [torneoEditando, setTorneoEditando] = useState<string | null>(null);
 
   const { user } = useAuth();
-  const organizadorPerfil = user?.perfil as OrganizadorPerfil;
+  const organizadorPerfil = user?.perfiles?.organizador as OrganizadorPerfil;
   
   const [perfil, setPerfil] = useState<{
     nombre: string;
