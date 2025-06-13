@@ -11,12 +11,11 @@ import Equipo from "./pages/Equipo";
 import Fiscal from "./pages/Fiscal";
 import NotFound from "./pages/NotFound";
 import LoginForm from "./components/LoginForm";
-import SuperAdminUserManager from "./components/SuperAdminUserManager";
 
 const queryClient = new QueryClient();
 
 const AppRoutes = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, currentProfile } = useAuth();
 
   if (!isAuthenticated) {
     return <LoginForm />;
@@ -25,14 +24,13 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<Index />} />
-      <Route path="/super-admin" element={<SuperAdminUserManager />} />
-      {user?.tipo === 'organizador' && (
+      {user?.tipos.includes('organizador') && (
         <Route path="/organizador" element={<Organizador />} />
       )}
-      {user?.tipo === 'equipo' && (
+      {user?.tipos.includes('equipo') && (
         <Route path="/equipo" element={<Equipo />} />
       )}
-      {user?.tipo === 'fiscal' && (
+      {user?.tipos.includes('fiscal') && (
         <Route path="/fiscal" element={<Fiscal />} />
       )}
       <Route path="*" element={<NotFound />} />

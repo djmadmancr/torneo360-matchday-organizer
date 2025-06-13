@@ -6,13 +6,16 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { LogIn, Eye, EyeOff } from 'lucide-react';
+import { LogIn, Eye, EyeOff, Settings } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import SuperAdminUserManager from '@/components/SuperAdminUserManager';
 
 const LoginForm = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showSuperAdmin, setShowSuperAdmin] = useState(false);
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,7 +46,15 @@ const LoginForm = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
+        <CardHeader className="text-center relative">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowSuperAdmin(true)}
+            className="absolute top-2 right-2 text-xs text-muted-foreground hover:text-primary opacity-30 hover:opacity-100"
+          >
+            <Settings className="w-3 h-3" />
+          </Button>
           <div className="text-4xl font-bold text-primary mb-2">⚽ Torneo360</div>
           <CardTitle>Iniciar Sesión</CardTitle>
         </CardHeader>
@@ -114,6 +125,16 @@ const LoginForm = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Super Admin Modal */}
+      <Dialog open={showSuperAdmin} onOpenChange={setShowSuperAdmin}>
+        <DialogContent className="w-[95vw] max-w-6xl mx-auto max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>🔐 Dashboard Super Administrador</DialogTitle>
+          </DialogHeader>
+          <SuperAdminUserManager />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

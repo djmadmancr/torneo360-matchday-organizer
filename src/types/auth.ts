@@ -3,12 +3,16 @@ export interface User {
   id: string;
   username: string;
   password: string;
-  tipo: 'organizador' | 'equipo' | 'fiscal';
+  tipos: ('organizador' | 'equipo' | 'fiscal')[];
   nombre: string;
   email: string;
   activo: boolean;
   fechaCreacion: string;
-  perfil?: OrganizadorPerfil | EquipoPerfil | FiscalPerfil;
+  perfiles: {
+    organizador?: OrganizadorPerfil;
+    equipo?: EquipoPerfil;
+    fiscal?: FiscalPerfil;
+  };
 }
 
 export interface OrganizadorPerfil {
@@ -57,7 +61,12 @@ export interface Coach {
 
 export interface AuthContextType {
   user: User | null;
+  currentProfile: 'organizador' | 'equipo' | 'fiscal' | null;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
+  setCurrentProfile: (tipo: 'organizador' | 'equipo' | 'fiscal') => void;
+  updateUserProfile: (tipo: 'organizador' | 'equipo' | 'fiscal', profileData: any) => void;
   isAuthenticated: boolean;
+  users: User[];
+  updateUsers: (users: User[]) => void;
 }

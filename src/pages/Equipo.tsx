@@ -6,27 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Bell, User, Trophy, BarChart3 } from "lucide-react";
+import { ArrowLeft, Bell, User, Trophy, BarChart3, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import EquipoCard from "@/components/EquipoCard";
 import UniformeSelector from "@/components/UniformeSelector";
 import JugadoresCoachManager from "@/components/JugadoresCoachManager";
-
-interface Jugador {
-  id: string;
-  nombre: string;
-  posicion: string;
-  numeroIdentificacion: string;
-  edad: number;
-}
-
-interface Coach {
-  nombre: string;
-  tipo: "entrenador" | "asistente";
-  numeroIdentificacion: string;
-}
+import { useAuth } from "@/contexts/AuthContext";
+import { EquipoPerfil, Jugador, Coach } from "@/types/auth";
 
 interface EstadisticaEquipo {
   torneoId: string;
@@ -43,46 +31,48 @@ interface EstadisticaEquipo {
 
 const Equipo = () => {
   const navigate = useNavigate();
+  const { user, updateUserProfile } = useAuth();
   const [mostrarNotificaciones, setMostrarNotificaciones] = useState(false);
   const [mostrarPerfil, setMostrarPerfil] = useState(false);
-  const [mostrarEstadisticas, setMostrarEstadisticas] = useState(false);
+
+  const equipoPerfil = user?.perfiles?.equipo as EquipoPerfil;
 
   const [equipo, setEquipo] = useState({
-    id: "EQ-001",
-    nombre: "Águilas FC",
+    id: user?.id || "EQ-001",
+    nombre: equipoPerfil?.nombreEquipo || "Águilas FC",
     logo: null as File | null,
     uniformes: {
       principal: {
         camiseta: {
-          principal: "#1e40af",
+          principal: equipoPerfil?.colores?.principal || "#1e40af",
           secundario: "#ffffff"
         },
-        pantaloneta: "#1e40af",
-        medias: "#1e40af"
+        pantaloneta: equipoPerfil?.colores?.principal || "#1e40af",
+        medias: equipoPerfil?.colores?.principal || "#1e40af"
       },
       alternativo: {
         camiseta: {
           principal: "#ffffff",
-          secundario: "#1e40af"
+          secundario: equipoPerfil?.colores?.principal || "#1e40af"
         },
         pantaloneta: "#ffffff",
         medias: "#ffffff"
       }
     },
     colores: {
-      camiseta: "#1e40af",
-      pantaloneta: "#1e40af", 
-      medias: "#1e40af"
+      camiseta: equipoPerfil?.colores?.principal || "#1e40af",
+      pantaloneta: equipoPerfil?.colores?.principal || "#1e40af", 
+      medias: equipoPerfil?.colores?.principal || "#1e40af"
     },
-    jugadores: [] as Jugador[],
-    coaches: [] as Coach[]
+    jugadores: equipoPerfil?.jugadores || [] as Jugador[],
+    coaches: equipoPerfil?.coaches || [] as Coach[]
   });
 
   const [perfil, setPerfil] = useState({
-    nombre: "Águilas FC",
+    nombre: equipoPerfil?.nombreEquipo || "Águilas FC",
     logo: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=100&h=100&fit=crop&crop=center",
     encargados: ["Carlos Rodríguez", "Ana Martínez"],
-    email: "info@aguilasfc.com",
+    email: user?.email || "info@aguilasfc.com",
     telefono: "+57 300 123 4567"
   });
 
@@ -150,6 +140,24 @@ const Equipo = () => {
     }));
   };
 
+  const handleSaveChanges = () => {
+    const updatedProfile: EquipoPerfil = {
+      nombreEquipo: equipo.nombre,
+      colores: {
+        principal: equipo.colores.camiseta,
+        secundario: equipo.colores.pantaloneta
+      },
+      categoria: equipoPerfil?.categoria || 'Primera División',
+      entrenador: equipoPerfil?.entrenador || '',
+      jugadores: equipo.jugadores,
+      coaches: equipo.coaches,
+      torneos: equipoPerfil?.torneos || []
+    };
+
+    updateUserProfile('equipo', updatedProfile);
+    toast.success('Cambios guardados exitosamente');
+  };
+
   const equipoParaCard = {
     id: equipo.id,
     nombre: equipo.nombre,
@@ -186,6 +194,14 @@ const Equipo = () => {
             </div>
             
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={handleSaveChanges}
+                className="bg-green-600 text-white hover:bg-green-700"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Guardar Cambios
+              </Button>
               <Button
                 variant="outline"
                 size="sm"

@@ -5,75 +5,27 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { User, OrganizadorPerfil, EquipoPerfil, FiscalPerfil } from '@/types/auth';
 import { toast } from 'sonner';
-import { Plus, Trash2, Edit, Eye, EyeOff } from 'lucide-react';
+import { Plus, Trash2, Edit, Eye, EyeOff, Save } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useAuth } from '@/contexts/AuthContext';
 
 const SuperAdminUserManager = () => {
-  const [users, setUsers] = useState<User[]>([]);
+  const { users, updateUsers } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [newUser, setNewUser] = useState({
     username: '',
     password: '',
-    tipo: 'organizador' as 'organizador' | 'equipo' | 'fiscal',
+    tipos: [] as ('organizador' | 'equipo' | 'fiscal')[],
     nombre: '',
     email: ''
   });
 
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  const loadUsers = () => {
-    const savedUsers = localStorage.getItem('torneo360-users');
-    if (savedUsers) {
-      setUsers(JSON.parse(savedUsers));
-    }
-  };
-
-  const saveUsers = (updatedUsers: User[]) => {
-    localStorage.setItem('torneo360-users', JSON.stringify(updatedUsers));
-    setUsers(updatedUsers);
-  };
-
-  const createUser = () => {
-    if (!newUser.username || !newUser.password || !newUser.nombre || !newUser.email) {
-      toast.error('Por favor completa todos los campos');
-      return;
-    }
-
-    if (users.some(u => u.username === newUser.username)) {
-      toast.error('El nombre de usuario ya existe');
-      return;
-    }
-
-    const user: User = {
-      id: `${newUser.tipo}-${Date.now()}`,
-      username: newUser.username,
-      password: newUser.password,
-      tipo: newUser.tipo,
-      nombre: newUser.nombre,
-      email: newUser.email,
-      activo: true,
-      fechaCreacion: new Date().toISOString(),
-      perfil: createDefaultProfile(newUser.tipo, newUser.nombre)
-    };
-
-    const updatedUsers = [...users, user];
-    saveUsers(updatedUsers);
-    setShowCreateModal(false);
-    setNewUser({
-      username: '',
-      password: '',
-      tipo: 'organizador',
-      nombre: '',
-      email: ''
-    });
-    toast.success('Usuario creado exitosamente');
-  };
-
-  const createDefaultProfile = (tipo: string, nombre: string): OrganizadorPerfil | EquipoPerfil | FiscalPerfil => {
+  const createDefaultProfile = (tipo: 'organizador' | 'equipo' | 'fiscal', nombre: string): OrganizadorPerfil | EquipoPerfil | FiscalPerfil => {
     switch (tipo) {
       case 'organizador':
         return {
@@ -100,37 +52,116 @@ const SuperAdminUserManager = () => {
           certificaciones: [],
           torneos: []
         } as FiscalPerfil;
-      default:
-        return {
-          nombreOrganizacion: nombre,
-          descripcion: 'Nueva organización',
-          telefono: '',
-          direccion: '',
-          torneos: []
-        } as OrganizadorPerfil;
     }
+  };
+
+  const createUser = () => {
+    if (!newUser.username || !newUser.password || !newUser.nombre || !newUser.email || newUser.tipos.length === 0) {
+      toast.error('Por favor completa todos los campos y selecciona al menos un tipo');
+      return;
+    }
+
+    if (users.some(u => u.username === newUser.username)) {
+      toast.error('El nombre de usuario ya existe');
+      return;
+    }
+
+    const perfiles: any = {};
+    newUser.tipos.forEach(tipo => {
+      perfiles[tipo] = createDefaultProfile(tipo, newUser.nombre);
+    });
+
+    const user: User = {
+      id: `user-${Date.now()}`,
+      username: newUser.username,
+      password: newUser.password,
+      tipos: newUser.tipos,
+      nombre: newUser.nombre,
+      email: newUser.email,
+      activo: true,
+      fechaCreacion: new Date().toISOString(),
+      perfiles
+    };
+
+    const updatedUsers = [...users, user];
+    updateUsers(updatedUsers);
+    setShowCreateModal(false);
+    setNewUser({
+      username: '',
+      password: '',
+      tipos: [],
+      nombre: '',
+      email: ''
+    });
+    toast.success('Usuario creado exitosamente');
+  };
+
+  const editUser = (user: User) => {
+    setEditingUser({ ...user });
+    setShowEditModal(true);
+  };
+
+  const saveEditUser = () => {
+    if (!editingUser) return;
+
+    const updatedUsers = users.map(u => u.id === editingUser.id ? editingUser : u);
+    updateUsers(updatedUsers);
+    setShowEditModal(false);
+    setEditingUser(null);
+    toast.success('Usuario actualizado exitosamente');
   };
 
   const toggleUserStatus = (userId: string) => {
     const updatedUsers = users.map(user =>
       user.id === userId ? { ...user, activo: !user.activo } : user
     );
-    saveUsers(updatedUsers);
+    updateUsers(updatedUsers);
     toast.success('Estado del usuario actualizado');
   };
 
   const deleteUser = (userId: string) => {
     const updatedUsers = users.filter(user => user.id !== userId);
-    saveUsers(updatedUsers);
+    updateUsers(updatedUsers);
     toast.success('Usuario eliminado');
+  };
+
+  const handleTipoChange = (tipo: 'organizador' | 'equipo' | 'fiscal', checked: boolean) => {
+    if (checked) {
+      setNewUser(prev => ({ ...prev, tipos: [...prev.tipos, tipo] }));
+    } else {
+      setNewUser(prev => ({ ...prev, tipos: prev.tipos.filter(t => t !== tipo) }));
+    }
+  };
+
+  const handleEditTipoChange = (tipo: 'organizador' | 'equipo' | 'fiscal', checked: boolean) => {
+    if (!editingUser) return;
+    
+    let newTipos = [...editingUser.tipos];
+    let newPerfiles = { ...editingUser.perfiles };
+
+    if (checked) {
+      if (!newTipos.includes(tipo)) {
+        newTipos.push(tipo);
+        newPerfiles[tipo] = createDefaultProfile(tipo, editingUser.nombre);
+      }
+    } else {
+      newTipos = newTipos.filter(t => t !== tipo);
+      delete newPerfiles[tipo];
+    }
+
+    setEditingUser({
+      ...editingUser,
+      tipos: newTipos,
+      perfiles: newPerfiles
+    });
   };
 
   const getUserStats = () => {
     const stats = {
       total: users.length,
-      organizadores: users.filter(u => u.tipo === 'organizador').length,
-      equipos: users.filter(u => u.tipo === 'equipo').length,
-      fiscales: users.filter(u => u.tipo === 'fiscal').length,
+      organizadores: users.filter(u => u.tipos.includes('organizador')).length,
+      equipos: users.filter(u => u.tipos.includes('equipo')).length,
+      fiscales: users.filter(u => u.tipos.includes('fiscal')).length,
       activos: users.filter(u => u.activo).length
     };
     return stats;
@@ -197,14 +228,25 @@ const SuperAdminUserManager = () => {
                     <div className="text-sm text-muted-foreground">@{user.username}</div>
                     <div className="text-xs text-muted-foreground">{user.email}</div>
                   </div>
-                  <Badge variant={user.tipo === 'organizador' ? 'default' : user.tipo === 'equipo' ? 'secondary' : 'outline'}>
-                    {user.tipo}
-                  </Badge>
+                  <div className="flex gap-2">
+                    {user.tipos.map(tipo => (
+                      <Badge key={tipo} variant={tipo === 'organizador' ? 'default' : tipo === 'equipo' ? 'secondary' : 'outline'}>
+                        {tipo}
+                      </Badge>
+                    ))}
+                  </div>
                   <Badge variant={user.activo ? 'default' : 'destructive'}>
                     {user.activo ? 'Activo' : 'Inactivo'}
                   </Badge>
                 </div>
                 <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => editUser(user)}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
@@ -274,16 +316,33 @@ const SuperAdminUserManager = () => {
             </div>
 
             <div>
-              <Label>Tipo de Usuario</Label>
-              <select
-                className="w-full p-2 border rounded"
-                value={newUser.tipo}
-                onChange={(e) => setNewUser({...newUser, tipo: e.target.value as 'organizador' | 'equipo' | 'fiscal'})}
-              >
-                <option value="organizador">Organizador</option>
-                <option value="equipo">Equipo</option>
-                <option value="fiscal">Fiscal</option>
-              </select>
+              <Label>Tipos de Usuario (selecciona uno o más)</Label>
+              <div className="flex gap-4 mt-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="organizador"
+                    checked={newUser.tipos.includes('organizador')}
+                    onCheckedChange={(checked) => handleTipoChange('organizador', checked as boolean)}
+                  />
+                  <Label htmlFor="organizador">Organizador</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="equipo"
+                    checked={newUser.tipos.includes('equipo')}
+                    onCheckedChange={(checked) => handleTipoChange('equipo', checked as boolean)}
+                  />
+                  <Label htmlFor="equipo">Equipo</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="fiscal"
+                    checked={newUser.tipos.includes('fiscal')}
+                    onCheckedChange={(checked) => handleTipoChange('fiscal', checked as boolean)}
+                  />
+                  <Label htmlFor="fiscal">Fiscal</Label>
+                </div>
+              </div>
             </div>
 
             <div className="flex gap-2">
@@ -295,6 +354,94 @@ const SuperAdminUserManager = () => {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Modal */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Usuario</DialogTitle>
+          </DialogHeader>
+          {editingUser && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Nombre Completo</Label>
+                  <Input
+                    value={editingUser.nombre}
+                    onChange={(e) => setEditingUser({...editingUser, nombre: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    value={editingUser.email}
+                    onChange={(e) => setEditingUser({...editingUser, email: e.target.value})}
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Usuario</Label>
+                  <Input
+                    value={editingUser.username}
+                    onChange={(e) => setEditingUser({...editingUser, username: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label>Nueva Contraseña</Label>
+                  <Input
+                    type="password"
+                    value={editingUser.password}
+                    onChange={(e) => setEditingUser({...editingUser, password: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label>Tipos de Usuario</Label>
+                <div className="flex gap-4 mt-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-organizador"
+                      checked={editingUser.tipos.includes('organizador')}
+                      onCheckedChange={(checked) => handleEditTipoChange('organizador', checked as boolean)}
+                    />
+                    <Label htmlFor="edit-organizador">Organizador</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-equipo"
+                      checked={editingUser.tipos.includes('equipo')}
+                      onCheckedChange={(checked) => handleEditTipoChange('equipo', checked as boolean)}
+                    />
+                    <Label htmlFor="edit-equipo">Equipo</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-fiscal"
+                      checked={editingUser.tipos.includes('fiscal')}
+                      onCheckedChange={(checked) => handleEditTipoChange('fiscal', checked as boolean)}
+                    />
+                    <Label htmlFor="edit-fiscal">Fiscal</Label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button onClick={saveEditUser} className="flex-1">
+                  <Save className="w-4 h-4 mr-2" />
+                  Guardar Cambios
+                </Button>
+                <Button variant="outline" onClick={() => setShowEditModal(false)}>
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
