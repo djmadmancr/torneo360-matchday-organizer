@@ -131,10 +131,66 @@ const Organizador = () => {
     telefono: organizadorPerfil?.telefono || "+57 300 123 4567"
   });
 
-  // Estado de torneos específico del usuario
+  // Estado de torneos específico del usuario con datos demo
   const [torneos, setTorneos] = useState<Torneo[]>(() => {
     const savedTorneos = localStorage.getItem(`torneos_${user?.id}`);
-    return savedTorneos ? JSON.parse(savedTorneos) : [];
+    if (savedTorneos) {
+      return JSON.parse(savedTorneos);
+    }
+    
+    // Torneos demo para el organizador
+    const torneosDemo: Torneo[] = [
+      {
+        id: "TRN-001",
+        nombre: "Copa Primavera 2024",
+        categoria: "Primera División",
+        tipo: "Fútbol 11",
+        formato: "Grupos + Eliminatorio",
+        fechaInicio: "2024-07-01",
+        fechaFin: "2024-07-31",
+        logo: "https://images.unsplash.com/photo-1614632537190-23e4b93dc25e?w=100&h=100&fit=crop&crop=center",
+        maxEquipos: 16,
+        equiposInscritos: 8,
+        estado: "inscripciones_abiertas",
+        fechaCierre: "2024-06-25",
+        puntajeExtra: "Gol de visitante",
+        idaVuelta: { grupos: true, eliminatoria: false },
+        diasSemana: ["sabado", "domingo"],
+        partidosPorSemana: "4",
+        fechaCreacion: "2024-06-01",
+        esPublico: true,
+        edadMinima: 18,
+        edadMaxima: 35,
+        descripcion: "Torneo de fútbol profesional para equipos de primera división",
+        ubicacion: "Estadio Municipal Central"
+      },
+      {
+        id: "TRN-002",
+        nombre: "Liga Juvenil Verano",
+        categoria: "Sub-20",
+        tipo: "Fútbol 7",
+        formato: "Todos contra Todos",
+        fechaInicio: "2024-06-15",
+        fechaFin: "2024-08-15",
+        logo: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=100&h=100&fit=crop&crop=center",
+        maxEquipos: 12,
+        equiposInscritos: 6,
+        estado: "inscripciones_abiertas",
+        fechaCierre: "2024-06-20",
+        puntajeExtra: "Fair Play",
+        idaVuelta: { grupos: false, eliminatoria: false },
+        diasSemana: ["viernes", "sabado"],
+        partidosPorSemana: "3",
+        fechaCreacion: "2024-05-15",
+        esPublico: true,
+        edadMinima: 16,
+        edadMaxima: 20,
+        descripcion: "Liga para jóvenes talentos del fútbol local",
+        ubicacion: "Complejo Deportivo Norte"
+      }
+    ];
+    
+    return torneosDemo;
   });
 
   // Estado de notificaciones específico del usuario
@@ -486,8 +542,8 @@ const Organizador = () => {
                   className="w-8 h-8 rounded-full object-cover"
                 />
                 <div>
-                  <h1 className="text-xl md:text-2xl font-bold text-primary">🏆 Panel del Organizador</h1>
-                  <p className="text-sm text-muted-foreground">Gestiona tus torneos y equipos</p>
+                  <h1 className="text-xl md:text-2xl font-bold text-primary">{perfil.nombre}</h1>
+                  <p className="text-sm text-muted-foreground">Organizador de Torneos</p>
                 </div>
               </div>
             </div>

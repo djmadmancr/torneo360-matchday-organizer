@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -77,45 +76,69 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>('');
 
+  // Solo actualizar el formulario cuando se abre el modal
   useEffect(() => {
-    if (torneoEditando) {
-      setFormData({
-        ...formData,
-        ...torneoEditando,
-        torneoId: torneoEditando.id
-      });
-      if (torneoEditando.logo) {
-        setLogoPreview(torneoEditando.logo);
+    if (open) {
+      if (torneoEditando) {
+        const editData = {
+          torneoId: torneoEditando.id,
+          nombreTorneo: torneoEditando.nombre || '',
+          categoria: torneoEditando.categoria || '',
+          tipoFutbol: torneoEditando.tipo || '',
+          formato: torneoEditando.formato || '',
+          fechaInicio: torneoEditando.fechaInicio || '',
+          fechaFin: torneoEditando.fechaFin || '',
+          fechaCierre: torneoEditando.fechaCierre || '',
+          maxEquipos: torneoEditando.maxEquipos || 16,
+          puntajeExtra: torneoEditando.puntajeExtra || '',
+          idaVuelta: torneoEditando.idaVuelta || {
+            grupos: false,
+            eliminatoria: false
+          },
+          diasSemana: torneoEditando.diasSemana || [],
+          partidosPorSemana: torneoEditando.partidosPorSemana || '',
+          logo: torneoEditando.logo || '',
+          esPublico: torneoEditando.esPublico || false,
+          edadMinima: torneoEditando.edadMinima,
+          edadMaxima: torneoEditando.edadMaxima,
+          descripcion: torneoEditando.descripcion || '',
+          ubicacion: torneoEditando.ubicacion || ''
+        };
+        setFormData(editData);
+        if (torneoEditando.logo) {
+          setLogoPreview(torneoEditando.logo);
+        }
+      } else {
+        // Resetear formulario para nuevo torneo
+        setFormData({
+          torneoId,
+          nombreTorneo: '',
+          categoria: '',
+          tipoFutbol: '',
+          formato: '',
+          fechaInicio: '',
+          fechaFin: '',
+          fechaCierre: '',
+          maxEquipos: 16,
+          puntajeExtra: '',
+          idaVuelta: {
+            grupos: false,
+            eliminatoria: false
+          },
+          diasSemana: [],
+          partidosPorSemana: '',
+          logo: '',
+          esPublico: false,
+          edadMinima: undefined,
+          edadMaxima: undefined,
+          descripcion: '',
+          ubicacion: ''
+        });
+        setLogoFile(null);
+        setLogoPreview('');
       }
-    } else {
-      setFormData({
-        torneoId,
-        nombreTorneo: '',
-        categoria: '',
-        tipoFutbol: '',
-        formato: '',
-        fechaInicio: '',
-        fechaFin: '',
-        fechaCierre: '',
-        maxEquipos: 16,
-        puntajeExtra: '',
-        idaVuelta: {
-          grupos: false,
-          eliminatoria: false
-        },
-        diasSemana: [],
-        partidosPorSemana: '',
-        logo: '',
-        esPublico: false,
-        edadMinima: undefined,
-        edadMaxima: undefined,
-        descripcion: '',
-        ubicacion: ''
-      });
-      setLogoFile(null);
-      setLogoPreview('');
     }
-  }, [torneoEditando, torneoId, open]);
+  }, [open, torneoEditando?.id, torneoId]);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

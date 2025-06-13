@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Bell, User, Trophy, BarChart3, Save, Upload } from "lucide-react";
+import { ArrowLeft, Bell, User, Trophy, BarChart3, Save, Upload, Plus, Edit } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -30,22 +30,55 @@ interface EstadisticaEquipo {
   posicion: number;
 }
 
+interface EquipoData {
+  id: string;
+  nombre: string;
+  logo: string;
+  uniformes: {
+    principal: {
+      camiseta: { principal: string; secundario: string };
+      pantaloneta: string;
+      medias: string;
+    };
+    alternativo: {
+      camiseta: { principal: string; secundario: string };
+      pantaloneta: string;
+      medias: string;
+    };
+  };
+  colores: {
+    camiseta: string;
+    pantaloneta: string;
+    medias: string;
+  };
+  jugadores: Jugador[];
+  coaches: Coach[];
+  encargados: string[];
+  telefono: string;
+  email: string;
+}
+
 const Equipo = () => {
   const navigate = useNavigate();
-  const { user, updateUserProfile } = useAuth();
   const [mostrarNotificaciones, setMostrarNotificaciones] = useState(false);
   const [mostrarPerfil, setMostrarPerfil] = useState(false);
+  const [mostrarFormularioEquipo, setMostrarFormularioEquipo] = useState(false);
+  const [equipoSeleccionado, setEquipoSeleccionado] = useState<string | null>(null);
 
+  const { user, updateUserProfile } = useAuth();
   const equipoPerfil = user?.perfiles?.equipo as EquipoPerfil;
 
-  const [equipo, setEquipo] = useState(() => {
-    const saved = localStorage.getItem(`equipo_${user?.id}`);
+  // Lista de equipos del usuario
+  const [equipos, setEquipos] = useState<EquipoData[]>(() => {
+    const saved = localStorage.getItem(`equipos_${user?.id}`);
     if (saved) {
       return JSON.parse(saved);
     }
-    return {
-      id: user?.id || "EQ-001",
-      nombre: equipoPerfil?.nombreEquipo || "Águilas FC",
+    
+    // Crear equipo inicial basado en el perfil
+    const equipoInicial: EquipoData = {
+      id: `EQ-${Date.now()}`,
+      nombre: equipoPerfil?.nombreEquipo || "Mi Equipo",
       logo: equipoPerfil?.logo || "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=100&h=100&fit=crop&crop=center",
       uniformes: {
         principal: {
@@ -67,15 +100,32 @@ const Equipo = () => {
       },
       colores: {
         camiseta: equipoPerfil?.colores?.principal || "#1e40af",
-        pantaloneta: equipoPerfil?.colores?.principal || "#1e40af", 
+        pantaloneta: equipoPerfil?.colores?.principal || "#1e40af",
         medias: equipoPerfil?.colores?.principal || "#1e40af"
       },
-      jugadores: equipoPerfil?.jugadores || [] as Jugador[],
-      coaches: equipoPerfil?.coaches || [] as Coach[],
+      jugadores: equipoPerfil?.jugadores || [],
+      coaches: equipoPerfil?.coaches || [],
       encargados: ["Manager Principal"],
       telefono: "+57 300 123 4567",
       email: user?.email || "info@equipo.com"
     };
+    
+    return [equipoInicial];
+  });
+
+  const [nuevoEquipo, setNuevoEquipo] = useState<Partial<EquipoData>>({
+    nombre: "",
+    logo: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=100&h=100&fit=crop&crop=center",
+    colores: {
+      camiseta: "#1e40af",
+      pantaloneta: "#1e40af",
+      medias: "#1e40af"
+    },
+    jugadores: [],
+    coaches: [],
+    encargados: ["Manager Principal"],
+    telefono: "+57 300 123 4567",
+    email: user?.email || "info@equipo.com"
   });
 
   // Notificaciones específicas del equipo
@@ -98,12 +148,12 @@ const Equipo = () => {
     ];
   });
 
-  // Efecto para guardar datos del equipo
+  // Efecto para guardar datos de equipos
   useEffect(() => {
     if (user?.id) {
-      localStorage.setItem(`equipo_${user.id}`, JSON.stringify(equipo));
+      localStorage.setItem(`equipos_${user.id}`, JSON.stringify(equipos));
     }
-  }, [equipo, user?.id]);
+  }, [equipos, user?.id]);
 
   // Efecto para actualizar notificaciones
   useEffect(() => {
@@ -118,69 +168,303 @@ const Equipo = () => {
     return () => clearInterval(interval);
   }, [user?.id]);
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const newLogo = e.target?.result as string;
-        setEquipo(prevState => ({ ...prevState, logo: newLogo }));
-      };
-      reader.readAsDataURL(file);
+  const handleCrearEquipo = () => {
+    if (!nuevoEquipo.nombre) {
+      toast.error("Por favor ingresa el nombre del equipo");
+      return;
     }
-  };
 
-  const handleUniformeChange = (colores: { camiseta: string; pantaloneta: string; medias: string }, uniformeType: 'principal' | 'alternativo') => {
-    setEquipo(prevState => ({
-      ...prevState,
+    const equipoCompleto: EquipoData = {
+      id: `EQ-${Date.now()}`,
+      nombre: nuevoEquipo.nombre,
+      logo: nuevoEquipo.logo || "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=100&h=100&fit=crop&crop=center",
       uniformes: {
-        ...prevState.uniformes,
-        [uniformeType]: {
-          ...prevState.uniformes[uniformeType],
-          camiseta: { ...prevState.uniformes[uniformeType].camiseta, principal: colores.camiseta },
-          pantaloneta: colores.pantaloneta,
-          medias: colores.medias
+        principal: {
+          camiseta: {
+            principal: nuevoEquipo.colores?.camiseta || "#1e40af",
+            secundario: "#ffffff"
+          },
+          pantaloneta: nuevoEquipo.colores?.pantaloneta || "#1e40af",
+          medias: nuevoEquipo.colores?.medias || "#1e40af"
+        },
+        alternativo: {
+          camiseta: {
+            principal: "#ffffff",
+            secundario: nuevoEquipo.colores?.camiseta || "#1e40af"
+          },
+          pantaloneta: "#ffffff",
+          medias: "#ffffff"
         }
       },
-      colores: {
-        camiseta: colores.camiseta,
-        pantaloneta: colores.pantaloneta,
-        medias: colores.medias
-      }
-    }));
-  };
-
-  const handleSaveChanges = () => {
-    const updatedProfile: EquipoPerfil = {
-      nombreEquipo: equipo.nombre,
-      logo: equipo.logo,
-      colores: {
-        principal: equipo.colores.camiseta,
-        secundario: equipo.colores.pantaloneta
+      colores: nuevoEquipo.colores || {
+        camiseta: "#1e40af",
+        pantaloneta: "#1e40af",
+        medias: "#1e40af"
       },
-      categoria: equipoPerfil?.categoria || 'Primera División',
-      entrenador: equipoPerfil?.entrenador || '',
-      jugadores: equipo.jugadores,
-      coaches: equipo.coaches,
-      torneos: equipoPerfil?.torneos || []
+      jugadores: [],
+      coaches: [],
+      encargados: ["Manager Principal"],
+      telefono: nuevoEquipo.telefono || "+57 300 123 4567",
+      email: nuevoEquipo.email || user?.email || "info@equipo.com"
     };
 
-    updateUserProfile('equipo', updatedProfile);
-    toast.success('Cambios guardados exitosamente');
+    setEquipos(prev => [...prev, equipoCompleto]);
+    setMostrarFormularioEquipo(false);
+    setNuevoEquipo({
+      nombre: "",
+      logo: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=100&h=100&fit=crop&crop=center",
+      colores: {
+        camiseta: "#1e40af",
+        pantaloneta: "#1e40af",
+        medias: "#1e40af"
+      },
+      jugadores: [],
+      coaches: [],
+      encargados: ["Manager Principal"],
+      telefono: "+57 300 123 4567",
+      email: user?.email || "info@equipo.com"
+    });
+    toast.success("Equipo creado exitosamente");
+  };
+
+  const handleSeleccionarEquipo = (equipoId: string) => {
+    setEquipoSeleccionado(equipoId);
   };
 
   const handleSolicitudEnviada = (torneoId: string, organizadorId: string) => {
     console.log(`Solicitud enviada para torneo ${torneoId} al organizador ${organizadorId}`);
   };
 
-  const equipoParaCard = {
-    id: equipo.id,
-    nombre: equipo.nombre,
-    logo: typeof equipo.logo === 'string' ? equipo.logo : "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=100&h=100&fit=crop&crop=center",
-    colores: equipo.colores,
-    jugadores: equipo.jugadores.length
-  };
+  const equipoActual = equipoSeleccionado ? equipos.find(e => e.id === equipoSeleccionado) : equipos[0];
 
+  if (equipoSeleccionado && equipoActual) {
+    // Vista individual del equipo
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="bg-white shadow-sm border-b">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setEquipoSeleccionado(null)}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Volver a Equipos
+                </Button>
+                <div className="flex items-center gap-3">
+                  <img 
+                    src={equipoActual.logo} 
+                    alt={equipoActual.nombre}
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                  <div>
+                    <h1 className="text-xl md:text-2xl font-bold text-primary">{equipoActual.nombre}</h1>
+                    <p className="text-sm text-muted-foreground">Gestión del Equipo</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="container mx-auto px-4 py-4 md:py-8">
+          <Tabs defaultValue="perfil" className="max-w-6xl mx-auto">
+            <TabsList className="grid w-full grid-cols-5 text-xs md:text-sm">
+              <TabsTrigger value="perfil">Perfil & Estadísticas</TabsTrigger>
+              <TabsTrigger value="uniformes">Uniformes</TabsTrigger>
+              <TabsTrigger value="jugadores">Jugadores & Coach</TabsTrigger>
+              <TabsTrigger value="goleadores">Goleadores</TabsTrigger>
+              <TabsTrigger value="torneos">Torneos</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="perfil">
+              <div className="space-y-6">
+                <div className="bg-white p-6 rounded-lg shadow-sm">
+                  <h3 className="text-lg font-semibold mb-4">Vista Previa del Equipo</h3>
+                  <EquipoCard 
+                    equipo={{
+                      id: equipoActual.id,
+                      nombre: equipoActual.nombre,
+                      logo: equipoActual.logo,
+                      colores: equipoActual.colores,
+                      jugadores: equipoActual.jugadores.length
+                    }}
+                    onEdit={() => setMostrarPerfil(true)}
+                  />
+                </div>
+
+                <div className="bg-white p-6 rounded-lg shadow-sm">
+                  <h3 className="text-lg font-semibold mb-4">Estadísticas en Torneos</h3>
+                  
+                  {estadisticasEquipo.length > 0 ? (
+                    <div className="space-y-4">
+                      {estadisticasEquipo.map((stats: any) => (
+                        <Card key={stats.torneoId}>
+                          <CardHeader>
+                            <CardTitle className="flex items-center justify-between">
+                              <span>{stats.torneoNombre}</span>
+                              <Badge variant="outline">Posición #{stats.posicion}</Badge>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                              <div>
+                                <p className="text-2xl font-bold">{stats.pj}</p>
+                                <p className="text-sm text-muted-foreground">Partidos Jugados</p>
+                              </div>
+                              <div>
+                                <p className="text-2xl font-bold text-green-600">{stats.pg}</p>
+                                <p className="text-sm text-muted-foreground">Ganados</p>
+                              </div>
+                              <div>
+                                <p className="text-2xl font-bold text-yellow-600">{stats.pe}</p>
+                                <p className="text-sm text-muted-foreground">Empatados</p>
+                              </div>
+                              <div>
+                                <p className="text-2xl font-bold text-red-600">{stats.pp}</p>
+                                <p className="text-sm text-muted-foreground">Perdidos</p>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-4 text-center mt-4 pt-4 border-t">
+                              <div>
+                                <p className="text-xl font-bold">{stats.gf}</p>
+                                <p className="text-sm text-muted-foreground">Goles a Favor</p>
+                              </div>
+                              <div>
+                                <p className="text-xl font-bold">{stats.gc}</p>
+                                <p className="text-sm text-muted-foreground">Goles en Contra</p>
+                              </div>
+                              <div>
+                                <p className="text-xl font-bold text-primary">{stats.pts}</p>
+                                <p className="text-sm text-muted-foreground">Puntos</p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-center text-muted-foreground">No estás participando en ningún torneo actualmente.</p>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="uniformes">
+              <div className="space-y-6">
+                <div className="bg-white p-6 rounded-lg shadow-sm">
+                  <h3 className="text-lg font-semibold mb-4">Uniforme Principal</h3>
+                  <UniformeSelector
+                    colores={{
+                      camiseta: equipoActual.uniformes.principal.camiseta.principal,
+                      pantaloneta: equipoActual.uniformes.principal.pantaloneta,
+                      medias: equipoActual.uniformes.principal.medias
+                    }}
+                    onChange={(colores) => {
+                      setEquipos(prev => prev.map(eq => 
+                        eq.id === equipoActual.id 
+                          ? {
+                              ...eq,
+                              uniformes: {
+                                ...eq.uniformes,
+                                principal: {
+                                  ...eq.uniformes.principal,
+                                  camiseta: { ...eq.uniformes.principal.camiseta, principal: colores.camiseta },
+                                  pantaloneta: colores.pantaloneta,
+                                  medias: colores.medias
+                                }
+                              },
+                              colores: {
+                                camiseta: colores.camiseta,
+                                pantaloneta: colores.pantaloneta,
+                                medias: colores.medias
+                              }
+                            }
+                          : eq
+                      ));
+                    }}
+                  />
+                </div>
+
+                <div className="bg-white p-6 rounded-lg shadow-sm">
+                  <h3 className="text-lg font-semibold mb-4">Uniforme Alternativo</h3>
+                  <UniformeSelector
+                    colores={{
+                      camiseta: equipoActual.uniformes.alternativo.camiseta.principal,
+                      pantaloneta: equipoActual.uniformes.alternativo.pantaloneta,
+                      medias: equipoActual.uniformes.alternativo.medias
+                    }}
+                    onChange={(colores) => {
+                      setEquipos(prev => prev.map(eq => 
+                        eq.id === equipoActual.id 
+                          ? {
+                              ...eq,
+                              uniformes: {
+                                ...eq.uniformes,
+                                alternativo: {
+                                  ...eq.uniformes.alternativo,
+                                  camiseta: { ...eq.uniformes.alternativo.camiseta, principal: colores.camiseta },
+                                  pantaloneta: colores.pantaloneta,
+                                  medias: colores.medias
+                                }
+                              }
+                            }
+                          : eq
+                      ));
+                    }}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="jugadores">
+              <JugadoresCoachManager
+                jugadores={equipoActual.jugadores}
+                coaches={equipoActual.coaches}
+                onJugadoresChange={(jugadores) => {
+                  setEquipos(prev => prev.map(eq => 
+                    eq.id === equipoActual.id ? { ...eq, jugadores } : eq
+                  ));
+                }}
+                onCoachesChange={(coaches) => {
+                  setEquipos(prev => prev.map(eq => 
+                    eq.id === equipoActual.id ? { ...eq, coaches } : eq
+                  ));
+                }}
+              />
+            </TabsContent>
+
+            <TabsContent value="goleadores">
+              <div className="space-y-6">
+                <PlayerStatistics 
+                  jugadores={equipoActual.jugadores}
+                  className="bg-white p-6 rounded-lg shadow-sm"
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="torneos">
+              <div className="space-y-6">
+                <div className="bg-white p-6 rounded-lg shadow-sm">
+                  <h3 className="text-lg font-semibold mb-4">Torneos Públicos Disponibles</h3>
+                  <TorneosPublicos
+                    userId={user?.id || ''}
+                    nombreEquipo={equipoActual.nombre}
+                    categoria={equipoPerfil?.categoria || 'Primera División'}
+                    onSolicitudEnviada={handleSolicitudEnviada}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+    );
+  }
+
+  // Vista principal de equipos
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       <div className="bg-white shadow-sm border-b">
@@ -197,26 +481,18 @@ const Equipo = () => {
               </Button>
               <div className="flex items-center gap-3">
                 <img 
-                  src={equipoParaCard.logo} 
-                  alt={equipo.nombre}
+                  src={user?.perfiles?.equipo?.logo || "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=100&h=100&fit=crop&crop=center"} 
+                  alt={user?.nombre || "Usuario"}
                   className="w-8 h-8 rounded-full object-cover"
                 />
                 <div>
-                  <h1 className="text-xl md:text-2xl font-bold text-primary">🔵 Panel del Equipo</h1>
-                  <p className="text-sm text-muted-foreground">Gestiona tu equipo y perfil</p>
+                  <h1 className="text-xl md:text-2xl font-bold text-primary">{user?.nombre}</h1>
+                  <p className="text-sm text-muted-foreground">Gestor de Equipos</p>
                 </div>
               </div>
             </div>
             
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={handleSaveChanges}
-                className="bg-green-600 text-white hover:bg-green-700"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Guardar Cambios
-              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -244,211 +520,122 @@ const Equipo = () => {
       </div>
 
       <div className="container mx-auto px-4 py-4 md:py-8">
-        <Tabs defaultValue="perfil" className="max-w-6xl mx-auto">
-          <TabsList className="grid w-full grid-cols-5 text-xs md:text-sm">
-            <TabsTrigger value="perfil">Perfil & Estadísticas</TabsTrigger>
-            <TabsTrigger value="uniformes">Uniformes</TabsTrigger>
-            <TabsTrigger value="jugadores">Jugadores & Coach</TabsTrigger>
-            <TabsTrigger value="goleadores">Goleadores</TabsTrigger>
-            <TabsTrigger value="torneos">Torneos</TabsTrigger>
-          </TabsList>
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">Mis Equipos</h2>
+            <Button onClick={() => setMostrarFormularioEquipo(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Crear Equipo
+            </Button>
+          </div>
 
-          <TabsContent value="perfil">
-            <div className="space-y-6">
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h3 className="text-lg font-semibold mb-4">Vista Previa del Equipo</h3>
-                <EquipoCard 
-                  equipo={equipoParaCard}
-                  onEdit={() => setMostrarPerfil(true)}
-                />
-              </div>
-
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h3 className="text-lg font-semibold mb-4">Estadísticas en Torneos</h3>
-                
-                {estadisticasEquipo.length > 0 ? (
-                  <div className="space-y-4">
-                    {estadisticasEquipo.map((stats: any) => (
-                      <Card key={stats.torneoId}>
-                        <CardHeader>
-                          <CardTitle className="flex items-center justify-between">
-                            <span>{stats.torneoNombre}</span>
-                            <Badge variant="outline">Posición #{stats.posicion}</Badge>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                            <div>
-                              <p className="text-2xl font-bold">{stats.pj}</p>
-                              <p className="text-sm text-muted-foreground">Partidos Jugados</p>
-                            </div>
-                            <div>
-                              <p className="text-2xl font-bold text-green-600">{stats.pg}</p>
-                              <p className="text-sm text-muted-foreground">Ganados</p>
-                            </div>
-                            <div>
-                              <p className="text-2xl font-bold text-yellow-600">{stats.pe}</p>
-                              <p className="text-sm text-muted-foreground">Empatados</p>
-                            </div>
-                            <div>
-                              <p className="text-2xl font-bold text-red-600">{stats.pp}</p>
-                              <p className="text-sm text-muted-foreground">Perdidos</p>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-3 gap-4 text-center mt-4 pt-4 border-t">
-                            <div>
-                              <p className="text-xl font-bold">{stats.gf}</p>
-                              <p className="text-sm text-muted-foreground">Goles a Favor</p>
-                            </div>
-                            <div>
-                              <p className="text-xl font-bold">{stats.gc}</p>
-                              <p className="text-sm text-muted-foreground">Goles en Contra</p>
-                            </div>
-                            <div>
-                              <p className="text-xl font-bold text-primary">{stats.pts}</p>
-                              <p className="text-sm text-muted-foreground">Puntos</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {equipos.map((equipo) => (
+              <Card key={equipo.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-4 mb-4">
+                    <img 
+                      src={equipo.logo} 
+                      alt={equipo.nombre}
+                      className="w-16 h-16 rounded-lg object-cover"
+                    />
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold">{equipo.nombre}</h3>
+                      <p className="text-sm text-muted-foreground">{equipo.jugadores.length} jugadores</p>
+                    </div>
                   </div>
-                ) : (
-                  <p className="text-center text-muted-foreground">No estás participando en ningún torneo actualmente.</p>
-                )}
-              </div>
-            </div>
-          </TabsContent>
+                  
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-muted-foreground">Coaches:</span>
+                      <span>{equipo.coaches.length}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-muted-foreground">Email:</span>
+                      <span className="truncate">{equipo.email}</span>
+                    </div>
+                  </div>
 
-          <TabsContent value="uniformes">
-            <div className="space-y-6">
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h3 className="text-lg font-semibold mb-4">Uniforme Principal</h3>
-                <UniformeSelector
-                  colores={{
-                    camiseta: equipo.uniformes.principal.camiseta.principal,
-                    pantaloneta: equipo.uniformes.principal.pantaloneta,
-                    medias: equipo.uniformes.principal.medias
-                  }}
-                  onChange={(colores) => handleUniformeChange(colores, 'principal')}
-                />
-              </div>
-
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h3 className="text-lg font-semibold mb-4">Uniforme Alternativo</h3>
-                <UniformeSelector
-                  colores={{
-                    camiseta: equipo.uniformes.alternativo.camiseta.principal,
-                    pantaloneta: equipo.uniformes.alternativo.pantaloneta,
-                    medias: equipo.uniformes.alternativo.medias
-                  }}
-                  onChange={(colores) => handleUniformeChange(colores, 'alternativo')}
-                />
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="jugadores">
-            <JugadoresCoachManager
-              jugadores={equipo.jugadores}
-              coaches={equipo.coaches}
-              onJugadoresChange={(jugadores) => setEquipo(prev => ({ ...prev, jugadores }))}
-              onCoachesChange={(coaches) => setEquipo(prev => ({ ...prev, coaches }))}
-            />
-          </TabsContent>
-
-          <TabsContent value="goleadores">
-            <div className="space-y-6">
-              <PlayerStatistics 
-                jugadores={equipo.jugadores}
-                className="bg-white p-6 rounded-lg shadow-sm"
-              />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="torneos">
-            <div className="space-y-6">
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h3 className="text-lg font-semibold mb-4">Torneos Públicos Disponibles</h3>
-                <TorneosPublicos
-                  userId={user?.id || ''}
-                  nombreEquipo={equipo.nombre}
-                  categoria={equipoPerfil?.categoria || 'Primera División'}
-                  onSolicitudEnviada={handleSolicitudEnviada}
-                />
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => handleSeleccionarEquipo(equipo.id)}
+                      className="flex-1"
+                    >
+                      Gestionar
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        // Lógica para editar equipo
+                        toast.info("Función de edición en desarrollo");
+                      }}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Modals */}
-      <Dialog open={mostrarPerfil} onOpenChange={setMostrarPerfil}>
+      {/* Modal para crear nuevo equipo */}
+      <Dialog open={mostrarFormularioEquipo} onOpenChange={setMostrarFormularioEquipo}>
         <DialogContent className="w-[95vw] max-w-md mx-auto">
           <DialogHeader>
-            <DialogTitle>Editar Perfil del Equipo</DialogTitle>
+            <DialogTitle>Crear Nuevo Equipo</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="flex items-center gap-4">
-              <img 
-                src={equipoParaCard.logo} 
-                alt={equipo.nombre}
-                className="w-16 h-16 rounded-lg object-cover"
+            <div className="space-y-2">
+              <Label htmlFor="nombreEquipo">Nombre del Equipo *</Label>
+              <Input
+                id="nombreEquipo"
+                value={nuevoEquipo.nombre}
+                onChange={(e) => setNuevoEquipo(prev => ({ ...prev, nombre: e.target.value }))}
+                placeholder="Ej: Águilas FC"
               />
-              <div className="flex-1">
-                <Label htmlFor="nombre">Nombre del Equipo</Label>
-                <Input
-                  id="nombre"
-                  value={equipo.nombre}
-                  onChange={(e) => setEquipo(prev => ({ ...prev, nombre: e.target.value }))}
-                />
-              </div>
-              <Button variant="outline" size="sm" asChild>
-                <label htmlFor="logo-upload" className="cursor-pointer">
-                  <Upload className="w-4 h-4" />
-                  <input
-                    id="logo-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoChange}
-                    className="hidden"
-                  />
-                </label>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="emailEquipo">Email</Label>
+              <Input
+                id="emailEquipo"
+                type="email"
+                value={nuevoEquipo.email}
+                onChange={(e) => setNuevoEquipo(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="info@equipo.com"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="telefonoEquipo">Teléfono</Label>
+              <Input
+                id="telefonoEquipo"
+                value={nuevoEquipo.telefono}
+                onChange={(e) => setNuevoEquipo(prev => ({ ...prev, telefono: e.target.value }))}
+                placeholder="+57 300 123 4567"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-4">
+              <Button onClick={handleCrearEquipo} className="flex-1">
+                Crear Equipo
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setMostrarFormularioEquipo(false)}
+                className="flex-1"
+              >
+                Cancelar
               </Button>
             </div>
-
-            <div className="space-y-3">
-              <div>
-                <Label>Email</Label>
-                <Input 
-                  value={equipo.email}
-                  onChange={(e) => setEquipo(prev => ({ ...prev, email: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label>Teléfono</Label>
-                <Input 
-                  value={equipo.telefono}
-                  onChange={(e) => setEquipo(prev => ({ ...prev, telefono: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium">Encargados</Label>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {equipo.encargados.map((encargado: string, index: number) => (
-                    <Badge key={index} variant="secondary">{encargado}</Badge>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <Button onClick={handleSaveChanges} className="w-full">
-              Guardar Cambios
-            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
+      {/* Modal de notificaciones */}
       <Dialog open={mostrarNotificaciones} onOpenChange={setMostrarNotificaciones}>
         <DialogContent className="w-[95vw] max-w-lg mx-auto max-h-[80vh] overflow-y-auto">
           <DialogHeader>

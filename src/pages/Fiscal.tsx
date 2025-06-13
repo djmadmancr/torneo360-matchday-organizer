@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, FileText, Calendar, Clock, MapPin } from "lucide-react";
+import { ArrowLeft, FileText, Calendar, Clock, MapPin, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -29,6 +28,7 @@ const Fiscal = () => {
   const navigate = useNavigate();
   const [partidoSeleccionado, setPartidoSeleccionado] = useState<Partido | null>(null);
   const [mostrarFormularioResultado, setMostrarFormularioResultado] = useState(false);
+  const [informeArbitral, setInformeArbitral] = useState<File | null>(null);
   
   const [resultado, setResultado] = useState({
     golesLocal: "",
@@ -92,6 +92,15 @@ const Fiscal = () => {
       tarjetasRojas: "",
       jugadorDestacado: ""
     });
+    setInformeArbitral(null);
+  };
+
+  const handleInformeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setInformeArbitral(file);
+      toast.success("Informe arbitral cargado correctamente");
+    }
   };
 
   const enviarResultado = () => {
@@ -99,6 +108,11 @@ const Fiscal = () => {
     
     if (!resultado.golesLocal || !resultado.golesVisitante) {
       toast.error("Por favor ingresa el resultado del partido");
+      return;
+    }
+
+    if (!informeArbitral) {
+      toast.error("Por favor adjunta el informe arbitral");
       return;
     }
 
@@ -112,6 +126,7 @@ const Fiscal = () => {
       tarjetasAmarillas: resultado.tarjetasAmarillas,
       tarjetasRojas: resultado.tarjetasRojas,
       jugadorDestacado: resultado.jugadorDestacado,
+      informeArbitral: informeArbitral.name,
       fecha: new Date().toISOString()
     };
 
@@ -133,6 +148,7 @@ const Fiscal = () => {
       tarjetasRojas: "",
       jugadorDestacado: ""
     });
+    setInformeArbitral(null);
   };
 
   const getEstadoBadge = (estado: string) => {
@@ -147,6 +163,8 @@ const Fiscal = () => {
         return <Badge variant="outline">Desconocido</Badge>;
     }
   };
+
+  const puedeEnviarResultado = resultado.golesLocal && resultado.golesVisitante && informeArbitral;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50">
@@ -346,6 +364,35 @@ const Fiscal = () => {
                   />
                 </div>
 
+                {/* Informe Arbitral */}
+                <div className="space-y-2">
+                  <Label>Informe Arbitral *</Label>
+                  <div className="flex items-center gap-4">
+                    {informeArbitral && (
+                      <div className="flex items-center gap-2 text-sm text-green-600">
+                        <FileText className="w-4 h-4" />
+                        <span>{informeArbitral.name}</span>
+                      </div>
+                    )}
+                    <Button type="button" variant="outline" asChild>
+                      <label htmlFor="informe-upload" className="cursor-pointer">
+                        <Upload className="w-4 h-4 mr-2" />
+                        {informeArbitral ? 'Cambiar Archivo' : 'Subir Informe'}
+                        <input
+                          id="informe-upload"
+                          type="file"
+                          accept=".pdf,.doc,.docx,.txt"
+                          onChange={handleInformeChange}
+                          className="hidden"
+                        />
+                      </label>
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Formatos permitidos: PDF, DOC, DOCX, TXT
+                  </p>
+                </div>
+
                 <div className="space-y-2">
                   <Label>Observaciones</Label>
                   <textarea
@@ -365,6 +412,11 @@ const Fiscal = () => {
                   <p className="text-lg font-bold text-center">
                     {partidoSeleccionado.equipoLocal} {resultado.golesLocal} - {resultado.golesVisitante} {partidoSeleccionado.equipoVisitante}
                   </p>
+                  {informeArbitral && (
+                    <p className="text-sm text-center text-green-600 mt-2">
+                      ✓ Informe arbitral adjunto: {informeArbitral.name}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -373,7 +425,7 @@ const Fiscal = () => {
                 <Button 
                   onClick={enviarResultado} 
                   className="flex-1 bg-orange-600 hover:bg-orange-700"
-                  disabled={!resultado.golesLocal || !resultado.golesVisitante}
+                  disabled={!puedeEnviarResultado}
                 >
                   📤 Enviar Resultado
                 </Button>
@@ -385,6 +437,15 @@ const Fiscal = () => {
                   Cancelar
                 </Button>
               </div>
+
+              {!puedeEnviarResultado && (
+                <div className="text-center text-sm text-muted-foreground">
+                  {!resultado.golesLocal || !resultado.golesVisitante 
+                    ? "Completa el resultado del partido" 
+                    : "Adjunta el informe arbitral para continuar"
+                  }
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
