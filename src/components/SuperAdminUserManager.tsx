@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { User } from '@/types/auth';
+import { User, OrganizadorPerfil, EquipoPerfil, FiscalPerfil } from '@/types/auth';
 import { toast } from 'sonner';
 import { Plus, Trash2, Edit, Eye, EyeOff } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -73,7 +73,7 @@ const SuperAdminUserManager = () => {
     toast.success('Usuario creado exitosamente');
   };
 
-  const createDefaultProfile = (tipo: string, nombre: string) => {
+  const createDefaultProfile = (tipo: string, nombre: string): OrganizadorPerfil | EquipoPerfil | FiscalPerfil => {
     switch (tipo) {
       case 'organizador':
         return {
@@ -82,7 +82,7 @@ const SuperAdminUserManager = () => {
           telefono: '',
           direccion: '',
           torneos: []
-        };
+        } as OrganizadorPerfil;
       case 'equipo':
         return {
           nombreEquipo: nombre,
@@ -92,16 +92,22 @@ const SuperAdminUserManager = () => {
           jugadores: [],
           coaches: [],
           torneos: []
-        };
+        } as EquipoPerfil;
       case 'fiscal':
         return {
           nombre: nombre,
           experiencia: 0,
           certificaciones: [],
           torneos: []
-        };
+        } as FiscalPerfil;
       default:
-        return {};
+        return {
+          nombreOrganizacion: nombre,
+          descripcion: 'Nueva organización',
+          telefono: '',
+          direccion: '',
+          torneos: []
+        } as OrganizadorPerfil;
     }
   };
 

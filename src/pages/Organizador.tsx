@@ -1,13 +1,16 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { 
   User, Trophy, Users, BarChart3, ArrowLeft, LogOut, Plus, Edit, 
-  Calendar, MapPin, Upload, Eye, TrendingUp 
+  Calendar, MapPin, Upload, Eye, TrendingUp, Bell, Download, CheckCircle, XCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import TorneoFormModal from "@/components/TorneoFormModal";
@@ -103,12 +106,20 @@ const Organizador = () => {
   const [torneoEditando, setTorneoEditando] = useState<string | null>(null);
 
   const { user } = useAuth();
-  const [perfil, setPerfil] = useState<OrganizadorPerfil>({
-    nombre: user?.nombre || "Liga Municipal de Fútbol",
-    logo: user?.logo || "https://images.unsplash.com/photo-1614632537190-23e4b93dc25e?w=100&h=100&fit=crop&crop=center",
-    encargados: user?.encargados || ["Carlos Rodríguez", "Ana Martínez"],
+  const organizadorPerfil = user?.perfil as OrganizadorPerfil;
+  
+  const [perfil, setPerfil] = useState<{
+    nombre: string;
+    logo: string;
+    encargados: string[];
+    email: string;
+    telefono: string;
+  }>({
+    nombre: organizadorPerfil?.nombreOrganizacion || user?.nombre || "Liga Municipal de Fútbol",
+    logo: "https://images.unsplash.com/photo-1614632537190-23e4b93dc25e?w=100&h=100&fit=crop&crop=center",
+    encargados: ["Carlos Rodríguez", "Ana Martínez"],
     email: user?.email || "admin@ligamunicipal.com",
-    telefono: user?.telefono || "+57 300 123 4567"
+    telefono: organizadorPerfil?.telefono || "+57 300 123 4567"
   });
 
   const [torneos, setTorneos] = useState<Torneo[]>([
