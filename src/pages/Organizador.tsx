@@ -17,6 +17,8 @@ import TorneoEstadisticas from "@/components/TorneoEstadisticas";
 import OrganizadorDashboard from "@/components/OrganizadorDashboard";
 import { useAuth } from "@/contexts/AuthContext";
 import { User as UserType, OrganizadorPerfil } from "@/types/auth";
+import FixtureGenerator from "@/components/FixtureGenerator";
+import ReportDownloader from "@/components/ReportDownloader";
 
 interface Torneo {
   id: string;
@@ -334,6 +336,56 @@ const Organizador = () => {
     return { equiposTorneo, resultadosTorneo, goleadoresTorneo };
   };
 
+  const equiposDemo = [
+    { id: "EQ-001", nombre: "Águilas FC", logo: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center" },
+    { id: "EQ-002", nombre: "Tigres SC", logo: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=50&h=50&fit=crop&crop=center" },
+    { id: "EQ-003", nombre: "Leones United", logo: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=50&h=50&fit=crop&crop=center" },
+    { id: "EQ-004", nombre: "Pumas FC", logo: "https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=50&h=50&fit=crop&crop=center" }
+  ];
+
+  const aprobarNotificacion = (notificacionId: string) => {
+    const notificacion = notificaciones.find(n => n.id === notificacionId);
+    if (!notificacion) return;
+
+    if (notificacion.tipo === "inscripcion" && notificacion.torneoId) {
+      // Actualizar torneo con nueva inscripción
+      setTorneos(prev => prev.map(torneo => 
+        torneo.id === notificacion.torneoId 
+          ? { ...torneo, equiposInscritos: torneo.equiposInscritos + 1 }
+          : torneo
+      ));
+      toast.success(`Inscripción de ${notificacion.equipoSolicitante} aprobada`);
+    }
+
+    // Eliminar notificación
+    setNotificaciones(prev => prev.filter(n => n.id !== notificacionId));
+  };
+
+  const rechazarNotificacion = (notificacionId: string) => {
+    const notificacion = notificaciones.find(n => n.id === notificacionId);
+    if (!notificacion) return;
+
+    toast.error(`Solicitud de ${notificacion.equipoSolicitante} rechazada`);
+    setNotificaciones(prev => prev.filter(n => n.id !== notificacionId));
+  };
+
+  const aprobarTodo = () => {
+    const notificacionesPendientes = notificaciones.filter(n => n.accionRequerida);
+    
+    notificacionesPendientes.forEach(notificacion => {
+      if (notificacion.tipo === "inscripcion" && notificacion.torneoId) {
+        setTorneos(prev => prev.map(torneo => 
+          torneo.id === notificacion.torneoId 
+            ? { ...torneo, equiposInscritos: torneo.equiposInscritos + 1 }
+            : torneo
+        ));
+      }
+    });
+
+    setNotificaciones(prev => prev.filter(n => !n.accionRequerida));
+    toast.success("Todas las solicitudes han sido aprobadas");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       {/* Header */}
@@ -420,14 +472,7 @@ const Organizador = () => {
                   <BarChart3 className="w-4 h-4 mr-2" />
                   Dashboard General
                 </Button>
-                <Button variant="outline" className="w-full">
-                  <Download className="w-4 h-4 mr-2" />
-                  Descargar Reportes
-                </Button>
-                <Button variant="outline" className="w-full">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Programar Partido
-                </Button>
+                <ReportDownloader torneos={torneos} />
               </CardContent>
             </Card>
 
@@ -455,9 +500,10 @@ const Organizador = () => {
           {/* Main Content Area */}
           <div className="flex-1">
             <Tabs defaultValue="torneos" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="torneos">Torneos</TabsTrigger>
                 <TabsTrigger value="equipos">Equipos</TabsTrigger>
+                <TabsTrigger value="fixtures">Fixtures</TabsTrigger>
               </TabsList>
 
               <TabsContent value="torneos">
@@ -595,6 +641,28 @@ const Organizador = () => {
                   </div>
                 </div>
               </TabsContent>
+
+              <TabsContent value="fixtures">
+                <div className="space-y-6">
+                  <h2 className="text-2xl font-bold">Fixtures de Torneos</h2>
+                  {torneos.length > 0 ? (
+                    <div className="space-y-6">
+                      {torneos.map((torneo) => (
+                        <Card key={torneo.id}>
+                          <CardHeader>
+                            <CardTitle>{torneo.nombre}</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <FixtureGenerator torneo={torneo} equipos={equiposDemo} />
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-center text-muted-foreground">No hay torneos para generar fixtures</p>
+                  )}
+                </div>
+              </TabsContent>
             </Tabs>
           </div>
         </div>
@@ -706,7 +774,18 @@ const Organizador = () => {
       <Dialog open={mostrarNotificaciones} onOpenChange={setMostrarNotificaciones}>
         <DialogContent className="w-[95vw] max-w-lg mx-auto max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Notificaciones</DialogTitle>
+            <DialogTitle className="flex items-center justify-between">
+              Notificaciones
+              {notificaciones.filter(n => n.accionRequerida).length > 0 && (
+                <Button 
+                  size="sm" 
+                  onClick={aprobarTodo}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  Aprobar Todo
+                </Button>
+              )}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {notificaciones.map((notif) => (
@@ -724,11 +803,20 @@ const Organizador = () => {
                 </div>
                 {notif.accionRequerida && (
                   <div className="flex gap-2 pt-2">
-                    <Button size="sm" variant="outline">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => aprobarNotificacion(notif.id)}
+                      className="bg-green-50 hover:bg-green-100 border-green-200"
+                    >
                       <CheckCircle className="w-4 h-4 mr-1" />
                       Aprobar
                     </Button>
-                    <Button size="sm" variant="destructive">
+                    <Button 
+                      size="sm" 
+                      variant="destructive"
+                      onClick={() => rechazarNotificacion(notif.id)}
+                    >
                       <XCircle className="w-4 h-4 mr-1" />
                       Rechazar
                     </Button>

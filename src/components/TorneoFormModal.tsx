@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -80,6 +79,8 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
     mejorPerdedor: false
   });
 
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+
   // Load existing tournament data when editing
   useEffect(() => {
     if (torneoEditando) {
@@ -109,20 +110,28 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
     "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"
   ];
 
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLogoFile(file);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.nombreTorneo || !formData.tipoFutbol || !formData.formato || !formData.categoria) {
-      toast.error("Por favor completa los campos obligatorios");
-      return;
-    }
+    const logoUrl = logoFile 
+      ? URL.createObjectURL(logoFile)
+      : "https://images.unsplash.com/photo-1614632537190-23e4b93dc25e?w=100&h=100&fit=crop&crop=center";
 
-    if (formData.diasSemana.length === 0) {
-      toast.error("Selecciona al menos un día de la semana para los partidos");
-      return;
-    }
-
-    onSubmit({ ...formData, torneoId });
+    const data = {
+      ...formData,
+      torneoId,
+      logo: logoUrl
+    };
+    
+    onSubmit(data);
+    resetForm();
     onClose();
   };
 
@@ -173,347 +182,361 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-hidden">
-        <DialogHeader className="pb-4">
-          <DialogTitle className="flex items-center justify-between text-lg md:text-xl">
-            🏆 {torneoEditando ? 'Editar Torneo' : 'Crear Nuevo Torneo'}
-            <Button variant="ghost" onClick={handleClose} className="p-2">
-              <X className="w-4 h-4" />
-            </Button>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {torneoEditando ? 'Editar Torneo' : 'Crear Nuevo Torneo'}
           </DialogTitle>
         </DialogHeader>
         
-        <ScrollArea className="max-h-[calc(90vh-120px)] pr-4">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="nombreTorneo">Nombre del Torneo *</Label>
-                <Input
-                  id="nombreTorneo"
-                  value={formData.nombreTorneo}
-                  onChange={(e) => setFormData({...formData, nombreTorneo: e.target.value})}
-                  placeholder="Ej: Copa Primavera 2024"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="torneoId">ID del Torneo</Label>
-                <Input
-                  id="torneoId"
-                  value={torneoId}
-                  disabled
-                  className="bg-gray-50"
-                />
-              </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="nombreTorneo">Nombre del Torneo *</Label>
+              <Input
+                id="nombreTorneo"
+                value={formData.nombreTorneo}
+                onChange={(e) => setFormData({...formData, nombreTorneo: e.target.value})}
+                placeholder="Ej: Copa Primavera 2024"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="torneoId">ID del Torneo</Label>
+              <Input
+                id="torneoId"
+                value={torneoId}
+                disabled
+                className="bg-gray-50"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+            <div className="space-y-2">
+              <Label>Tipo de Fútbol *</Label>
+              <Select 
+                value={formData.tipoFutbol}
+                onValueChange={(value) => setFormData({...formData, tipoFutbol: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona el tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="futbol5">Fútbol 5</SelectItem>
+                  <SelectItem value="futbol7">Fútbol 7</SelectItem>
+                  <SelectItem value="futbol9">Fútbol 9</SelectItem>
+                  <SelectItem value="futbol11">Fútbol 11</SelectItem>
+                  <SelectItem value="sala">Fútbol Sala</SelectItem>
+                  <SelectItem value="playa">Fútbol Playa</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-              <div className="space-y-2">
-                <Label>Tipo de Fútbol *</Label>
-                <Select 
-                  value={formData.tipoFutbol}
-                  onValueChange={(value) => setFormData({...formData, tipoFutbol: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona el tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="futbol5">Fútbol 5</SelectItem>
-                    <SelectItem value="futbol7">Fútbol 7</SelectItem>
-                    <SelectItem value="futbol9">Fútbol 9</SelectItem>
-                    <SelectItem value="futbol11">Fútbol 11</SelectItem>
-                    <SelectItem value="sala">Fútbol Sala</SelectItem>
-                    <SelectItem value="playa">Fútbol Playa</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Formato *</Label>
-                <Select 
-                  value={formData.formato}
-                  onValueChange={(value) => setFormData({...formData, formato: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona el formato" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="completo">Completo (Grupos + Eliminatoria)</SelectItem>
-                    <SelectItem value="eliminatorio">Eliminatorio (Llaves de muerte súbita)</SelectItem>
-                    <SelectItem value="relampago">Relámpago</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Categoría *</Label>
-                <Select 
-                  value={formData.categoria}
-                  onValueChange={(value) => setFormData({...formData, categoria: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona la categoría" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="U17">U17</SelectItem>
-                    <SelectItem value="U20">U20</SelectItem>
-                    <SelectItem value="U23">U23</SelectItem>
-                    <SelectItem value="Libre">Libre</SelectItem>
-                    <SelectItem value="Veteranos">Veteranos (+35)</SelectItem>
-                    <SelectItem value="Femenino">Femenino</SelectItem>
-                    <SelectItem value="Mixto">Mixto</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label>Formato *</Label>
+              <Select 
+                value={formData.formato}
+                onValueChange={(value) => setFormData({...formData, formato: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona el formato" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="completo">Completo (Grupos + Eliminatoria)</SelectItem>
+                  <SelectItem value="eliminatorio">Eliminatorio (Llaves de muerte súbita)</SelectItem>
+                  <SelectItem value="relampago">Relámpago</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            {/* Configuraciones específicas por formato */}
-            {formData.formato === "completo" && (
-              <div className="space-y-4 p-4 bg-blue-50 rounded-lg">
+            <div className="space-y-2">
+              <Label>Categoría *</Label>
+              <Select 
+                value={formData.categoria}
+                onValueChange={(value) => setFormData({...formData, categoria: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona la categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="U17">U17</SelectItem>
+                  <SelectItem value="U20">U20</SelectItem>
+                  <SelectItem value="U23">U23</SelectItem>
+                  <SelectItem value="Libre">Libre</SelectItem>
+                  <SelectItem value="Veteranos">Veteranos (+35)</SelectItem>
+                  <SelectItem value="Femenino">Femenino</SelectItem>
+                  <SelectItem value="Mixto">Mixto</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Configuraciones específicas por formato */}
+          {formData.formato === "completo" && (
+            <div className="space-y-4 p-4 bg-blue-50 rounded-lg">
+              <div className="space-y-2">
+                <Label>Número de Grupos *</Label>
+                <Select 
+                  value={formData.numeroGrupos}
+                  onValueChange={(value) => setFormData({...formData, numeroGrupos: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 Grupo (Tabla General)</SelectItem>
+                    <SelectItem value="2">2 Grupos</SelectItem>
+                    <SelectItem value="3">3 Grupos</SelectItem>
+                    <SelectItem value="4">4 Grupos</SelectItem>
+                    <SelectItem value="6">6 Grupos</SelectItem>
+                    <SelectItem value="8">8 Grupos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-4">
+                <Label>Ida y Vuelta</Label>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="idaVueltaGrupos"
+                      checked={formData.idaVuelta.grupos}
+                      onCheckedChange={(checked) => setFormData({
+                        ...formData, 
+                        idaVuelta: {...formData.idaVuelta, grupos: !!checked}
+                      })}
+                    />
+                    <Label htmlFor="idaVueltaGrupos" className="text-sm">
+                      Grupos - Cada equipo juega 2 veces contra cada rival
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="idaVueltaEliminatoria"
+                      checked={formData.idaVuelta.eliminatoria}
+                      onCheckedChange={(checked) => setFormData({
+                        ...formData, 
+                        idaVuelta: {...formData.idaVuelta, eliminatoria: !!checked}
+                      })}
+                    />
+                    <Label htmlFor="idaVueltaEliminatoria" className="text-sm">
+                      Eliminatoria - Partidos de ida y vuelta en playoffs
+                    </Label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="mejorPerdedor"
+                  checked={formData.mejorPerdedor}
+                  onCheckedChange={(checked) => setFormData({...formData, mejorPerdedor: !!checked})}
+                />
+                <Label htmlFor="mejorPerdedor" className="text-sm">
+                  Activar mejor perdedor o mejores perdedores
+                </Label>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label>Puntaje Extra</Label>
+            <Select 
+              value={formData.puntajeExtra}
+              onValueChange={(value) => setFormData({...formData, puntajeExtra: value})}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NA">N/A</SelectItem>
+                <SelectItem value="penales">Penales</SelectItem>
+                <SelectItem value="shootouts">Rondas de Shoot Outs</SelectItem>
+                <SelectItem value="otros">Otros</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {formData.formato !== "relampago" && (
+            <div className="space-y-4 p-4 bg-green-50 rounded-lg">
+              <Label>Programación de Partidos</Label>
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Número de Grupos *</Label>
+                  <Label>Días de la semana para partidos *</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+                    {diasSemanaOpciones.map((dia) => (
+                      <div key={dia} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={dia}
+                          checked={formData.diasSemana.includes(dia)}
+                          onCheckedChange={() => toggleDiaSemana(dia)}
+                        />
+                        <Label htmlFor={dia} className="text-sm">{dia}</Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Partidos por semana</Label>
                   <Select 
-                    value={formData.numeroGrupos}
-                    onValueChange={(value) => setFormData({...formData, numeroGrupos: value})}
+                    value={formData.partidosPorSemana}
+                    onValueChange={(value) => setFormData({...formData, partidosPorSemana: value})}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">1 Grupo (Tabla General)</SelectItem>
-                      <SelectItem value="2">2 Grupos</SelectItem>
-                      <SelectItem value="3">3 Grupos</SelectItem>
-                      <SelectItem value="4">4 Grupos</SelectItem>
-                      <SelectItem value="6">6 Grupos</SelectItem>
-                      <SelectItem value="8">8 Grupos</SelectItem>
+                      <SelectItem value="1">1 partido</SelectItem>
+                      <SelectItem value="2">2 partidos</SelectItem>
+                      <SelectItem value="3">3 partidos</SelectItem>
+                      <SelectItem value="4">4 partidos</SelectItem>
+                      <SelectItem value="5">5 partidos</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-
-                <div className="space-y-4">
-                  <Label>Ida y Vuelta</Label>
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="idaVueltaGrupos"
-                        checked={formData.idaVuelta.grupos}
-                        onCheckedChange={(checked) => setFormData({
-                          ...formData, 
-                          idaVuelta: {...formData.idaVuelta, grupos: !!checked}
-                        })}
-                      />
-                      <Label htmlFor="idaVueltaGrupos" className="text-sm">
-                        Grupos - Cada equipo juega 2 veces contra cada rival
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="idaVueltaEliminatoria"
-                        checked={formData.idaVuelta.eliminatoria}
-                        onCheckedChange={(checked) => setFormData({
-                          ...formData, 
-                          idaVuelta: {...formData.idaVuelta, eliminatoria: !!checked}
-                        })}
-                      />
-                      <Label htmlFor="idaVueltaEliminatoria" className="text-sm">
-                        Eliminatoria - Partidos de ida y vuelta en playoffs
-                      </Label>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="mejorPerdedor"
-                    checked={formData.mejorPerdedor}
-                    onCheckedChange={(checked) => setFormData({...formData, mejorPerdedor: !!checked})}
-                  />
-                  <Label htmlFor="mejorPerdedor" className="text-sm">
-                    Activar mejor perdedor o mejores perdedores
-                  </Label>
-                </div>
               </div>
-            )}
-
-            <div className="space-y-2">
-              <Label>Puntaje Extra</Label>
-              <Select 
-                value={formData.puntajeExtra}
-                onValueChange={(value) => setFormData({...formData, puntajeExtra: value})}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="NA">N/A</SelectItem>
-                  <SelectItem value="penales">Penales</SelectItem>
-                  <SelectItem value="shootouts">Rondas de Shoot Outs</SelectItem>
-                  <SelectItem value="otros">Otros</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
+          )}
 
-            {formData.formato !== "relampago" && (
-              <div className="space-y-4 p-4 bg-green-50 rounded-lg">
-                <Label>Programación de Partidos</Label>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Días de la semana para partidos *</Label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
-                      {diasSemanaOpciones.map((dia) => (
-                        <div key={dia} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={dia}
-                            checked={formData.diasSemana.includes(dia)}
-                            onCheckedChange={() => toggleDiaSemana(dia)}
-                          />
-                          <Label htmlFor={dia} className="text-sm">{dia}</Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Partidos por semana</Label>
-                    <Select 
-                      value={formData.partidosPorSemana}
-                      onValueChange={(value) => setFormData({...formData, partidosPorSemana: value})}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1 partido</SelectItem>
-                        <SelectItem value="2">2 partidos</SelectItem>
-                        <SelectItem value="3">3 partidos</SelectItem>
-                        <SelectItem value="4">4 partidos</SelectItem>
-                        <SelectItem value="5">5 partidos</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-            )}
+          {formData.formato === "relampago" && (
+            <div className="bg-yellow-50 p-4 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                <strong>Formato Relámpago:</strong> Todos los partidos se juegan en la misma cancha, sin opción de ida y vuelta. 
+                Ideal para torneos de un día.
+              </p>
+            </div>
+          )}
 
-            {formData.formato === "relampago" && (
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <p className="text-sm text-yellow-800">
-                  <strong>Formato Relámpago:</strong> Todos los partidos se juegan en la misma cancha, sin opción de ida y vuelta. 
-                  Ideal para torneos de un día.
-                </p>
-              </div>
-            )}
+          <div className="space-y-2">
+            <Label>Fecha límite de inscripciones *</Label>
+            <Input
+              type="date"
+              value={formData.fechaCierre}
+              onChange={(e) => setFormData({...formData, fechaCierre: e.target.value})}
+              required
+            />
+          </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
             <div className="space-y-2">
-              <Label>Fecha límite de inscripciones *</Label>
+              <Label>Edad Mínima</Label>
               <Input
-                type="date"
-                value={formData.fechaCierre}
-                onChange={(e) => setFormData({...formData, fechaCierre: e.target.value})}
-                required
+                type="number"
+                value={formData.edadMinima}
+                onChange={(e) => setFormData({...formData, edadMinima: e.target.value})}
+                placeholder="16"
+                min="5"
+                max="100"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Edad Máxima</Label>
+              <Input
+                type="number"
+                value={formData.edadMaxima}
+                onChange={(e) => setFormData({...formData, edadMaxima: e.target.value})}
+                placeholder="35"
+                min="5"
+                max="100"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Máx. Jugadores por Equipo</Label>
+              <Input
+                type="number"
+                value={formData.maxJugadores}
+                onChange={(e) => setFormData({...formData, maxJugadores: e.target.value})}
+                placeholder="15"
+                min="7"
+                max="30"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="space-y-1">
+              <Label>Torneo público</Label>
+              <p className="text-sm text-muted-foreground">Mostrar en la lista pública de torneos</p>
+            </div>
+            <Switch
+              checked={formData.torneoPublico}
+              onCheckedChange={(checked) => setFormData({...formData, torneoPublico: checked})}
+            />
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Reglamento General del Torneo</Label>
+              <Textarea
+                value={formData.reglamento}
+                onChange={(e) => setFormData({...formData, reglamento: e.target.value})}
+                placeholder="Describe las reglas generales del torneo, horarios, sanciones, etc."
+                rows={4}
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-              <div className="space-y-2">
-                <Label>Edad Mínima</Label>
+            <div className="space-y-2">
+              <Label>Reglamento PDF (Opcional)</Label>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <Input
-                  type="number"
-                  value={formData.edadMinima}
-                  onChange={(e) => setFormData({...formData, edadMinima: e.target.value})}
-                  placeholder="16"
-                  min="5"
-                  max="100"
+                  type="file"
+                  accept=".pdf"
+                  onChange={handleReglamentoUpload}
+                  className="hidden"
+                  id="reglamentoPDF"
                 />
-              </div>
-              <div className="space-y-2">
-                <Label>Edad Máxima</Label>
-                <Input
-                  type="number"
-                  value={formData.edadMaxima}
-                  onChange={(e) => setFormData({...formData, edadMaxima: e.target.value})}
-                  placeholder="35"
-                  min="5"
-                  max="100"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Máx. Jugadores por Equipo</Label>
-                <Input
-                  type="number"
-                  value={formData.maxJugadores}
-                  onChange={(e) => setFormData({...formData, maxJugadores: e.target.value})}
-                  placeholder="15"
-                  min="7"
-                  max="30"
-                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => document.getElementById('reglamentoPDF')?.click()}
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  Subir PDF
+                </Button>
+                {formData.reglamentoPDF && (
+                  <Badge variant="secondary">{formData.reglamentoPDF.name}</Badge>
+                )}
               </div>
             </div>
+          </div>
 
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="space-y-1">
-                <Label>Torneo público</Label>
-                <p className="text-sm text-muted-foreground">Mostrar en la lista pública de torneos</p>
-              </div>
-              <Switch
-                checked={formData.torneoPublico}
-                onCheckedChange={(checked) => setFormData({...formData, torneoPublico: checked})}
-              />
-            </div>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Reglamento General del Torneo</Label>
-                <Textarea
-                  value={formData.reglamento}
-                  onChange={(e) => setFormData({...formData, reglamento: e.target.value})}
-                  placeholder="Describe las reglas generales del torneo, horarios, sanciones, etc."
-                  rows={4}
+          <div className="space-y-2">
+            <Label htmlFor="logo">Logo del Torneo</Label>
+            <Input
+              type="file"
+              id="logo"
+              accept="image/*"
+              onChange={handleLogoChange}
+            />
+            {logoFile && (
+              <div className="mt-2">
+                <img 
+                  src={URL.createObjectURL(logoFile)} 
+                  alt="Preview"
+                  className="w-16 h-16 rounded-lg object-cover"
                 />
               </div>
+            )}
+          </div>
 
-              <div className="space-y-2">
-                <Label>Reglamento PDF (Opcional)</Label>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                  <Input
-                    type="file"
-                    accept=".pdf"
-                    onChange={handleReglamentoUpload}
-                    className="hidden"
-                    id="reglamentoPDF"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => document.getElementById('reglamentoPDF')?.click()}
-                    className="flex items-center gap-2"
-                  >
-                    <Upload className="w-4 h-4" />
-                    Subir PDF
-                  </Button>
-                  {formData.reglamentoPDF && (
-                    <Badge variant="secondary">{formData.reglamentoPDF.name}</Badge>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t">
-              <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700">
-                🏆 {torneoEditando ? 'Actualizar Torneo' : 'Crear Torneo'}
-              </Button>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={handleClose}
-                className="flex-1"
-              >
-                Cancelar
-              </Button>
-            </div>
-          </form>
-        </ScrollArea>
+          <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t">
+            <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700">
+              🏆 {torneoEditando ? 'Actualizar Torneo' : 'Crear Torneo'}
+            </Button>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={handleClose}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

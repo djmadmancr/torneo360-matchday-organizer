@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +14,7 @@ import UniformeSelector from "@/components/UniformeSelector";
 import JugadoresCoachManager from "@/components/JugadoresCoachManager";
 import { useAuth } from "@/contexts/AuthContext";
 import { EquipoPerfil, Jugador, Coach } from "@/types/auth";
+import PlayerStatistics from "@/components/PlayerStatistics";
 
 interface EstadisticaEquipo {
   torneoId: string;
@@ -231,88 +231,23 @@ const Equipo = () => {
       <div className="container mx-auto px-4 py-4 md:py-8">
         <Tabs defaultValue="perfil" className="max-w-4xl mx-auto">
           <TabsList className="grid w-full grid-cols-4 text-xs md:text-sm">
-            <TabsTrigger value="perfil">Perfil del Equipo</TabsTrigger>
+            <TabsTrigger value="perfil">Perfil & Estadísticas</TabsTrigger>
             <TabsTrigger value="uniformes">Uniformes</TabsTrigger>
             <TabsTrigger value="jugadores">Jugadores & Coach</TabsTrigger>
-            <TabsTrigger value="estadisticas">Estadísticas</TabsTrigger>
+            <TabsTrigger value="goleadores">Goleadores</TabsTrigger>
           </TabsList>
 
           <TabsContent value="perfil">
             <div className="space-y-6">
               <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h3 className="text-lg font-semibold mb-4">Información del Equipo</h3>
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="nombre">Nombre del Equipo</Label>
-                    <Input
-                      type="text"
-                      id="nombre"
-                      value={equipo.nombre}
-                      onChange={(e) => setEquipo(prevState => ({ ...prevState, nombre: e.target.value }))}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="logo">Logo del Equipo</Label>
-                    <Input
-                      type="file"
-                      id="logo"
-                      onChange={handleLogoChange}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h3 className="text-lg font-semibold mb-4">Vista Previa</h3>
+                <h3 className="text-lg font-semibold mb-4">Vista Previa del Equipo</h3>
                 <EquipoCard 
                   equipo={equipoParaCard}
                   onEdit={() => {}}
                 />
               </div>
-            </div>
-          </TabsContent>
 
-          <TabsContent value="uniformes">
-            <div className="space-y-6">
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h3 className="text-lg font-semibold mb-4">Uniforme Principal</h3>
-                <UniformeSelector
-                  colores={{
-                    camiseta: equipo.uniformes.principal.camiseta.principal,
-                    pantaloneta: equipo.uniformes.principal.pantaloneta,
-                    medias: equipo.uniformes.principal.medias
-                  }}
-                  onChange={(colores) => handleUniformeChange(colores, 'principal')}
-                />
-              </div>
-
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h3 className="text-lg font-semibold mb-4">Uniforme Alternativo</h3>
-                <UniformeSelector
-                  colores={{
-                    camiseta: equipo.uniformes.alternativo.camiseta.principal,
-                    pantaloneta: equipo.uniformes.alternativo.pantaloneta,
-                    medias: equipo.uniformes.alternativo.medias
-                  }}
-                  onChange={(colores) => handleUniformeChange(colores, 'alternativo')}
-                />
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="jugadores">
-            <JugadoresCoachManager
-              jugadores={equipo.jugadores}
-              coaches={equipo.coaches}
-              onJugadoresChange={(jugadores) => setEquipo(prev => ({ ...prev, jugadores }))}
-              onCoachesChange={(coaches) => setEquipo(prev => ({ ...prev, coaches }))}
-            />
-          </TabsContent>
-
-          <TabsContent value="estadisticas">
-            <div className="space-y-6">
+              {/* Estadísticas del equipo */}
               <div className="bg-white p-6 rounded-lg shadow-sm">
                 <h3 className="text-lg font-semibold mb-4">Estadísticas en Torneos</h3>
                 
@@ -369,6 +304,52 @@ const Equipo = () => {
               </div>
             </div>
           </TabsContent>
+
+          <TabsContent value="uniformes">
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <h3 className="text-lg font-semibold mb-4">Uniforme Principal</h3>
+                <UniformeSelector
+                  colores={{
+                    camiseta: equipo.uniformes.principal.camiseta.principal,
+                    pantaloneta: equipo.uniformes.principal.pantaloneta,
+                    medias: equipo.uniformes.principal.medias
+                  }}
+                  onChange={(colores) => handleUniformeChange(colores, 'principal')}
+                />
+              </div>
+
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <h3 className="text-lg font-semibold mb-4">Uniforme Alternativo</h3>
+                <UniformeSelector
+                  colores={{
+                    camiseta: equipo.uniformes.alternativo.camiseta.principal,
+                    pantaloneta: equipo.uniformes.alternativo.pantaloneta,
+                    medias: equipo.uniformes.alternativo.medias
+                  }}
+                  onChange={(colores) => handleUniformeChange(colores, 'alternativo')}
+                />
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="jugadores">
+            <JugadoresCoachManager
+              jugadores={equipo.jugadores}
+              coaches={equipo.coaches}
+              onJugadoresChange={(jugadores) => setEquipo(prev => ({ ...prev, jugadores }))}
+              onCoachesChange={(coaches) => setEquipo(prev => ({ ...prev, coaches }))}
+            />
+          </TabsContent>
+
+          <TabsContent value="goleadores">
+            <div className="space-y-6">
+              <PlayerStatistics 
+                jugadores={equipo.jugadores}
+                className="bg-white p-6 rounded-lg shadow-sm"
+              />
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -376,7 +357,7 @@ const Equipo = () => {
       <Dialog open={mostrarPerfil} onOpenChange={setMostrarPerfil}>
         <DialogContent className="w-[95vw] max-w-md mx-auto">
           <DialogHeader>
-            <DialogTitle>Perfil del Equipo</DialogTitle>
+            <DialogTitle>Editar Perfil del Equipo</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="flex items-center gap-4">
@@ -385,11 +366,25 @@ const Equipo = () => {
                 alt={perfil.nombre}
                 className="w-16 h-16 rounded-lg object-cover"
               />
-              <div>
-                <h3 className="font-semibold">{perfil.nombre}</h3>
-                <p className="text-sm text-muted-foreground">{perfil.email}</p>
+              <div className="flex-1">
+                <Label htmlFor="nombre">Nombre del Equipo</Label>
+                <Input
+                  id="nombre"
+                  value={equipo.nombre}
+                  onChange={(e) => setEquipo(prev => ({ ...prev, nombre: e.target.value }))}
+                />
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="logo">Logo del Equipo</Label>
+              <Input
+                type="file"
+                id="logo"
+                onChange={handleLogoChange}
+              />
+            </div>
+
             <div className="space-y-3">
               <div>
                 <Label className="text-sm font-medium">Encargados</Label>
@@ -401,9 +396,13 @@ const Equipo = () => {
               </div>
               <div>
                 <Label className="text-sm font-medium">Teléfono</Label>
-                <p className="text-sm">{perfil.telefono}</p>
+                <Input value={perfil.telefono} onChange={(e) => setPerfil(prev => ({ ...prev, telefono: e.target.value }))} />
               </div>
             </div>
+
+            <Button onClick={handleSaveChanges} className="w-full">
+              Guardar Cambios
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
