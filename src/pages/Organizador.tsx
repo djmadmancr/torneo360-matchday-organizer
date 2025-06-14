@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -720,9 +721,8 @@ const Organizador = () => {
           {/* Main Content Area */}
           <div className="flex-1">
             <Tabs defaultValue="torneos" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-1">
                 <TabsTrigger value="torneos">Mis Torneos</TabsTrigger>
-                <TabsTrigger value="equipos">Equipos Registrados</TabsTrigger>
               </TabsList>
 
               <TabsContent value="torneos">
@@ -952,6 +952,7 @@ const Organizador = () => {
                 equiposTorneo={[]}
                 resultadosTorneo={[]}
                 goleadoresTorneo={[]}
+                esOrganizador={true}
               />
             )}
           </div>
