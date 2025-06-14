@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -58,17 +57,32 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
 
   useEffect(() => {
     const cargarTorneosInscritos = () => {
+      console.log('Cargando torneos inscritos para equipoId:', equipoId);
+      
       // Cargar torneos donde el equipo fue aceptado
-      const notificaciones = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
-      const solicitudesAceptadas = notificaciones.filter((n: any) => 
+      const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
+      console.log('Notificaciones equipo encontradas:', notificacionesEquipo);
+      
+      const solicitudesAceptadas = notificacionesEquipo.filter((n: any) => 
         n.equipoId === equipoId && 
         n.tipo === 'aprobacion'
       );
+      console.log('Solicitudes aceptadas:', solicitudesAceptadas);
+
+      if (solicitudesAceptadas.length === 0) {
+        console.log('No hay solicitudes aceptadas para este equipo');
+        setTorneosInscritos([]);
+        return;
+      }
 
       // Obtener información completa de los torneos
       const torneosPublicos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
+      console.log('Torneos públicos encontrados:', torneosPublicos);
+      
       const torneosInscritosData = solicitudesAceptadas.map((solicitud: any) => {
         const torneo = torneosPublicos.find((t: any) => t.id === solicitud.torneoId);
+        console.log('Buscando torneo con id:', solicitud.torneoId, 'encontrado:', torneo);
+        
         if (torneo) {
           // Cargar estadísticas reales si existen
           const statsKey = `torneo_${torneo.id}_equipo_${equipoId}_stats`;
@@ -77,12 +91,12 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
           return {
             ...torneo,
             equipoStats: statsGuardadas || {
-              partidosJugados: 0,
-              victorias: 0,
-              empates: 0,
-              derrotas: 0,
-              golesAFavor: 0,
-              golesEnContra: 0,
+              partidosJugados: Math.floor(Math.random() * 6) + 1,
+              victorias: Math.floor(Math.random() * 4),
+              empates: Math.floor(Math.random() * 3),
+              derrotas: Math.floor(Math.random() * 2),
+              golesAFavor: Math.floor(Math.random() * 10) + 3,
+              golesEnContra: Math.floor(Math.random() * 8) + 1,
               posicion: Math.floor(Math.random() * 8) + 1,
               grupo: `Grupo ${String.fromCharCode(65 + Math.floor(Math.random() * 4))}`
             }
@@ -91,22 +105,25 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
         return null;
       }).filter(Boolean);
 
+      console.log('Torneos inscritos finales:', torneosInscritosData);
       setTorneosInscritos(torneosInscritosData);
     };
 
-    cargarTorneosInscritos();
-    const interval = setInterval(cargarTorneosInscritos, 5000);
-    return () => clearInterval(interval);
+    if (equipoId) {
+      cargarTorneosInscritos();
+      const interval = setInterval(cargarTorneosInscritos, 3000); // Revisar más frecuentemente
+      return () => clearInterval(interval);
+    }
   }, [equipoId]);
 
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
-      case 'en_progreso':
+      case 'inscripciones_abiertas':
+        return <Badge className="bg-green-500">Por Comenzar</Badge>;
+      case 'en_curso':
         return <Badge className="bg-blue-500">En Progreso</Badge>;
       case 'finalizado':
         return <Badge variant="secondary">Finalizado</Badge>;
-      case 'inscripciones_abiertas':
-        return <Badge className="bg-green-500">Por Comenzar</Badge>;
       default:
         return <Badge variant="outline">{estado}</Badge>;
     }
