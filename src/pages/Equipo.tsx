@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { User as UserType, EquipoPerfil } from "@/types/auth";
 import TorneosPublicos from "@/components/TorneosPublicos";
+import TorneosInscritos from "@/components/TorneosInscritos";
+import EstadisticasEquipo from "@/components/EstadisticasEquipo";
 import EditarPerfilEquipo from "@/components/EditarPerfilEquipo";
 import NotificacionesEquipo from "@/components/NotificacionesEquipo";
 import SeleccionJugadoresModal from "@/components/SeleccionJugadoresModal";
