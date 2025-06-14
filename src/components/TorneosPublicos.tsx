@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +26,7 @@ interface TorneoPublico {
   edadMaxima?: number;
   descripcion?: string;
   ubicacion?: string;
-  puntajeExtra: number;
+  puntajeExtra: string;
   idaVuelta: boolean;
   diasSemana: string[];
   partidosPorSemana: number;
@@ -168,41 +167,53 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
               )}
 
               <div className="flex gap-2 pt-2">
-                <Button 
-                  onClick={() => verEstadisticasTorneo(torneo)}
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  Ver Info
-                </Button>
-                
                 {estaInscrito(torneo.id) ? (
-                  <Button 
-                    onClick={() => verEstadisticasTorneo(torneo)}
-                    className="flex-1"
-                  >
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    Estadísticas
-                  </Button>
+                  <>
+                    <Button 
+                      onClick={() => verEstadisticasTorneo(torneo)}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      Ver Info
+                    </Button>
+                    <Button 
+                      onClick={() => verEstadisticasTorneo(torneo)}
+                      className="flex-1"
+                    >
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      Estadísticas
+                    </Button>
+                  </>
                 ) : tieneSolicitudPendiente(torneo.id) ? (
                   <Button 
                     disabled 
                     variant="secondary"
-                    className="flex-1"
+                    className="w-full"
                   >
                     Solicitud Pendiente
                   </Button>
                 ) : (
-                  <Button 
-                    onClick={() => onInscribirse(torneo)}
-                    disabled={!puedeInscribirse(torneo) || torneo.equiposInscritos >= torneo.maxEquipos}
-                    className="flex-1"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    {puedeInscribirse(torneo) ? 'Inscribirse' : 'Categoría No Compatible'}
-                  </Button>
+                  <>
+                    <Button 
+                      onClick={() => verEstadisticasTorneo(torneo)}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      Ver Info
+                    </Button>
+                    <Button 
+                      onClick={() => onInscribirse(torneo)}
+                      disabled={!puedeInscribirse(torneo) || torneo.equiposInscritos >= torneo.maxEquipos}
+                      className="flex-1"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      {puedeInscribirse(torneo) ? 'Inscribirse' : 'Categoría No Compatible'}
+                    </Button>
+                  </>
                 )}
               </div>
 
@@ -240,6 +251,21 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
       </Dialog>
     </div>
   );
+
+  function getEstadoBadge(estado: string) {
+    switch (estado) {
+      case 'inscripciones_abiertas':
+        return <Badge className="bg-green-500">Inscripciones Abiertas</Badge>;
+      case 'inscripciones_cerradas':
+        return <Badge className="bg-yellow-500">Inscripciones Cerradas</Badge>;
+      case 'en_curso':
+        return <Badge className="bg-blue-500">En Curso</Badge>;
+      case 'finalizado':
+        return <Badge variant="secondary">Finalizado</Badge>;
+      default:
+        return <Badge variant="outline">{estado}</Badge>;
+    }
+  }
 };
 
 export default TorneosPublicos;
