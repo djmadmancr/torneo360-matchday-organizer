@@ -280,23 +280,28 @@ const Organizador = () => {
 
     setTorneoEditando(torneoId);
     setMostrarFormulario(true);
+    addLog('Editar Torneo', `Iniciando edición del torneo "${torneo.nombre}"`, 'edicion', 'torneo', torneoId);
   };
 
   const handleIniciarTorneo = (torneoId: string) => {
+    const torneo = torneos.find(t => t.id === torneoId);
     setTorneos(prev => prev.map(torneo => 
       torneo.id === torneoId 
         ? { ...torneo, estado: "en_curso" as const }
         : torneo
     ));
+    addLog('Iniciar Torneo', `Torneo "${torneo?.nombre}" iniciado`, 'inicio', 'torneo', torneoId);
     toast.success("Torneo iniciado exitosamente");
   };
 
   const handleCerrarInscripciones = (torneoId: string) => {
+    const torneo = torneos.find(t => t.id === torneoId);
     setTorneos(prev => prev.map(torneo => 
       torneo.id === torneoId 
         ? { ...torneo, estado: "inscripciones_cerradas" as const }
         : torneo
     ));
+    addLog('Cerrar Inscripciones', `Inscripciones cerradas para "${torneo?.nombre}"`, 'cierre', 'torneo', torneoId);
     toast.success("Inscripciones cerradas");
   };
 
@@ -429,6 +434,7 @@ const Organizador = () => {
       notificacionesEquipo.push(notificacionEquipo);
       localStorage.setItem('notificacionesEquipo', JSON.stringify(notificacionesEquipo));
 
+      addLog('Aprobar Inscripción', `Inscripción de ${notificacion.equipoSolicitante} aprobada`, 'aprobacion', 'inscripcion', notificacionId);
       toast.success(`Inscripción de ${notificacion.equipoSolicitante} aprobada`);
     }
 
@@ -459,6 +465,7 @@ const Organizador = () => {
     notificacionesEquipo.push(notificacionEquipo);
     localStorage.setItem('notificacionesEquipo', JSON.stringify(notificacionesEquipo));
 
+    addLog('Rechazar Inscripción', `Solicitud de ${notificacion.equipoSolicitante} rechazada`, 'rechazo', 'inscripcion', notificacionId);
     toast.error(`Solicitud de ${notificacion.equipoSolicitante} rechazada`);
     
     // Eliminar notificación del localStorage general
