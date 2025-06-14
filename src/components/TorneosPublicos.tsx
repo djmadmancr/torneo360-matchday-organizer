@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +28,7 @@ interface TorneoPublico {
   descripcion?: string;
   ubicacion?: string;
   puntajeExtra: string;
-  idaVuelta: boolean;
+  idaVuelta: { grupos: boolean; eliminatoria: boolean; };
   diasSemana: string[];
   partidosPorSemana: number;
   fechaCreacion: string;
@@ -195,25 +196,14 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
                     Solicitud Pendiente
                   </Button>
                 ) : (
-                  <>
-                    <Button 
-                      onClick={() => verEstadisticasTorneo(torneo)}
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      Ver Info
-                    </Button>
-                    <Button 
-                      onClick={() => onInscribirse(torneo)}
-                      disabled={!puedeInscribirse(torneo) || torneo.equiposInscritos >= torneo.maxEquipos}
-                      className="flex-1"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      {puedeInscribirse(torneo) ? 'Inscribirse' : 'Categoría No Compatible'}
-                    </Button>
-                  </>
+                  <Button 
+                    onClick={() => onInscribirse(torneo)}
+                    disabled={!puedeInscribirse(torneo) || torneo.equiposInscritos >= torneo.maxEquipos}
+                    className="w-full"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    {puedeInscribirse(torneo) ? 'Inscribirse' : 'Categoría No Compatible'}
+                  </Button>
                 )}
               </div>
 
@@ -251,21 +241,6 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
       </Dialog>
     </div>
   );
-
-  function getEstadoBadge(estado: string) {
-    switch (estado) {
-      case 'inscripciones_abiertas':
-        return <Badge className="bg-green-500">Inscripciones Abiertas</Badge>;
-      case 'inscripciones_cerradas':
-        return <Badge className="bg-yellow-500">Inscripciones Cerradas</Badge>;
-      case 'en_curso':
-        return <Badge className="bg-blue-500">En Curso</Badge>;
-      case 'finalizado':
-        return <Badge variant="secondary">Finalizado</Badge>;
-      default:
-        return <Badge variant="outline">{estado}</Badge>;
-    }
-  }
 };
 
 export default TorneosPublicos;
