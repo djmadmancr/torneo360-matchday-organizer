@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +19,7 @@ interface TorneoPublico {
   logo: string;
   maxEquipos: number;
   equiposInscritos: number;
-  estado: string;
+  estado: "inscripciones_abiertas" | "inscripciones_cerradas" | "en_curso" | "finalizado";
   organizadorNombre: string;
   organizadorId: string;
   esPublico: boolean;
