@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -75,13 +76,16 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
 
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>('');
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Solo actualizar el formulario cuando se abre el modal
+  // Solo inicializar cuando se abre el modal por primera vez
   useEffect(() => {
-    if (open) {
+    if (open && !isInitialized) {
+      console.log('Inicializando formulario:', { torneoEditando, torneoId });
+      
       if (torneoEditando) {
         const editData = {
-          torneoId: torneoEditando.id,
+          torneoId: torneoEditando.id || torneoId,
           nombreTorneo: torneoEditando.nombre || '',
           categoria: torneoEditando.categoria || '',
           tipoFutbol: torneoEditando.tipo || '',
@@ -137,8 +141,16 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
         setLogoFile(null);
         setLogoPreview('');
       }
+      setIsInitialized(true);
     }
-  }, [open, torneoEditando?.id, torneoId]);
+  }, [open, torneoEditando?.id, torneoId, isInitialized]);
+
+  // Reset cuando se cierra el modal
+  useEffect(() => {
+    if (!open) {
+      setIsInitialized(false);
+    }
+  }, [open]);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -165,12 +177,18 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Enviando formulario:', formData);
     onSubmit(formData);
     onClose();
   };
 
+  const handleClose = () => {
+    setIsInitialized(false);
+    onClose();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
@@ -383,7 +401,7 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
           </div>
 
           <div className="flex gap-4 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+            <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
               Cancelar
             </Button>
             <Button type="submit" className="flex-1">
