@@ -30,7 +30,7 @@ interface TorneoPublico {
   puntajeExtra: string;
   idaVuelta: { grupos: boolean; eliminatoria: boolean; };
   diasSemana: string[];
-  partidosPorSemana: number;
+  partidosPorSemana: string;
   fechaCreacion: string;
 }
 
