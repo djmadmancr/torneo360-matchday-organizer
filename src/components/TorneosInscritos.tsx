@@ -54,9 +54,13 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
       const torneosInscritosData = solicitudesAceptadas.map((solicitud: any) => {
         const torneo = torneosPublicos.find((t: any) => t.id === solicitud.torneoId);
         if (torneo) {
+          // Cargar estadísticas reales si existen
+          const statsKey = `torneo_${torneo.id}_equipo_${equipoId}_stats`;
+          const statsGuardadas = JSON.parse(localStorage.getItem(statsKey) || 'null');
+          
           return {
             ...torneo,
-            equipoStats: generarEstadisticasEjemplo()
+            equipoStats: statsGuardadas
           };
         }
         return null;
@@ -69,23 +73,6 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
     const interval = setInterval(cargarTorneosInscritos, 5000);
     return () => clearInterval(interval);
   }, [equipoId]);
-
-  const generarEstadisticasEjemplo = () => {
-    const partidosJugados = Math.floor(Math.random() * 10) + 1;
-    const victorias = Math.floor(Math.random() * partidosJugados);
-    const empates = Math.floor(Math.random() * (partidosJugados - victorias));
-    const derrotas = partidosJugados - victorias - empates;
-    
-    return {
-      partidosJugados,
-      victorias,
-      empates,
-      derrotas,
-      golesAFavor: Math.floor(Math.random() * 20) + 1,
-      golesEnContra: Math.floor(Math.random() * 15) + 1,
-      posicion: Math.floor(Math.random() * 8) + 1
-    };
-  };
 
   const getEstadoBadge = (estado: string) => {
     switch (estado) {

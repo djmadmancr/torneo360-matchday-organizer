@@ -1,399 +1,267 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, Trophy, Target, Shield, Clock, Users } from "lucide-react";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { Trophy, Target, Shield, Clock, Calendar, TrendingUp, Users, Award } from "lucide-react";
 
 interface EstadisticasEquipoProps {
   equipoId: string;
   equipoNombre: string;
 }
 
-interface PartidoStats {
-  id: string;
+interface EstadisticasTorneo {
   torneoId: string;
   torneoNombre: string;
-  fecha: string;
-  rival: string;
+  partidosJugados: number;
+  victorias: number;
+  empates: number;
+  derrotas: number;
   golesAFavor: number;
   golesEnContra: number;
-  resultado: 'victoria' | 'empate' | 'derrota';
-  jugadoresStats: {
-    jugadorId: string;
-    jugadorNombre: string;
-    minutosJugados: number;
-    goles: number;
-    asistencias: number;
-    tarjetasAmarillas: number;
-    tarjetasRojas: number;
-  }[];
+  posicion?: number;
+  fechaInicio: string;
+  fechaFin?: string;
+}
+
+interface EstadisticasJugador {
+  jugadorId: string;
+  jugadorNombre: string;
+  minutosJugados: number;
+  goles: number;
+  asistencias: number;
+  tarjetasAmarillas: number;
+  tarjetasRojas: number;
 }
 
 const EstadisticasEquipo: React.FC<EstadisticasEquipoProps> = ({ equipoId, equipoNombre }) => {
+  const [estadisticasTorneos, setEstadisticasTorneos] = useState<EstadisticasTorneo[]>([]);
+  const [estadisticasJugadores, setEstadisticasJugadores] = useState<EstadisticasJugador[]>([]);
+  const [filtroAnio, setFiltroAnio] = useState<string>('todos');
   const [filtroTorneo, setFiltroTorneo] = useState<string>('todos');
-  const [filtroFecha, setFiltroFecha] = useState<string>('todos');
 
-  // Cargar estadísticas del localStorage
-  const [partidosStats, setPartidosStats] = useState<PartidoStats[]>(() => {
-    const stats = localStorage.getItem(`estadisticasEquipo_${equipoId}`);
-    return stats ? JSON.parse(stats) : [];
+  useEffect(() => {
+    cargarEstadisticas();
+  }, [equipoId]);
+
+  const cargarEstadisticas = () => {
+    // Cargar estadísticas reales del localStorage
+    const historialTorneos = JSON.parse(localStorage.getItem(`historialTorneos_${equipoId}`) || '[]');
+    const historialJugadores = JSON.parse(localStorage.getItem(`historialJugadores_${equipoId}`) || '[]');
+    
+    setEstadisticasTorneos(historialTorneos);
+    setEstadisticasJugadores(historialJugadores);
+  };
+
+  const estadisticasFiltradas = estadisticasTorneos.filter(estadistica => {
+    const anioTorneo = new Date(estadistica.fechaInicio).getFullYear().toString();
+    const cumpleFiltroAnio = filtroAnio === 'todos' || anioTorneo === filtroAnio;
+    const cumpleFiltroTorneo = filtroTorneo === 'todos' || estadistica.torneoId === filtroTorneo;
+    
+    return cumpleFiltroAnio && cumpleFiltroTorneo;
   });
 
-  // Obtener torneos únicos para el filtro
-  const torneosDisponibles = useMemo(() => {
-    const torneos = [...new Set(partidosStats.map(p => ({ id: p.torneoId, nombre: p.torneoNombre })))];
-    return torneos;
-  }, [partidosStats]);
+  const calcularEstadisticasGenerales = () => {
+    const stats = estadisticasFiltradas.reduce((acc, curr) => {
+      acc.partidosJugados += curr.partidosJugados;
+      acc.victorias += curr.victorias;
+      acc.empates += curr.empates;
+      acc.derrotas += curr.derrotas;
+      acc.golesAFavor += curr.golesAFavor;
+      acc.golesEnContra += curr.golesEnContra;
+      return acc;
+    }, {
+      partidosJugados: 0,
+      victorias: 0,
+      empates: 0,
+      derrotas: 0,
+      golesAFavor: 0,
+      golesEnContra: 0
+    });
 
-  // Filtrar partidos según criterios seleccionados
-  const partidosFiltrados = useMemo(() => {
-    let partidos = [...partidosStats];
-    
-    if (filtroTorneo !== 'todos') {
-      partidos = partidos.filter(p => p.torneoId === filtroTorneo);
-    }
-    
-    if (filtroFecha !== 'todos') {
-      const hoy = new Date();
-      const fechaLimite = new Date();
-      
-      switch (filtroFecha) {
-        case 'ultimo_mes':
-          fechaLimite.setMonth(hoy.getMonth() - 1);
-          break;
-        case 'ultimos_3_meses':
-          fechaLimite.setMonth(hoy.getMonth() - 3);
-          break;
-        case 'ultimo_año':
-          fechaLimite.setFullYear(hoy.getFullYear() - 1);
-          break;
-      }
-      
-      partidos = partidos.filter(p => new Date(p.fecha) >= fechaLimite);
-    }
-    
-    return partidos;
-  }, [partidosStats, filtroTorneo, filtroFecha]);
-
-  // Calcular estadísticas generales
-  const estadisticasGenerales = useMemo(() => {
-    if (partidosFiltrados.length === 0) {
-      return {
-        partidosJugados: 0,
-        victorias: 0,
-        empates: 0,
-        derrotas: 0,
-        golesAFavor: 0,
-        golesEnContra: 0,
-        porcentajeGoles: 0,
-        arcosEnCero: 0,
-        porcentajeArcosEnCero: 0
-      };
-    }
-
-    const victorias = partidosFiltrados.filter(p => p.resultado === 'victoria').length;
-    const empates = partidosFiltrados.filter(p => p.resultado === 'empate').length;
-    const derrotas = partidosFiltrados.filter(p => p.resultado === 'derrota').length;
-    const golesAFavor = partidosFiltrados.reduce((sum, p) => sum + p.golesAFavor, 0);
-    const golesEnContra = partidosFiltrados.reduce((sum, p) => sum + p.golesEnContra, 0);
-    const arcosEnCero = partidosFiltrados.filter(p => p.golesEnContra === 0).length;
+    const porcentajeVictorias = stats.partidosJugados > 0 ? (stats.victorias / stats.partidosJugados * 100).toFixed(1) : '0';
+    const golesPorPartido = stats.partidosJugados > 0 ? (stats.golesAFavor / stats.partidosJugados).toFixed(1) : '0';
+    const arcosEnCero = stats.partidosJugados > 0 ? ((stats.partidosJugados - (stats.derrotas + stats.empates)) / stats.partidosJugados * 100).toFixed(1) : '0';
 
     return {
-      partidosJugados: partidosFiltrados.length,
-      victorias,
-      empates,
-      derrotas,
-      golesAFavor,
-      golesEnContra,
-      porcentajeGoles: partidosFiltrados.length > 0 ? (golesAFavor / partidosFiltrados.length) : 0,
-      arcosEnCero,
-      porcentajeArcosEnCero: partidosFiltrados.length > 0 ? (arcosEnCero / partidosFiltrados.length) * 100 : 0
+      ...stats,
+      porcentajeVictorias,
+      golesPorPartido,
+      arcosEnCero
     };
-  }, [partidosFiltrados]);
+  };
 
-  // Calcular estadísticas de jugadores
-  const estadisticasJugadores = useMemo(() => {
-    const jugadorStats: { [key: string]: any } = {};
+  const obtenerJugadoresConMasMinutos = () => {
+    return estadisticasJugadores
+      .sort((a, b) => b.minutosJugados - a.minutosJugados)
+      .slice(0, 5);
+  };
 
-    partidosFiltrados.forEach(partido => {
-      partido.jugadoresStats.forEach(jugador => {
-        if (!jugadorStats[jugador.jugadorId]) {
-          jugadorStats[jugador.jugadorId] = {
-            nombre: jugador.jugadorNombre,
-            minutosJugados: 0,
-            goles: 0,
-            asistencias: 0,
-            partidosJugados: 0
-          };
-        }
-        
-        jugadorStats[jugador.jugadorId].minutosJugados += jugador.minutosJugados;
-        jugadorStats[jugador.jugadorId].goles += jugador.goles;
-        jugadorStats[jugador.jugadorId].asistencias += jugador.asistencias;
-        if (jugador.minutosJugados > 0) {
-          jugadorStats[jugador.jugadorId].partidosJugados++;
-        }
-      });
-    });
+  const obtenerAniosDisponibles = () => {
+    const anios = estadisticasTorneos.map(est => new Date(est.fechaInicio).getFullYear());
+    return [...new Set(anios)].sort((a, b) => b - a);
+  };
 
-    return Object.values(jugadorStats).sort((a: any, b: any) => b.minutosJugados - a.minutosJugados);
-  }, [partidosFiltrados]);
+  const obtenerTorneosDisponibles = () => {
+    return estadisticasTorneos.map(est => ({
+      id: est.torneoId,
+      nombre: est.torneoNombre
+    }));
+  };
 
-  // Datos para gráficos
-  const datosResultados = [
-    { name: 'Victorias', value: estadisticasGenerales.victorias, color: '#22c55e' },
-    { name: 'Empates', value: estadisticasGenerales.empates, color: '#eab308' },
-    { name: 'Derrotas', value: estadisticasGenerales.derrotas, color: '#ef4444' }
-  ];
+  const statsGenerales = calcularEstadisticasGenerales();
+  const jugadoresTopMinutos = obtenerJugadoresConMasMinutos();
+  const aniosDisponibles = obtenerAniosDisponibles();
+  const torneosDisponibles = obtenerTorneosDisponibles();
 
-  const datosGolesPorMes = useMemo(() => {
-    const meses: { [key: string]: number } = {};
-    
-    partidosFiltrados.forEach(partido => {
-      const fecha = new Date(partido.fecha);
-      const mesAño = `${fecha.getMonth() + 1}/${fecha.getFullYear()}`;
-      meses[mesAño] = (meses[mesAño] || 0) + partido.golesAFavor;
-    });
-
-    return Object.entries(meses).map(([mes, goles]) => ({
-      mes,
-      goles
-    })).slice(-6); // Últimos 6 meses
-  }, [partidosFiltrados]);
-
-  // Generar datos de ejemplo si no hay estadísticas
-  React.useEffect(() => {
-    if (partidosStats.length === 0) {
-      const estadisticasEjemplo: PartidoStats[] = [
-        {
-          id: 'partido1',
-          torneoId: 'torneo1',
-          torneoNombre: 'Liga Primavera 2024',
-          fecha: '2024-05-15',
-          rival: 'FC Rivales',
-          golesAFavor: 2,
-          golesEnContra: 1,
-          resultado: 'victoria',
-          jugadoresStats: [
-            { jugadorId: 'j1', jugadorNombre: 'Juan Pérez', minutosJugados: 90, goles: 1, asistencias: 0, tarjetasAmarillas: 0, tarjetasRojas: 0 },
-            { jugadorId: 'j2', jugadorNombre: 'Carlos López', minutosJugados: 85, goles: 1, asistencias: 1, tarjetasAmarillas: 1, tarjetasRojas: 0 }
-          ]
-        },
-        {
-          id: 'partido2',
-          torneoId: 'torneo1',
-          torneoNombre: 'Liga Primavera 2024',
-          fecha: '2024-05-22',
-          rival: 'Deportivo Unidos',
-          golesAFavor: 0,
-          golesEnContra: 0,
-          resultado: 'empate',
-          jugadoresStats: [
-            { jugadorId: 'j1', jugadorNombre: 'Juan Pérez', minutosJugados: 90, goles: 0, asistencias: 0, tarjetasAmarillas: 0, tarjetasRojas: 0 },
-            { jugadorId: 'j2', jugadorNombre: 'Carlos López', minutosJugados: 90, goles: 0, asistencias: 0, tarjetasAmarillas: 0, tarjetasRojas: 0 }
-          ]
-        }
-      ];
-      setPartidosStats(estadisticasEjemplo);
-      localStorage.setItem(`estadisticasEquipo_${equipoId}`, JSON.stringify(estadisticasEjemplo));
-    }
-  }, [equipoId, partidosStats.length]);
+  if (estadisticasTorneos.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay estadísticas disponibles</h3>
+        <p className="text-gray-500">Las estadísticas aparecerán cuando el equipo participe en torneos</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Filtros */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Trophy className="w-5 h-5" />
-            Filtros de Estadísticas
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Torneo</label>
-              <Select value={filtroTorneo} onValueChange={setFiltroTorneo}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar torneo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos los torneos</SelectItem>
-                  {torneosDisponibles.map(torneo => (
-                    <SelectItem key={torneo.id} value={torneo.id}>
-                      {torneo.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium mb-2 block">Período</label>
-              <Select value={filtroFecha} onValueChange={setFiltroFecha}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar período" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todo el tiempo</SelectItem>
-                  <SelectItem value="ultimo_mes">Último mes</SelectItem>
-                  <SelectItem value="ultimos_3_meses">Últimos 3 meses</SelectItem>
-                  <SelectItem value="ultimo_año">Último año</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex gap-4 mb-6">
+        <div className="flex-1">
+          <Select value={filtroAnio} onValueChange={setFiltroAnio}>
+            <SelectTrigger>
+              <SelectValue placeholder="Filtrar por año" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos los años</SelectItem>
+              {aniosDisponibles.map(anio => (
+                <SelectItem key={anio} value={anio.toString()}>{anio}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex-1">
+          <Select value={filtroTorneo} onValueChange={setFiltroTorneo}>
+            <SelectTrigger>
+              <SelectValue placeholder="Filtrar por torneo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos los torneos</SelectItem>
+              {torneosDisponibles.map(torneo => (
+                <SelectItem key={torneo.id} value={torneo.id}>{torneo.nombre}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
       {/* Estadísticas Generales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2">
-              <Trophy className="w-8 h-8 text-blue-500" />
-              <div>
-                <p className="text-2xl font-bold">{estadisticasGenerales.partidosJugados}</p>
-                <p className="text-sm text-muted-foreground">Partidos Jugados</p>
-              </div>
-            </div>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-blue-600">{statsGenerales.partidosJugados}</div>
+            <div className="text-sm text-muted-foreground">Partidos Jugados</div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2">
-              <Target className="w-8 h-8 text-green-500" />
-              <div>
-                <p className="text-2xl font-bold">{estadisticasGenerales.porcentajeGoles.toFixed(1)}</p>
-                <p className="text-sm text-muted-foreground">Goles por Partido</p>
-              </div>
-            </div>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-green-600">{statsGenerales.porcentajeVictorias}%</div>
+            <div className="text-sm text-muted-foreground">% Victorias</div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2">
-              <Shield className="w-8 h-8 text-blue-500" />
-              <div>
-                <p className="text-2xl font-bold">{estadisticasGenerales.porcentajeArcosEnCero.toFixed(1)}%</p>
-                <p className="text-sm text-muted-foreground">Arcos en Cero</p>
-              </div>
-            </div>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-orange-600">{statsGenerales.golesPorPartido}</div>
+            <div className="text-sm text-muted-foreground">Goles por Partido</div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2">
-              <Users className="w-8 h-8 text-purple-500" />
-              <div>
-                <p className="text-2xl font-bold">{estadisticasGenerales.victorias}</p>
-                <p className="text-sm text-muted-foreground">Victorias</p>
-              </div>
-            </div>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-purple-600">{statsGenerales.arcosEnCero}%</div>
+            <div className="text-sm text-muted-foreground">% Arcos en Cero</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Detalle por Torneo */}
+      {estadisticasFiltradas.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Distribución de Resultados</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="w-5 h-5" />
+              Rendimiento por Torneo
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer
-              config={{
-                victorias: { label: "Victorias", color: "#22c55e" },
-                empates: { label: "Empates", color: "#eab308" },
-                derrotas: { label: "Derrotas", color: "#ef4444" }
-              }}
-              className="h-[300px]"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={datosResultados}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {datosResultados.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                </PieChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Goles por Mes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer
-              config={{
-                goles: { label: "Goles", color: "#3b82f6" }
-              }}
-              className="h-[300px]"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={datosGolesPorMes}>
-                  <XAxis dataKey="mes" />
-                  <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="goles" fill="#3b82f6" />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Top Jugadores */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Jugadores con Más Minutos
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {estadisticasJugadores.slice(0, 5).map((jugador: any, index) => (
-              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Badge variant="outline">{index + 1}</Badge>
-                  <div>
-                    <p className="font-medium">{jugador.nombre}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {jugador.partidosJugados} partidos jugados
-                    </p>
+            <div className="space-y-4">
+              {estadisticasFiltradas.map((torneo) => (
+                <div key={torneo.torneoId} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium">{torneo.torneoNombre}</h4>
+                    <Badge variant="outline">{new Date(torneo.fechaInicio).getFullYear()}</Badge>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Partidos:</span>
+                      <div className="font-medium">{torneo.partidosJugados}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">V-E-D:</span>
+                      <div className="font-medium">{torneo.victorias}-{torneo.empates}-{torneo.derrotas}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Goles:</span>
+                      <div className="font-medium">{torneo.golesAFavor}-{torneo.golesEnContra}</div>
+                    </div>
+                    {torneo.posicion && (
+                      <div>
+                        <span className="text-muted-foreground">Posición:</span>
+                        <div className="font-medium">#{torneo.posicion}</div>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold">{jugador.minutosJugados} min</p>
-                  <p className="text-sm text-muted-foreground">
-                    {jugador.goles} goles | {jugador.asistencias} asist.
-                  </p>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Jugadores con más minutos */}
+      {jugadoresTopMinutos.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Jugadores con Más Minutos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {jugadoresTopMinutos.map((jugador, index) => (
+                <div key={jugador.jugadorId} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm font-medium">
+                      {index + 1}
+                    </div>
+                    <div>
+                      <div className="font-medium">{jugador.jugadorNombre}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {jugador.goles} goles • {jugador.asistencias} asistencias
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-medium">{jugador.minutosJugados}'</div>
+                    <div className="text-sm text-muted-foreground">minutos</div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
