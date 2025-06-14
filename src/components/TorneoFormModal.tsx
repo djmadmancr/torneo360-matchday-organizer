@@ -19,7 +19,10 @@ interface TorneoFormData {
   fechaFin: string;
   fechaCierre: string;
   maxEquipos: number;
-  puntajeExtra: string;
+  puntajeGane: number;
+  puntajeEmpate: number;
+  puntajeExtraPenales: boolean;
+  puntajeExtra: number;
   idaVuelta: {
     grupos: boolean;
     eliminatoria: boolean;
@@ -59,7 +62,10 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
     fechaFin: '',
     fechaCierre: '',
     maxEquipos: 16,
-    puntajeExtra: '',
+    puntajeGane: 3,
+    puntajeEmpate: 1,
+    puntajeExtraPenales: false,
+    puntajeExtra: 1,
     idaVuelta: {
       grupos: false,
       eliminatoria: false
@@ -94,7 +100,10 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
           fechaFin: torneoEditando.fechaFin || '',
           fechaCierre: torneoEditando.fechaCierre || '',
           maxEquipos: torneoEditando.maxEquipos || 16,
-          puntajeExtra: torneoEditando.puntajeExtra || '',
+          puntajeGane: torneoEditando.puntajeGane || 3,
+          puntajeEmpate: torneoEditando.puntajeEmpate || 1,
+          puntajeExtraPenales: torneoEditando.puntajeExtraPenales || false,
+          puntajeExtra: torneoEditando.puntajeExtra || 1,
           idaVuelta: torneoEditando.idaVuelta || {
             grupos: false,
             eliminatoria: false
@@ -124,7 +133,10 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
           fechaFin: '',
           fechaCierre: '',
           maxEquipos: 16,
-          puntajeExtra: '',
+          puntajeGane: 3,
+          puntajeEmpate: 1,
+          puntajeExtraPenales: false,
+          puntajeExtra: 1,
           idaVuelta: {
             grupos: false,
             eliminatoria: false
@@ -220,8 +232,7 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
                   <SelectItem value="Sub-17">Sub-17</SelectItem>
                   <SelectItem value="Sub-20">Sub-20</SelectItem>
                   <SelectItem value="Libre">Libre</SelectItem>
-                  <SelectItem value="Primera División">Primera División</SelectItem>
-                  <SelectItem value="Segunda División">Segunda División</SelectItem>
+                  <SelectItem value="Profesional">Profesional</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -282,6 +293,62 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
                 placeholder="Ej: 35"
               />
             </div>
+          </div>
+
+          <div className="space-y-4">
+            <Label className="text-base font-semibold">Sistema de Puntajes</Label>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="puntajeGane">Puntos por Victoria</Label>
+                <Input
+                  id="puntajeGane"
+                  type="number"
+                  value={formData.puntajeGane}
+                  onChange={(e) => setFormData(prev => ({ ...prev, puntajeGane: parseInt(e.target.value) || 3 }))}
+                  min="0"
+                  max="10"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="puntajeEmpate">Puntos por Empate</Label>
+                <Input
+                  id="puntajeEmpate"
+                  type="number"
+                  value={formData.puntajeEmpate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, puntajeEmpate: parseInt(e.target.value) || 1 }))}
+                  min="0"
+                  max="10"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="puntajeExtraPenales"
+                checked={formData.puntajeExtraPenales}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, puntajeExtraPenales: !!checked }))}
+              />
+              <Label htmlFor="puntajeExtraPenales">Puntaje extra por rondas de penales</Label>
+            </div>
+
+            {formData.puntajeExtraPenales && (
+              <div className="space-y-2">
+                <Label htmlFor="puntajeExtra">Puntos Extra por Penales</Label>
+                <Input
+                  id="puntajeExtra"
+                  type="number"
+                  value={formData.puntajeExtra}
+                  onChange={(e) => setFormData(prev => ({ ...prev, puntajeExtra: parseInt(e.target.value) || 1 }))}
+                  min="0"
+                  max="5"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Puntos adicionales para el ganador de penales (independiente del resultado del partido)
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">

@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Trophy, Calendar, MapPin, Users, Plus, Eye, BarChart3 } from "lucide-react";
+import { Trophy, Calendar, MapPin, Users, Plus, Eye, BarChart3, Award, Target } from "lucide-react";
 import TorneoEstadisticas from './TorneoEstadisticas';
 
 interface TorneoPublico {
@@ -26,7 +27,10 @@ interface TorneoPublico {
   edadMaxima?: number;
   descripcion?: string;
   ubicacion?: string;
-  puntajeExtra: string;
+  puntajeGane: number;
+  puntajeEmpate: number;
+  puntajeExtraPenales: boolean;
+  puntajeExtra: number;
   idaVuelta: { grupos: boolean; eliminatoria: boolean; };
   diasSemana: string[];
   partidosPorSemana: string;
@@ -177,6 +181,28 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
                     <span className="truncate">{torneo.ubicacion}</span>
                   </div>
                 )}
+              </div>
+
+              {/* Reglas del Torneo */}
+              <div className="bg-muted p-3 rounded-lg">
+                <h4 className="font-medium mb-2 flex items-center gap-2">
+                  <Target className="w-4 h-4" />
+                  Reglas de Puntaje
+                </h4>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>Victoria: {torneo.puntajeGane} pts</div>
+                  <div>Empate: {torneo.puntajeEmpate} pts</div>
+                  {torneo.puntajeExtraPenales && (
+                    <div className="col-span-2">
+                      Penales: +{torneo.puntajeExtra} pts extra
+                    </div>
+                  )}
+                </div>
+                <div className="mt-2 text-xs text-muted-foreground">
+                  <span>Formato: {torneo.formato}</span>
+                  <br />
+                  <span>Tipo: {torneo.tipo}</span>
+                </div>
               </div>
 
               {torneo.descripcion && (
