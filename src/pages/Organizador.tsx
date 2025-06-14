@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { User as UserType, OrganizadorPerfil } from "@/types/auth";
 import FixtureGenerator from "@/components/FixtureGenerator";
 import ReportDownloader from "@/components/ReportDownloader";
+import { useLogs } from "@/hooks/useLogs";
 
 interface Torneo {
   id: string;
@@ -116,6 +117,7 @@ const Organizador = () => {
 
   const { user, updateUserProfile } = useAuth();
   const organizadorPerfil = user?.perfiles?.organizador as OrganizadorPerfil;
+  const { logs, addLog } = useLogs(user?.id || '');
   
   const [perfil, setPerfil] = useState<{
     nombre: string;

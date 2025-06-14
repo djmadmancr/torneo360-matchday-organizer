@@ -61,7 +61,7 @@ const EditarPerfilEquipo: React.FC<EditarPerfilEquipoProps> = ({
 
   const [nuevoCoach, setNuevoCoach] = useState({
     nombre: '',
-    tipo: 'entrenador' as const,
+    tipo: 'entrenador' as "entrenador" | "asistente",
     numeroIdentificacion: ''
   });
 
@@ -124,7 +124,7 @@ const EditarPerfilEquipo: React.FC<EditarPerfilEquipoProps> = ({
 
     setNuevoCoach({
       nombre: '',
-      tipo: 'entrenador',
+      tipo: 'entrenador' as "entrenador" | "asistente",
       numeroIdentificacion: ''
     });
 
@@ -256,7 +256,7 @@ const EditarPerfilEquipo: React.FC<EditarPerfilEquipoProps> = ({
               />
               <Select 
                 value={nuevoCoach.tipo} 
-                onValueChange={(value: 'entrenador' | 'asistente') => 
+                onValueChange={(value: "entrenador" | "asistente") => 
                   setNuevoCoach({ ...nuevoCoach, tipo: value })
                 }
               >
