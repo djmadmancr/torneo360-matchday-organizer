@@ -55,20 +55,32 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
 
   useEffect(() => {
     const cargarTorneos = () => {
-      console.log('Cargando torneos públicos...');
+      console.log('=== INICIO CARGA DE TORNEOS ===');
       const torneosGuardados = localStorage.getItem('torneosPublicos');
       const equipoId = localStorage.getItem('userId');
       
-      console.log('Datos en localStorage - torneosPublicos:', torneosGuardados);
-      console.log('Equipo ID actual:', equipoId);
+      console.log('🔍 Datos en localStorage:');
+      console.log('- torneosPublicos:', torneosGuardados);
+      console.log('- equipoId (userId):', equipoId);
+      console.log('- equipoCategoria recibida:', equipoCategoria);
       
       if (torneosGuardados && equipoId) {
         const torneosData = JSON.parse(torneosGuardados);
-        console.log('Torneos encontrados en localStorage:', torneosData);
+        console.log('📋 Todos los torneos encontrados:', torneosData);
+        console.log('📊 Total de torneos en localStorage:', torneosData.length);
+        
+        // Buscar específicamente el torneo "Liga de Ascenso Apertura 2025"
+        const torneoEspecifico = torneosData.find((t: TorneoPublico) => 
+          t.nombre.toLowerCase().includes('liga de ascenso apertura 2025')
+        );
+        console.log('🎯 Torneo "Liga de Ascenso Apertura 2025" encontrado:', torneoEspecifico);
         
         // Obtener notificaciones de aprobación para filtrar torneos ya aprobados
         const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
-        console.log('Notificaciones de equipo:', notificacionesEquipo);
+        console.log('📢 Todas las notificaciones de equipo:', notificacionesEquipo);
+        
+        const notificacionesParaEsteEquipo = notificacionesEquipo.filter((n: any) => n.equipoId === equipoId);
+        console.log('📢 Notificaciones para este equipo específico:', notificacionesParaEsteEquipo);
         
         const torneosAprobados = notificacionesEquipo
           .filter((n: any) => 
@@ -77,41 +89,72 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
           )
           .map((n: any) => n.torneoId);
         
-        console.log('Torneos ya aprobados para este equipo:', torneosAprobados);
+        console.log('✅ Torneos ya aprobados para este equipo:', torneosAprobados);
+        
+        // Obtener solicitudes pendientes
+        const solicitudesGuardadas = JSON.parse(localStorage.getItem('notificaciones') || '[]');
+        console.log('📋 Todas las solicitudes:', solicitudesGuardadas);
+        
+        const solicitudesPendientesEquipo = solicitudesGuardadas.filter((s: any) => 
+          s.equipoId === equipoId && 
+          s.tipo === 'inscripcion' && 
+          s.accionRequerida === true
+        );
+        console.log('⏳ Solicitudes pendientes para este equipo:', solicitudesPendientesEquipo);
         
         // Verificar fecha de cierre de inscripciones
         const fechaActual = new Date();
+        console.log('📅 Fecha actual:', fechaActual.toISOString());
         
-        // Filtrar torneos: solo mostrar los públicos, con inscripciones abiertas y que NO estén aprobados
+        // Filtrar torneos con logs detallados
+        console.log('🔍 INICIANDO FILTRADO DE TORNEOS:');
         const torneosDisponibles = torneosData.filter((t: TorneoPublico) => {
           const fechaCierre = new Date(t.fechaCierre);
           const inscripcionesAbiertas = fechaCierre > fechaActual;
           const esPublico = t.esPublico;
           const noEstaAprobado = !torneosAprobados.includes(t.id);
+          const noTieneSolicitudPendiente = !solicitudesPendientesEquipo.some((s: any) => s.torneoId === t.id);
           
-          console.log(`Torneo ${t.nombre}:`, {
+          console.log(`📋 Evaluando torneo "${t.nombre}":`, {
+            id: t.id,
             esPublico,
             fechaCierre: t.fechaCierre,
+            fechaCierreDate: fechaCierre.toISOString(),
             inscripcionesAbiertas,
             noEstaAprobado,
-            cumpleCondiciones: esPublico && inscripcionesAbiertas && noEstaAprobado
+            noTieneSolicitudPendiente,
+            categoria: t.categoria,
+            organizadorId: t.organizadorId,
+            estado: t.estado,
+            cumpleCondiciones: esPublico && inscripcionesAbiertas && noEstaAprobado && noTieneSolicitudPendiente
           });
           
-          return esPublico && inscripcionesAbiertas && noEstaAprobado;
+          return esPublico && inscripcionesAbiertas && noEstaAprobado && noTieneSolicitudPendiente;
         });
         
-        console.log('Torneos disponibles filtrados:', torneosDisponibles);
+        console.log('✅ Torneos disponibles después del filtrado:', torneosDisponibles);
+        console.log('📊 Total de torneos disponibles:', torneosDisponibles.length);
+        
+        // Verificar específicamente si el torneo buscado está en la lista final
+        const torneoEspecificoEnLista = torneosDisponibles.find((t: TorneoPublico) => 
+          t.nombre.toLowerCase().includes('liga de ascenso apertura 2025')
+        );
+        console.log('🎯 ¿Torneo "Liga de Ascenso Apertura 2025" en lista final?:', torneoEspecificoEnLista);
+        
         setTorneos(torneosDisponibles);
       } else {
-        console.log('No hay torneos guardados o no hay equipoId');
+        console.log('❌ No hay torneos guardados o no hay equipoId');
+        console.log('- torneosGuardados existe:', !!torneosGuardados);
+        console.log('- equipoId existe:', !!equipoId);
         setTorneos([]);
       }
+      console.log('=== FIN CARGA DE TORNEOS ===');
     };
 
     cargarTorneos();
     const interval = setInterval(cargarTorneos, 2000);
     return () => clearInterval(interval);
-  }, []);
+  }, [equipoCategoria]);
 
   const puedeInscribirse = (torneo: TorneoPublico) => {
     return torneo.categoria === 'Libre' || torneo.categoria === equipoCategoria;

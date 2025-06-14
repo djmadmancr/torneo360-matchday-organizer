@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -57,38 +58,44 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
 
   useEffect(() => {
     const cargarTorneosInscritos = () => {
-      console.log('Cargando torneos inscritos para equipoId:', equipoId);
+      console.log('=== INICIO CARGA TORNEOS INSCRITOS ===');
+      console.log('🔍 Cargando torneos inscritos para equipoId:', equipoId);
       
       // Cargar torneos donde el equipo fue aceptado
       const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
-      console.log('Notificaciones equipo encontradas:', notificacionesEquipo);
+      console.log('📢 Todas las notificaciones equipo encontradas:', notificacionesEquipo);
+      
+      const notificacionesParaEsteEquipo = notificacionesEquipo.filter((n: any) => n.equipoId === equipoId);
+      console.log('📢 Notificaciones para este equipo específico:', notificacionesParaEsteEquipo);
       
       const solicitudesAceptadas = notificacionesEquipo.filter((n: any) => 
         n.equipoId === equipoId && 
         n.tipo === 'aprobacion'
       );
-      console.log('Solicitudes aceptadas:', solicitudesAceptadas);
+      console.log('✅ Solicitudes aceptadas:', solicitudesAceptadas);
 
       if (solicitudesAceptadas.length === 0) {
-        console.log('No hay solicitudes aceptadas para este equipo');
+        console.log('❌ No hay solicitudes aceptadas para este equipo');
         setTorneosInscritos([]);
         return;
       }
 
       // Obtener información completa de los torneos
       const torneosPublicos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
-      console.log('Torneos públicos encontrados:', torneosPublicos);
+      console.log('📋 Todos los torneos públicos encontrados:', torneosPublicos);
       
+      console.log('🔍 Buscando torneos correspondientes a solicitudes aceptadas:');
       const torneosInscritosData = solicitudesAceptadas.map((solicitud: any) => {
+        console.log(`🔎 Buscando torneo con id: ${solicitud.torneoId}`);
         const torneo = torneosPublicos.find((t: any) => t.id === solicitud.torneoId);
-        console.log('Buscando torneo con id:', solicitud.torneoId, 'encontrado:', torneo);
+        console.log('✅ Torneo encontrado:', torneo);
         
         if (torneo) {
           // Cargar estadísticas reales si existen
           const statsKey = `torneo_${torneo.id}_equipo_${equipoId}_stats`;
           const statsGuardadas = JSON.parse(localStorage.getItem(statsKey) || 'null');
           
-          return {
+          const torneoCompleto = {
             ...torneo,
             equipoStats: statsGuardadas || {
               partidosJugados: Math.floor(Math.random() * 6) + 1,
@@ -101,12 +108,25 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
               grupo: `Grupo ${String.fromCharCode(65 + Math.floor(Math.random() * 4))}`
             }
           };
+          
+          console.log('📋 Torneo completo preparado:', torneoCompleto);
+          return torneoCompleto;
         }
+        console.log('❌ No se encontró torneo para el id:', solicitud.torneoId);
         return null;
       }).filter(Boolean);
 
-      console.log('Torneos inscritos finales:', torneosInscritosData);
+      console.log('📊 Torneos inscritos finales:', torneosInscritosData);
+      console.log('📊 Total de torneos inscritos:', torneosInscritosData.length);
+      
+      // Verificar específicamente si el torneo buscado está aquí
+      const torneoEspecifico = torneosInscritosData.find((t: any) => 
+        t && t.nombre && t.nombre.toLowerCase().includes('liga de ascenso apertura 2025')
+      );
+      console.log('🎯 ¿Torneo "Liga de Ascenso Apertura 2025" en torneos inscritos?:', torneoEspecifico);
+      
       setTorneosInscritos(torneosInscritosData);
+      console.log('=== FIN CARGA TORNEOS INSCRITOS ===');
     };
 
     if (equipoId) {
