@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, Users, Clock, Trophy, Star } from "lucide-react";
+import { Calendar, MapPin, Users, Clock, Trophy, Star, UserCheck, AlertCircle } from "lucide-react";
 
 interface TorneoPublico {
   id: string;
@@ -30,9 +29,14 @@ interface TorneoPublico {
 interface TorneosPublicosProps {
   onInscribirse: (torneo: TorneoPublico) => void;
   equipoCategoria: string;
+  solicitudesPendientes: string[];
 }
 
-const TorneosPublicos: React.FC<TorneosPublicosProps> = ({ onInscribirse, equipoCategoria }) => {
+const TorneosPublicos: React.FC<TorneosPublicosProps> = ({ 
+  onInscribirse, 
+  equipoCategoria,
+  solicitudesPendientes = []
+}) => {
   const [torneos, setTorneos] = React.useState<TorneoPublico[]>([]);
 
   React.useEffect(() => {
@@ -52,6 +56,11 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({ onInscribirse, equipo
   }, []);
 
   const puedeInscribirse = (torneo: TorneoPublico) => {
+    // Verificar si ya tiene solicitud pendiente
+    if (solicitudesPendientes.includes(torneo.id)) {
+      return false;
+    }
+
     // Verificar categoría
     if (torneo.categoria !== equipoCategoria && torneo.categoria !== 'Libre') {
       return false;
@@ -73,6 +82,9 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({ onInscribirse, equipo
   };
 
   const getRazonNoInscripcion = (torneo: TorneoPublico) => {
+    if (solicitudesPendientes.includes(torneo.id)) {
+      return 'Solicitud Pendiente';
+    }
     if (torneo.categoria !== equipoCategoria && torneo.categoria !== 'Libre') {
       return `Categoría requerida: ${torneo.categoria}`;
     }
@@ -85,6 +97,20 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({ onInscribirse, equipo
       return 'Inscripciones cerradas';
     }
     return '';
+  };
+
+  const getBotonVariant = (torneo: TorneoPublico) => {
+    if (solicitudesPendientes.includes(torneo.id)) {
+      return 'secondary';
+    }
+    return puedeInscribirse(torneo) ? 'default' : 'outline';
+  };
+
+  const getBotonIcon = (torneo: TorneoPublico) => {
+    if (solicitudesPendientes.includes(torneo.id)) {
+      return <AlertCircle className="w-4 h-4 mr-2" />;
+    }
+    return puedeInscribirse(torneo) ? <Star className="w-4 h-4 mr-2" /> : null;
   };
 
   if (torneos.length === 0) {
@@ -171,23 +197,16 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({ onInscribirse, equipo
               )}
 
               <div className="pt-2">
-                {puedeInscribirse(torneo) ? (
-                  <Button 
-                    onClick={() => onInscribirse(torneo)}
-                    className="w-full"
-                  >
-                    <Star className="w-4 h-4 mr-2" />
-                    Solicitar Inscripción
-                  </Button>
-                ) : (
-                  <Button 
-                    disabled 
-                    className="w-full"
-                    variant="outline"
-                  >
-                    {getRazonNoInscripcion(torneo)}
-                  </Button>
-                )}
+                <Button 
+                  onClick={() => puedeInscribirse(torneo) && onInscribirse(torneo)}
+                  className="w-full"
+                  variant={getBotonVariant(torneo)}
+                  disabled={!puedeInscribirse(torneo)}
+                >
+                  {getBotonIcon(torneo)}
+                  {solicitudesPendientes.includes(torneo.id) ? 'Solicitud Pendiente' : 
+                   puedeInscribirse(torneo) ? 'Solicitar Inscripción' : getRazonNoInscripcion(torneo)}
+                </Button>
               </div>
             </CardContent>
           </Card>

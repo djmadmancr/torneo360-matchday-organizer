@@ -17,6 +17,7 @@ import { User as UserType, EquipoPerfil } from "@/types/auth";
 import TorneosPublicos from "@/components/TorneosPublicos";
 import EditarPerfilEquipo from "@/components/EditarPerfilEquipo";
 import NotificacionesEquipo from "@/components/NotificacionesEquipo";
+import SeleccionJugadoresModal from "@/components/SeleccionJugadoresModal";
 import { useLogs } from "@/hooks/useLogs";
 
 interface TorneoPublico {
@@ -95,6 +96,9 @@ const Equipo = () => {
     return allNotificaciones.filter((n: any) => n.equipoId === user?.id);
   });
   const [mostrarLogs, setMostrarLogs] = useState(false);
+  const [mostrarSeleccionJugadores, setMostrarSeleccionJugadores] = useState(false);
+  const [torneoSeleccionado, setTorneoSeleccionado] = useState<any>(null);
+  const [solicitudesPendientes, setSolicitudesPendientes] = useState<string[]>([]);
 
   useEffect(() => {
     if (user?.id && equipoPerfil) {
@@ -127,6 +131,23 @@ const Equipo = () => {
     return () => clearInterval(interval);
   }, [user?.id]);
 
+  useEffect(() => {
+    // Cargar solicitudes pendientes
+    const cargarSolicitudesPendientes = () => {
+      const solicitudes = JSON.parse(localStorage.getItem('notificaciones') || '[]');
+      const solicitudesEquipo = solicitudes.filter((s: any) => 
+        s.equipoId === user?.id && 
+        s.tipo === 'inscripcion' && 
+        s.accionRequerida === true
+      );
+      setSolicitudesPendientes(solicitudesEquipo.map((s: any) => s.torneoId));
+    };
+
+    cargarSolicitudesPendientes();
+    const interval = setInterval(cargarSolicitudesPendientes, 3000);
+    return () => clearInterval(interval);
+  }, [user?.id]);
+
   const guardarPerfil = () => {
     if (equipoPerfil) {
       updateUserProfile('equipo', {
@@ -151,20 +172,6 @@ const Equipo = () => {
       return;
     }
 
-    // Validar edades si están definidas
-    if (torneo.edadMinima || torneo.edadMaxima) {
-      const jugadoresFueraDeRango = perfil.jugadores.filter(jugador => {
-        if (torneo.edadMinima && jugador.edad < torneo.edadMinima) return true;
-        if (torneo.edadMaxima && jugador.edad > torneo.edadMaxima) return true;
-        return false;
-      });
-
-      if (jugadoresFueraDeRango.length > 0) {
-        toast.error(`Algunos jugadores no cumplen con el rango de edad (${torneo.edadMinima || 0}-${torneo.edadMaxima || 99} años)`);
-        return;
-      }
-    }
-
     // Validar que tenga jugadores y staff
     if (perfil.jugadores.length === 0) {
       toast.error('Debes agregar jugadores antes de inscribirte a un torneo');
@@ -176,27 +183,50 @@ const Equipo = () => {
       return;
     }
 
-    // Crear solicitud de inscripción
+    // Abrir modal de selección
+    setTorneoSeleccionado(torneo);
+    setMostrarSeleccionJugadores(true);
+  };
+
+  const confirmarInscripcion = (jugadoresSeleccionados: any[], staffSeleccionado: any[]) => {
+    if (!torneoSeleccionado) return;
+
+    // Crear solicitud de inscripción con jugadores y staff seleccionados
     const solicitud = {
       id: `SOL-${Date.now()}`,
       tipo: 'inscripcion',
       titulo: 'Nueva Solicitud de Inscripción',
-      mensaje: `${perfil.nombreEquipo} solicita inscribirse a ${torneo.nombre}`,
+      mensaje: `${perfil.nombreEquipo} solicita inscribirse a ${torneoSeleccionado.nombre}`,
       fecha: new Date().toISOString().split('T')[0],
       equipoSolicitante: perfil.nombreEquipo,
       equipoId: user?.id,
-      torneoId: torneo.id,
-      organizadorId: torneo.organizadorId,
+      torneoId: torneoSeleccionado.id,
+      organizadorId: torneoSeleccionado.organizadorId,
       accionRequerida: true,
-      mensajeEquipo: `Equipo: ${perfil.nombreEquipo}, Categoría: ${perfil.categoria}, Jugadores: ${perfil.jugadores.length}, Staff: ${perfil.coaches.length}`
+      mensajeEquipo: `Equipo: ${perfil.nombreEquipo}, Categoría: ${perfil.categoria}`,
+      jugadoresInscritos: jugadoresSeleccionados,
+      staffInscrito: staffSeleccionado,
+      detallesCompletos: {
+        equipo: {
+          nombre: perfil.nombreEquipo,
+          logo: perfil.logo,
+          categoria: perfil.categoria,
+          colores: perfil.colores
+        },
+        jugadores: jugadoresSeleccionados,
+        staff: staffSeleccionado,
+        fechaSolicitud: new Date().toISOString()
+      }
     };
 
     const notificaciones = JSON.parse(localStorage.getItem('notificaciones') || '[]');
     notificaciones.push(solicitud);
     localStorage.setItem('notificaciones', JSON.stringify(notificaciones));
 
-    addLog('Solicitar Inscripción', `Solicitud enviada para torneo "${torneo.nombre}"`, 'inscripcion', 'torneo', torneo.id);
-    toast.success(`Solicitud de inscripción enviada para "${torneo.nombre}"`);
+    addLog('Solicitar Inscripción', `Solicitud enviada para torneo "${torneoSeleccionado.nombre}" con ${jugadoresSeleccionados.length} jugadores y ${staffSeleccionado.length} staff`, 'inscripcion', 'torneo', torneoSeleccionado.id);
+    toast.success(`Solicitud de inscripción enviada para "${torneoSeleccionado.nombre}"`);
+    
+    setTorneoSeleccionado(null);
   };
 
   return (
@@ -271,7 +301,11 @@ const Equipo = () => {
           </TabsList>
 
           <TabsContent value="torneos">
-            <TorneosPublicos onInscribirse={inscribirseATorneo} equipoCategoria={perfil.categoria} />
+            <TorneosPublicos 
+              onInscribirse={inscribirseATorneo} 
+              equipoCategoria={perfil.categoria}
+              solicitudesPendientes={solicitudesPendientes}
+            />
           </TabsContent>
 
           <TabsContent value="mi-equipo">
@@ -374,6 +408,16 @@ const Equipo = () => {
         onClose={() => setMostrarNotificaciones(false)}
         notificaciones={notificaciones}
         setNotificaciones={setNotificaciones}
+      />
+
+      {/* Modal Selección de Jugadores */}
+      <SeleccionJugadoresModal
+        open={mostrarSeleccionJugadores}
+        onClose={() => setMostrarSeleccionJugadores(false)}
+        torneo={torneoSeleccionado}
+        jugadores={perfil.jugadores}
+        coaches={perfil.coaches}
+        onConfirmarInscripcion={confirmarInscripcion}
       />
     </div>
   );
