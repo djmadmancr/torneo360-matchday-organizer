@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -54,14 +53,33 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
   useEffect(() => {
     const cargarTorneos = () => {
       const torneosGuardados = localStorage.getItem('torneosPublicos');
-      if (torneosGuardados) {
+      const equipoId = localStorage.getItem('userId'); // Obtener ID del equipo actual
+      
+      if (torneosGuardados && equipoId) {
         const torneosData = JSON.parse(torneosGuardados);
-        setTorneos(torneosData.filter((t: TorneoPublico) => t.esPublico && t.estado === 'inscripciones_abiertas'));
+        
+        // Obtener notificaciones de aprobación para filtrar torneos ya aprobados
+        const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
+        const torneosAprobados = notificacionesEquipo
+          .filter((n: any) => 
+            n.equipoId === equipoId && 
+            n.tipo === 'aprobacion'
+          )
+          .map((n: any) => n.torneoId);
+
+        // Filtrar torneos: solo mostrar los públicos, con inscripciones abiertas y que NO estén aprobados
+        const torneosDisponibles = torneosData.filter((t: TorneoPublico) => 
+          t.esPublico && 
+          t.estado === 'inscripciones_abiertas' &&
+          !torneosAprobados.includes(t.id)
+        );
+        
+        setTorneos(torneosDisponibles);
       }
     };
 
     cargarTorneos();
-    const interval = setInterval(cargarTorneos, 5000);
+    const interval = setInterval(cargarTorneos, 2000); // Revisar más frecuentemente
     return () => clearInterval(interval);
   }, []);
 
@@ -168,7 +186,15 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
               )}
 
               <div className="flex gap-2 pt-2">
-                {estaInscrito(torneo.id) ? (
+                {tieneSolicitudPendiente(torneo.id) ? (
+                  <Button 
+                    disabled 
+                    variant="secondary"
+                    className="w-full"
+                  >
+                    Solicitud Pendiente
+                  </Button>
+                ) : (
                   <>
                     <Button 
                       onClick={() => verEstadisticasTorneo(torneo)}
@@ -180,30 +206,14 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
                       Ver Info
                     </Button>
                     <Button 
-                      onClick={() => verEstadisticasTorneo(torneo)}
+                      onClick={() => onInscribirse(torneo)}
+                      disabled={!puedeInscribirse(torneo) || torneo.equiposInscritos >= torneo.maxEquipos}
                       className="flex-1"
                     >
-                      <BarChart3 className="w-4 h-4 mr-2" />
-                      Estadísticas
+                      <Plus className="w-4 h-4 mr-2" />
+                      {puedeInscribirse(torneo) ? 'Inscribirse' : 'Categoría No Compatible'}
                     </Button>
                   </>
-                ) : tieneSolicitudPendiente(torneo.id) ? (
-                  <Button 
-                    disabled 
-                    variant="secondary"
-                    className="w-full"
-                  >
-                    Solicitud Pendiente
-                  </Button>
-                ) : (
-                  <Button 
-                    onClick={() => onInscribirse(torneo)}
-                    disabled={!puedeInscribirse(torneo) || torneo.equiposInscritos >= torneo.maxEquipos}
-                    className="w-full"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    {puedeInscribirse(torneo) ? 'Inscribirse' : 'Categoría No Compatible'}
-                  </Button>
                 )}
               </div>
 
@@ -223,7 +233,7 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Trophy className="w-5 h-5" />
-              {estaInscrito(torneoSeleccionado?.id || '') ? 'Estadísticas del Torneo' : 'Información del Torneo'}
+              Información del Torneo
             </DialogTitle>
           </DialogHeader>
           
