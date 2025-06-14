@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +26,11 @@ interface TorneoPublico {
   edadMaxima?: number;
   descripcion?: string;
   ubicacion?: string;
+  puntajeExtra: number;
+  idaVuelta: boolean;
+  diasSemana: string[];
+  partidosPorSemana: number;
+  fechaCreacion: string;
 }
 
 interface TorneosPublicosProps {
