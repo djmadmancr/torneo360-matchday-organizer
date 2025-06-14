@@ -1,11 +1,10 @@
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { User, AuthContextType } from '@/types/auth';
 
 const initialUsers: User[] = [
   {
     id: 'user-001',
-    username: 'admin',
+    username: 'admin@example.com', // Usando email como username
     password: 'password',
     tipos: ['organizador', 'equipo', 'fiscal'],
     nombre: 'Admin User',
@@ -93,8 +92,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [currentProfile]);
 
-  const login = async (username: string, password: string): Promise<boolean> => {
-    const foundUser = users.find(u => u.username === username && u.password === password && u.activo);
+  const login = async (email: string, password: string): Promise<boolean> => {
+    const foundUser = users.find(u => u.email === email && u.password === password && u.activo);
     if (foundUser) {
       setUser(foundUser);
       setIsAuthenticated(true);

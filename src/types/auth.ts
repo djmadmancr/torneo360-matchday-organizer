@@ -1,7 +1,7 @@
 
 export interface User {
   id: string;
-  username: string;
+  username: string; // Ahora siempre será igual al email
   password: string;
   tipos: ('organizador' | 'equipo' | 'fiscal')[];
   nombre: string;
@@ -62,7 +62,7 @@ export interface Coach {
 export interface AuthContextType {
   user: User | null;
   currentProfile: 'organizador' | 'equipo' | 'fiscal' | null;
-  login: (username: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>; // Cambiado de username a email
   logout: () => void;
   setCurrentProfile: (tipo: 'organizador' | 'equipo' | 'fiscal') => void;
   updateUserProfile: (tipo: 'organizador' | 'equipo' | 'fiscal', profileData: any) => void;
