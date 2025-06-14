@@ -15,8 +15,6 @@ interface TorneoFormData {
   categoria: string;
   tipoFutbol: string;
   formato: string;
-  fechaInicio: string;
-  fechaFin: string;
   fechaCierre: string;
   maxEquipos: number;
   puntajeGane: number;
@@ -58,8 +56,6 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
     categoria: '',
     tipoFutbol: '',
     formato: '',
-    fechaInicio: '',
-    fechaFin: '',
     fechaCierre: '',
     maxEquipos: 16,
     puntajeGane: 3,
@@ -96,8 +92,6 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
           categoria: torneoEditando.categoria || '',
           tipoFutbol: torneoEditando.tipo || '',
           formato: torneoEditando.formato || '',
-          fechaInicio: torneoEditando.fechaInicio || '',
-          fechaFin: torneoEditando.fechaFin || '',
           fechaCierre: torneoEditando.fechaCierre || '',
           maxEquipos: torneoEditando.maxEquipos || 16,
           puntajeGane: torneoEditando.puntajeGane || 3,
@@ -129,8 +123,6 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
           categoria: '',
           tipoFutbol: '',
           formato: '',
-          fechaInicio: '',
-          fechaFin: '',
           fechaCierre: '',
           maxEquipos: 16,
           puntajeGane: 3,
@@ -381,36 +373,15 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
             <Label htmlFor="esPublico">Torneo Público (visible para todos los equipos)</Label>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="fechaInicio">Fecha de Inicio</Label>
-              <Input
-                id="fechaInicio"
-                type="date"
-                value={formData.fechaInicio}
-                onChange={(e) => setFormData(prev => ({ ...prev, fechaInicio: e.target.value }))}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="fechaFin">Fecha de Fin</Label>
-              <Input
-                id="fechaFin"
-                type="date"
-                value={formData.fechaFin}
-                onChange={(e) => setFormData(prev => ({ ...prev, fechaFin: e.target.value }))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="fechaCierre">Fecha Cierre Inscripciones</Label>
-              <Input
-                id="fechaCierre"
-                type="date"
-                value={formData.fechaCierre}
-                onChange={(e) => setFormData(prev => ({ ...prev, fechaCierre: e.target.value }))}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="fechaCierre">Fecha Cierre Inscripciones *</Label>
+            <Input
+              id="fechaCierre"
+              type="date"
+              value={formData.fechaCierre}
+              onChange={(e) => setFormData(prev => ({ ...prev, fechaCierre: e.target.value }))}
+              required
+            />
           </div>
 
           <div className="space-y-2">

@@ -13,8 +13,6 @@ interface TorneoPublico {
   categoria: string;
   tipo: string;
   formato: string;
-  fechaInicio: string;
-  fechaFin: string;
   fechaCierre: string;
   logo: string;
   maxEquipos: number;
@@ -56,34 +54,61 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
 
   useEffect(() => {
     const cargarTorneos = () => {
+      console.log('Cargando torneos públicos...');
       const torneosGuardados = localStorage.getItem('torneosPublicos');
-      const equipoId = localStorage.getItem('userId'); // Obtener ID del equipo actual
+      const equipoId = localStorage.getItem('userId');
+      
+      console.log('Datos en localStorage - torneosPublicos:', torneosGuardados);
+      console.log('Equipo ID actual:', equipoId);
       
       if (torneosGuardados && equipoId) {
         const torneosData = JSON.parse(torneosGuardados);
+        console.log('Torneos encontrados en localStorage:', torneosData);
         
         // Obtener notificaciones de aprobación para filtrar torneos ya aprobados
         const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
+        console.log('Notificaciones de equipo:', notificacionesEquipo);
+        
         const torneosAprobados = notificacionesEquipo
           .filter((n: any) => 
             n.equipoId === equipoId && 
             n.tipo === 'aprobacion'
           )
           .map((n: any) => n.torneoId);
-
-        // Filtrar torneos: solo mostrar los públicos, con inscripciones abiertas y que NO estén aprobados
-        const torneosDisponibles = torneosData.filter((t: TorneoPublico) => 
-          t.esPublico && 
-          t.estado === 'inscripciones_abiertas' &&
-          !torneosAprobados.includes(t.id)
-        );
         
+        console.log('Torneos ya aprobados para este equipo:', torneosAprobados);
+        
+        // Verificar fecha de cierre de inscripciones
+        const fechaActual = new Date();
+        
+        // Filtrar torneos: solo mostrar los públicos, con inscripciones abiertas y que NO estén aprobados
+        const torneosDisponibles = torneosData.filter((t: TorneoPublico) => {
+          const fechaCierre = new Date(t.fechaCierre);
+          const inscripcionesAbiertas = fechaCierre > fechaActual;
+          const esPublico = t.esPublico;
+          const noEstaAprobado = !torneosAprobados.includes(t.id);
+          
+          console.log(`Torneo ${t.nombre}:`, {
+            esPublico,
+            fechaCierre: t.fechaCierre,
+            inscripcionesAbiertas,
+            noEstaAprobado,
+            cumpleCondiciones: esPublico && inscripcionesAbiertas && noEstaAprobado
+          });
+          
+          return esPublico && inscripcionesAbiertas && noEstaAprobado;
+        });
+        
+        console.log('Torneos disponibles filtrados:', torneosDisponibles);
         setTorneos(torneosDisponibles);
+      } else {
+        console.log('No hay torneos guardados o no hay equipoId');
+        setTorneos([]);
       }
     };
 
     cargarTorneos();
-    const interval = setInterval(cargarTorneos, 2000); // Revisar más frecuentemente
+    const interval = setInterval(cargarTorneos, 2000);
     return () => clearInterval(interval);
   }, []);
 
@@ -167,10 +192,6 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
               </div>
 
               <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <span>Inicio: {new Date(torneo.fechaInicio).toLocaleDateString('es-ES')}</span>
-                </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-muted-foreground" />
                   <span>Cierre: {new Date(torneo.fechaCierre).toLocaleDateString('es-ES')}</span>
