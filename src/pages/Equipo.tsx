@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -102,6 +101,7 @@ const Equipo = () => {
   const [mostrarSeleccionJugadores, setMostrarSeleccionJugadores] = useState(false);
   const [torneoSeleccionado, setTorneoSeleccionado] = useState<any>(null);
   const [solicitudesPendientes, setSolicitudesPendientes] = useState<string[]>([]);
+  const [torneosInscritos, setTorneosInscritos] = useState<string[]>([]);
 
   useEffect(() => {
     if (user?.id && equipoPerfil) {
@@ -148,6 +148,23 @@ const Equipo = () => {
 
     cargarSolicitudesPendientes();
     const interval = setInterval(cargarSolicitudesPendientes, 3000);
+    return () => clearInterval(interval);
+  }, [user?.id]);
+
+  useEffect(() => {
+    // Cargar torneos donde el equipo fue aceptado
+    const cargarTorneosInscritos = () => {
+      const notificaciones = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
+      const solicitudesAceptadas = notificaciones.filter((n: any) => 
+        n.equipoId === user?.id && 
+        n.tipo === 'aprobacion'
+      );
+      const torneosIds = solicitudesAceptadas.map((s: any) => s.torneoId);
+      setTorneosInscritos(torneosIds);
+    };
+
+    cargarTorneosInscritos();
+    const interval = setInterval(cargarTorneosInscritos, 5000);
     return () => clearInterval(interval);
   }, [user?.id]);
 
@@ -298,8 +315,9 @@ const Equipo = () => {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-4 md:py-8">
         <Tabs defaultValue="torneos" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="torneos">Torneos Públicos</TabsTrigger>
+            <TabsTrigger value="mis-torneos">Mis Torneos</TabsTrigger>
             <TabsTrigger value="mi-equipo">Mi Equipo</TabsTrigger>
           </TabsList>
 
@@ -308,12 +326,22 @@ const Equipo = () => {
               onInscribirse={inscribirseATorneo} 
               equipoCategoria={perfil.categoria}
               solicitudesPendientes={solicitudesPendientes}
+              torneosInscritos={torneosInscritos}
+            />
+          </TabsContent>
+
+          <TabsContent value="mis-torneos">
+            <TorneosInscritos 
+              equipoId={user?.id || ''} 
+              equipoNombre={perfil.nombreEquipo}
             />
           </TabsContent>
 
           <TabsContent value="mi-equipo">
             <div className="space-y-6">
               <h2 className="text-2xl font-bold">Información de mi Equipo</h2>
+              
+              {/* Información básica del equipo */}
               <Card>
                 <CardHeader>
                   <CardTitle>Detalles del Equipo</CardTitle>
@@ -344,6 +372,22 @@ const Equipo = () => {
                     <Edit className="w-4 h-4 mr-2" />
                     Editar Perfil
                   </Button>
+                </CardContent>
+              </Card>
+
+              {/* Estadísticas del equipo */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Trophy className="w-5 h-5" />
+                    Estadísticas del Equipo
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <EstadisticasEquipo 
+                    equipoId={user?.id || ''} 
+                    equipoNombre={perfil.nombreEquipo}
+                  />
                 </CardContent>
               </Card>
             </div>

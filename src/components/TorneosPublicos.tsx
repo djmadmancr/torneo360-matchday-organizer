@@ -1,8 +1,11 @@
-import React from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, Users, Clock, Trophy, Star, UserCheck, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Trophy, Calendar, MapPin, Users, Plus, Eye, BarChart3 } from "lucide-react";
+import TorneoEstadisticas from './TorneoEstadisticas';
 
 interface TorneoPublico {
   id: string;
@@ -30,24 +33,26 @@ interface TorneosPublicosProps {
   onInscribirse: (torneo: TorneoPublico) => void;
   equipoCategoria: string;
   solicitudesPendientes: string[];
+  torneosInscritos: string[];
 }
 
 const TorneosPublicos: React.FC<TorneosPublicosProps> = ({ 
   onInscribirse, 
-  equipoCategoria,
-  solicitudesPendientes = []
+  equipoCategoria, 
+  solicitudesPendientes,
+  torneosInscritos 
 }) => {
-  const [torneos, setTorneos] = React.useState<TorneoPublico[]>([]);
+  const [torneos, setTorneos] = useState<TorneoPublico[]>([]);
+  const [torneoSeleccionado, setTorneoSeleccionado] = useState<TorneoPublico | null>(null);
+  const [mostrarEstadisticas, setMostrarEstadisticas] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const cargarTorneos = () => {
-      const torneosPublicos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
-      const torneosDisponibles = torneosPublicos.filter((t: TorneoPublico) => 
-        t.esPublico && 
-        t.estado === 'inscripciones_abiertas' &&
-        t.equiposInscritos < t.maxEquipos
-      );
-      setTorneos(torneosDisponibles);
+      const torneosGuardados = localStorage.getItem('torneosPublicos');
+      if (torneosGuardados) {
+        const torneosData = JSON.parse(torneosGuardados);
+        setTorneos(torneosData.filter((t: TorneoPublico) => t.esPublico && t.estado === 'inscripciones_abiertas'));
+      }
     };
 
     cargarTorneos();
@@ -56,61 +61,35 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
   }, []);
 
   const puedeInscribirse = (torneo: TorneoPublico) => {
-    // Verificar si ya tiene solicitud pendiente
-    if (solicitudesPendientes.includes(torneo.id)) {
-      return false;
-    }
-
-    // Verificar categoría
-    if (torneo.categoria !== equipoCategoria && torneo.categoria !== 'Libre') {
-      return false;
-    }
-    
-    // Verificar cupos disponibles
-    if (torneo.equiposInscritos >= torneo.maxEquipos) {
-      return false;
-    }
-
-    // Verificar fecha de cierre
-    const fechaCierre = new Date(torneo.fechaCierre);
-    const hoy = new Date();
-    if (hoy > fechaCierre) {
-      return false;
-    }
-
-    return true;
+    return torneo.categoria === 'Libre' || torneo.categoria === equipoCategoria;
   };
 
-  const getRazonNoInscripcion = (torneo: TorneoPublico) => {
-    if (solicitudesPendientes.includes(torneo.id)) {
-      return 'Solicitud Pendiente';
-    }
-    if (torneo.categoria !== equipoCategoria && torneo.categoria !== 'Libre') {
-      return `Categoría requerida: ${torneo.categoria}`;
-    }
-    if (torneo.equiposInscritos >= torneo.maxEquipos) {
-      return 'Cupos agotados';
-    }
-    const fechaCierre = new Date(torneo.fechaCierre);
-    const hoy = new Date();
-    if (hoy > fechaCierre) {
-      return 'Inscripciones cerradas';
-    }
-    return '';
+  const estaInscrito = (torneoId: string) => {
+    return torneosInscritos.includes(torneoId);
   };
 
-  const getBotonVariant = (torneo: TorneoPublico) => {
-    if (solicitudesPendientes.includes(torneo.id)) {
-      return 'secondary';
-    }
-    return puedeInscribirse(torneo) ? 'default' : 'outline';
+  const tieneSolicitudPendiente = (torneoId: string) => {
+    return solicitudesPendientes.includes(torneoId);
   };
 
-  const getBotonIcon = (torneo: TorneoPublico) => {
-    if (solicitudesPendientes.includes(torneo.id)) {
-      return <AlertCircle className="w-4 h-4 mr-2" />;
+  const verEstadisticasTorneo = (torneo: TorneoPublico) => {
+    setTorneoSeleccionado(torneo);
+    setMostrarEstadisticas(true);
+  };
+
+  const getEstadoBadge = (estado: string) => {
+    switch (estado) {
+      case 'inscripciones_abiertas':
+        return <Badge className="bg-green-500">Inscripciones Abiertas</Badge>;
+      case 'inscripciones_cerradas':
+        return <Badge className="bg-yellow-500">Inscripciones Cerradas</Badge>;
+      case 'en_curso':
+        return <Badge className="bg-blue-500">En Curso</Badge>;
+      case 'finalizado':
+        return <Badge variant="secondary">Finalizado</Badge>;
+      default:
+        return <Badge variant="outline">{estado}</Badge>;
     }
-    return puedeInscribirse(torneo) ? <Star className="w-4 h-4 mr-2" /> : null;
   };
 
   if (torneos.length === 0) {
@@ -126,7 +105,7 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Torneos Disponibles</h2>
+        <h2 className="text-2xl font-bold">Torneos Públicos Disponibles</h2>
         <Badge variant="outline">{torneos.length} torneos disponibles</Badge>
       </div>
 
@@ -144,19 +123,19 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
                   <CardTitle className="text-lg">{torneo.nombre}</CardTitle>
                   <p className="text-sm text-muted-foreground">por {torneo.organizadorNombre}</p>
                 </div>
-                <Badge variant="secondary">{torneo.categoria}</Badge>
+                {getEstadoBadge(torneo.estado)}
               </div>
             </CardHeader>
             
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-muted-foreground" />
-                  <span>{torneo.equiposInscritos}/{torneo.maxEquipos}</span>
+                  <Trophy className="w-4 h-4 text-muted-foreground" />
+                  <span>{torneo.categoria}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Trophy className="w-4 h-4 text-muted-foreground" />
-                  <span>{torneo.tipo}</span>
+                  <Users className="w-4 h-4 text-muted-foreground" />
+                  <span>{torneo.equiposInscritos}/{torneo.maxEquipos}</span>
                 </div>
               </div>
 
@@ -166,7 +145,7 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
                   <span>Inicio: {new Date(torneo.fechaInicio).toLocaleDateString('es-ES')}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
                   <span>Cierre: {new Date(torneo.fechaCierre).toLocaleDateString('es-ES')}</span>
                 </div>
                 {torneo.ubicacion && (
@@ -183,35 +162,77 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
                 </p>
               )}
 
-              {(torneo.edadMinima || torneo.edadMaxima) && (
-                <div className="text-sm">
-                  <span className="font-medium">Edad: </span>
-                  {torneo.edadMinima && torneo.edadMaxima ? (
-                    <span>{torneo.edadMinima} - {torneo.edadMaxima} años</span>
-                  ) : torneo.edadMinima ? (
-                    <span>Mínimo {torneo.edadMinima} años</span>
-                  ) : (
-                    <span>Máximo {torneo.edadMaxima} años</span>
-                  )}
-                </div>
-              )}
-
-              <div className="pt-2">
+              <div className="flex gap-2 pt-2">
                 <Button 
-                  onClick={() => puedeInscribirse(torneo) && onInscribirse(torneo)}
-                  className="w-full"
-                  variant={getBotonVariant(torneo)}
-                  disabled={!puedeInscribirse(torneo)}
+                  onClick={() => verEstadisticasTorneo(torneo)}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
                 >
-                  {getBotonIcon(torneo)}
-                  {solicitudesPendientes.includes(torneo.id) ? 'Solicitud Pendiente' : 
-                   puedeInscribirse(torneo) ? 'Solicitar Inscripción' : getRazonNoInscripcion(torneo)}
+                  <Eye className="w-4 h-4 mr-2" />
+                  Ver Info
                 </Button>
+                
+                {estaInscrito(torneo.id) ? (
+                  <Button 
+                    onClick={() => verEstadisticasTorneo(torneo)}
+                    className="flex-1"
+                  >
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Estadísticas
+                  </Button>
+                ) : tieneSolicitudPendiente(torneo.id) ? (
+                  <Button 
+                    disabled 
+                    variant="secondary"
+                    className="flex-1"
+                  >
+                    Solicitud Pendiente
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={() => onInscribirse(torneo)}
+                    disabled={!puedeInscribirse(torneo) || torneo.equiposInscritos >= torneo.maxEquipos}
+                    className="flex-1"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    {puedeInscribirse(torneo) ? 'Inscribirse' : 'Categoría No Compatible'}
+                  </Button>
+                )}
               </div>
+
+              {!puedeInscribirse(torneo) && (
+                <p className="text-xs text-red-500 text-center">
+                  Tu categoría ({equipoCategoria}) no es compatible con este torneo
+                </p>
+              )}
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {/* Modal de Estadísticas del Torneo */}
+      <Dialog open={mostrarEstadisticas} onOpenChange={setMostrarEstadisticas}>
+        <DialogContent className="w-[95vw] max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trophy className="w-5 h-5" />
+              {estaInscrito(torneoSeleccionado?.id || '') ? 'Estadísticas del Torneo' : 'Información del Torneo'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {torneoSeleccionado && (
+            <div className="mt-4">
+              <TorneoEstadisticas 
+                torneo={torneoSeleccionado}
+                equiposTorneo={[]}
+                resultadosTorneo={[]}
+                goleadoresTorneo={[]}
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
