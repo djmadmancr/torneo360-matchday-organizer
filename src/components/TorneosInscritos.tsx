@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trophy, Calendar, MapPin, Users, Eye, Award, Target, Search } from "lucide-react";
+import { Trophy, Calendar, MapPin, Users, Eye, Award, Target, Search, AlertCircle } from "lucide-react";
 import EstadisticasEquipo from './EstadisticasEquipo';
 
 interface TorneoInscrito {
@@ -56,6 +56,8 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
   const [mostrarDetalles, setMostrarDetalles] = useState(false);
   const [tabActiva, setTabActiva] = useState('tabla');
   const [busqueda, setBusqueda] = useState('');
+  const [torneosBusqueda, setTorneosBusqueda] = useState<any[]>([]);
+  const [mostrandoBusqueda, setMostrandoBusqueda] = useState(false);
 
   useEffect(() => {
     const cargarTorneosInscritos = () => {
@@ -156,11 +158,40 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
     }
   }, [equipoId, equipoNombre]);
 
-  // Filtrar torneos según la búsqueda
-  const torneosFiltrados = torneosInscritos.filter(torneo => 
-    torneo.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-    torneo.id.toLowerCase().includes(busqueda.toLowerCase())
-  );
+  // Función de búsqueda mejorada
+  useEffect(() => {
+    if (busqueda.trim() === '') {
+      setTorneosBusqueda([]);
+      setMostrandoBusqueda(false);
+      return;
+    }
+
+    console.log('🔍 Iniciando búsqueda para:', busqueda);
+    
+    // Buscar en todos los torneos (públicos y privados)
+    const todosLosTorneos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
+    console.log('📋 Buscando en todos los torneos:', todosLosTorneos);
+    
+    const resultados = todosLosTorneos.filter((torneo: any) => {
+      const coincideId = torneo.id.toLowerCase().includes(busqueda.toLowerCase());
+      const coincideNombre = torneo.nombre.toLowerCase().includes(busqueda.toLowerCase());
+      const coincideOrganizador = torneo.organizadorNombre?.toLowerCase().includes(busqueda.toLowerCase());
+      
+      return coincideId || coincideNombre || coincideOrganizador;
+    });
+
+    console.log('🎯 Resultados de búsqueda:', resultados);
+    setTorneosBusqueda(resultados);
+    setMostrandoBusqueda(true);
+  }, [busqueda]);
+
+  // Filtrar torneos inscritos según la búsqueda
+  const torneosFiltrados = mostrandoBusqueda ? 
+    torneosBusqueda : 
+    torneosInscritos.filter(torneo => 
+      torneo.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+      torneo.id.toLowerCase().includes(busqueda.toLowerCase())
+    );
 
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
@@ -214,12 +245,112 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
     }
   ];
 
-  if (torneosInscritos.length === 0) {
+  if (torneosInscritos.length === 0 && !mostrandoBusqueda) {
     return (
-      <div className="text-center py-12">
-        <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay torneos inscritos</h3>
-        <p className="text-gray-500">Los torneos en los que participes aparecerán aquí</p>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Mis Torneos</h2>
+          <Badge variant="outline">0 torneos inscritos</Badge>
+        </div>
+
+        {/* Buscador siempre visible */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Input
+            placeholder="Buscar cualquier torneo por ID, nombre o organizador..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        {mostrandoBusqueda ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Search className="w-5 h-5 text-blue-500" />
+              <h3 className="text-lg font-semibold">Resultados de búsqueda</h3>
+              <Badge variant="outline">{torneosBusqueda.length} encontrados</Badge>
+            </div>
+            
+            {torneosBusqueda.length === 0 ? (
+              <div className="text-center py-8">
+                <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-600 mb-2">No se encontraron torneos</h3>
+                <p className="text-gray-500">No hay torneos que coincidan con "{busqueda}"</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {torneosBusqueda.map((torneo) => (
+                  <Card key={torneo.id} className="hover:shadow-lg transition-shadow border-2 border-blue-200">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center gap-3">
+                        <img 
+                          src={torneo.logo} 
+                          alt={torneo.nombre}
+                          className="w-12 h-12 rounded-lg object-cover"
+                        />
+                        <div className="flex-1">
+                          <CardTitle className="text-lg">{torneo.nombre}</CardTitle>
+                          <p className="text-sm text-muted-foreground">por {torneo.organizadorNombre}</p>
+                          <p className="text-xs text-blue-600 font-mono">ID: {torneo.id}</p>
+                        </div>
+                        <Badge variant={torneo.esPublico ? "default" : "secondary"}>
+                          {torneo.esPublico ? "Público" : "Privado"}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="flex items-center gap-2">
+                          <Trophy className="w-4 h-4 text-muted-foreground" />
+                          <span>{torneo.categoria}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Award className="w-4 h-4 text-muted-foreground" />
+                          <span>{torneo.tipo}</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-muted-foreground" />
+                          <span>Estado: {torneo.estado}</span>
+                        </div>
+                        {torneo.ubicacion && (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-muted-foreground" />
+                            <span className="truncate">{torneo.ubicacion}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-2">
+                        <Button 
+                          onClick={() => verDetallesTorneo(torneo)}
+                          className="w-full"
+                          variant="outline"
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          Ver Detalles
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay torneos inscritos</h3>
+            <p className="text-gray-500">Los torneos en los que participes aparecerán aquí</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Usa el buscador para encontrar cualquier torneo por ID
+            </p>
+          </div>
+        )}
       </div>
     );
   }
@@ -228,23 +359,47 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Mis Torneos</h2>
-        <Badge variant="outline">{torneosInscritos.length} torneos inscritos</Badge>
+        <Badge variant="outline">
+          {mostrandoBusqueda ? `${torneosBusqueda.length} encontrados` : `${torneosInscritos.length} torneos inscritos`}
+        </Badge>
       </div>
 
-      {/* Buscador */}
+      {/* Buscador mejorado */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
         <Input
-          placeholder="Buscar por nombre de torneo o ID..."
+          placeholder="Buscar cualquier torneo por ID, nombre o organizador..."
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           className="pl-10"
         />
+        {busqueda && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setBusqueda('');
+              setMostrandoBusqueda(false);
+            }}
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+          >
+            ✕
+          </Button>
+        )}
       </div>
+
+      {mostrandoBusqueda && (
+        <div className="flex items-center gap-2 bg-blue-50 p-3 rounded-lg">
+          <Search className="w-5 h-5 text-blue-500" />
+          <span className="text-sm text-blue-700">
+            Mostrando resultados de búsqueda para "{busqueda}" - {torneosBusqueda.length} encontrados
+          </span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {torneosFiltrados.map((torneo) => (
-          <Card key={torneo.id} className="hover:shadow-lg transition-shadow">
+          <Card key={torneo.id} className={`hover:shadow-lg transition-shadow ${mostrandoBusqueda ? 'border-2 border-blue-200' : ''}`}>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
                 <img 
@@ -255,9 +410,17 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
                 <div className="flex-1">
                   <CardTitle className="text-lg">{torneo.nombre}</CardTitle>
                   <p className="text-sm text-muted-foreground">por {torneo.organizadorNombre}</p>
-                  <p className="text-xs text-muted-foreground">ID: {torneo.id}</p>
+                  <p className={`text-xs font-mono ${mostrandoBusqueda ? 'text-blue-600' : 'text-muted-foreground'}`}>
+                    ID: {torneo.id}
+                  </p>
                 </div>
-                {getEstadoBadge(torneo.estado)}
+                {mostrandoBusqueda ? (
+                  <Badge variant={torneo.esPublico ? "default" : "secondary"}>
+                    {torneo.esPublico ? "Público" : "Privado"}
+                  </Badge>
+                ) : (
+                  getEstadoBadge(torneo.estado)
+                )}
               </div>
             </CardHeader>
             
