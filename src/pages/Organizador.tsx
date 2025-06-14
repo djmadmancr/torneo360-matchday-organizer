@@ -242,33 +242,66 @@ const Organizador = () => {
   };
 
   const handleCrearTorneo = (data: any) => {
-    const nuevoTorneo: Torneo = {
-      id: data.torneoId,
-      nombre: data.nombreTorneo,
-      categoria: data.categoria,
-      tipo: data.tipoFutbol,
-      formato: data.formato,
-      fechaInicio: data.fechaInicio || "",
-      fechaFin: data.fechaFin || "",
-      logo: data.logo || "https://images.unsplash.com/photo-1614632537190-23e4b93dc25e?w=100&h=100&fit=crop&crop=center",
-      maxEquipos: data.maxEquipos || 16,
-      equiposInscritos: 0,
-      estado: "inscripciones_abiertas",
-      fechaCierre: data.fechaCierre,
-      puntajeExtra: data.puntajeExtra,
-      idaVuelta: data.idaVuelta,
-      diasSemana: data.diasSemana,
-      partidosPorSemana: data.partidosPorSemana,
-      fechaCreacion: new Date().toISOString().split('T')[0],
-      esPublico: data.esPublico || false,
-      edadMinima: data.edadMinima,
-      edadMaxima: data.edadMaxima,
-      descripcion: data.descripcion,
-      ubicacion: data.ubicacion
-    };
+    if (torneoEditando) {
+      // Editar torneo existente
+      setTorneos(prev => prev.map(torneo => 
+        torneo.id === torneoEditando 
+          ? {
+              ...torneo,
+              nombre: data.nombreTorneo,
+              categoria: data.categoria,
+              tipo: data.tipoFutbol,
+              formato: data.formato,
+              fechaInicio: data.fechaInicio || torneo.fechaInicio,
+              fechaFin: data.fechaFin || torneo.fechaFin,
+              logo: data.logo || torneo.logo,
+              maxEquipos: data.maxEquipos || torneo.maxEquipos,
+              fechaCierre: data.fechaCierre,
+              puntajeExtra: data.puntajeExtra,
+              idaVuelta: data.idaVuelta,
+              diasSemana: data.diasSemana,
+              partidosPorSemana: data.partidosPorSemana,
+              esPublico: data.esPublico || false,
+              edadMinima: data.edadMinima,
+              edadMaxima: data.edadMaxima,
+              descripcion: data.descripcion,
+              ubicacion: data.ubicacion
+            }
+          : torneo
+      ));
+      addLog('Editar Torneo', `Torneo "${data.nombreTorneo}" actualizado`, 'edicion', 'torneo', torneoEditando);
+      toast.success("Torneo actualizado exitosamente");
+    } else {
+      // Crear nuevo torneo
+      const nuevoTorneo: Torneo = {
+        id: data.torneoId,
+        nombre: data.nombreTorneo,
+        categoria: data.categoria,
+        tipo: data.tipoFutbol,
+        formato: data.formato,
+        fechaInicio: data.fechaInicio || "",
+        fechaFin: data.fechaFin || "",
+        logo: data.logo || "https://images.unsplash.com/photo-1614632537190-23e4b93dc25e?w=100&h=100&fit=crop&crop=center",
+        maxEquipos: data.maxEquipos || 16,
+        equiposInscritos: 0,
+        estado: "inscripciones_abiertas",
+        fechaCierre: data.fechaCierre,
+        puntajeExtra: data.puntajeExtra,
+        idaVuelta: data.idaVuelta,
+        diasSemana: data.diasSemana,
+        partidosPorSemana: data.partidosPorSemana,
+        fechaCreacion: new Date().toISOString().split('T')[0],
+        esPublico: data.esPublico || false,
+        edadMinima: data.edadMinima,
+        edadMaxima: data.edadMaxima,
+        descripcion: data.descripcion,
+        ubicacion: data.ubicacion
+      };
 
-    setTorneos(prev => [...prev, nuevoTorneo]);
-    toast.success("Torneo creado exitosamente");
+      setTorneos(prev => [...prev, nuevoTorneo]);
+      addLog('Crear Torneo', `Torneo "${data.nombreTorneo}" creado`, 'creacion', 'torneo', data.torneoId);
+      toast.success("Torneo creado exitosamente");
+    }
   };
 
   const handleEditarTorneo = (torneoId: string) => {
@@ -529,6 +562,50 @@ const Organizador = () => {
     }
   };
 
+  const handleEliminarTorneo = (torneoId: string) => {
+    const torneo = torneos.find(t => t.id === torneoId);
+    if (!torneo) return;
+
+    // Primera confirmación
+    if (!confirm(`¿Estás seguro de que quieres eliminar el torneo "${torneo.nombre}"?`)) {
+      return;
+    }
+
+    // Segunda confirmación
+    if (!confirm(`ADVERTENCIA: Esta acción no se puede deshacer. El torneo "${torneo.nombre}" y toda su información se perderán permanentemente. ¿Continuar?`)) {
+      return;
+    }
+
+    // Notificar a equipos inscritos si los hay
+    if (torneo.equiposInscritos > 0) {
+      // Aquí se notificaría a los equipos - por ahora simulamos
+      const notificacionEquipo = {
+        id: `NOT-${Date.now()}`,
+        tipo: 'otra',
+        titulo: 'Torneo Eliminado',
+        mensaje: `El torneo "${torneo.nombre}" ha sido eliminado por el organizador`,
+        fecha: new Date().toISOString().split('T')[0],
+        accionRequerida: false
+      };
+
+      // Agregar notificación general (en una app real, se enviaría a cada equipo específico)
+      const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
+      notificacionesEquipo.push(notificacionEquipo);
+      localStorage.setItem('notificacionesEquipo', JSON.stringify(notificacionesEquipo));
+    }
+
+    // Eliminar torneo
+    setTorneos(prev => prev.filter(t => t.id !== torneoId));
+    
+    // También eliminar de torneos públicos
+    const torneosPublicos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
+    const torneosPublicosActualizados = torneosPublicos.filter((t: any) => t.id !== torneoId);
+    localStorage.setItem('torneosPublicos', JSON.stringify(torneosPublicosActualizados));
+
+    addLog('Eliminar Torneo', `Torneo "${torneo.nombre}" eliminado`, 'eliminacion', 'torneo', torneoId);
+    toast.success(`Torneo "${torneo.nombre}" eliminado exitosamente`);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       {/* Header */}
@@ -677,15 +754,25 @@ const Organizador = () => {
                                 <p className="text-sm text-muted-foreground">{torneo.categoria}</p>
                               </div>
                             </div>
-                            {(torneo.estado === "inscripciones_abiertas" || torneo.estado === "inscripciones_cerradas") && (
+                            <div className="flex gap-1">
+                              {(torneo.estado === "inscripciones_abiertas" || torneo.estado === "inscripciones_cerradas") && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditarTorneo(torneo.id)}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                              )}
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleEditarTorneo(torneo.id)}
+                                onClick={() => handleEliminarTorneo(torneo.id)}
+                                className="text-red-600 hover:text-red-800 hover:bg-red-50"
                               >
-                                <Edit className="w-4 h-4" />
+                                <XCircle className="w-4 h-4" />
                               </Button>
-                            )}
+                            </div>
                           </div>
                         </CardHeader>
                         <CardContent className="space-y-3">
