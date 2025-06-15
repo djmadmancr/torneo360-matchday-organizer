@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Trophy, Calendar, MapPin, Users, Plus, Clock, Search, Eye, Target, Award } from "lucide-react";
+import { Trophy, Calendar, MapPin, Users, Plus, Clock, Search, Eye, Target, Award, CheckCircle } from "lucide-react";
 
 interface TorneoPublico {
   id: string;
@@ -122,7 +121,7 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
 
   const getTextoBoton = (torneo: TorneoPublico) => {
     if (estaInscrito(torneo.id)) {
-      return "Inscrito";
+      return "INSCRITO";
     }
     if (solicitudesPendientes.includes(torneo.id)) {
       return "Pendiente";
@@ -257,20 +256,27 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
                 )}
 
                 <div className="pt-2 space-y-2">
-                  {/* Mostrar botón "Ver Info" solo si está inscrito */}
-                  {estaInscrito(torneo.id) && (
-                    <Button 
-                      onClick={() => verDetallesTorneo(torneo)}
-                      className="w-full"
-                      variant="outline"
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      Ver Info del Torneo
-                    </Button>
-                  )}
-                  
-                  {/* Mostrar botón "Inscribirse" solo si no está inscrito */}
-                  {!estaInscrito(torneo.id) && (
+                  {/* Si está inscrito, mostrar botón INSCRITO deshabilitado y botón Ver Info */}
+                  {estaInscrito(torneo.id) ? (
+                    <>
+                      <Button 
+                        disabled
+                        className="w-full bg-green-600 hover:bg-green-600 text-white cursor-default"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        INSCRITO
+                      </Button>
+                      <Button 
+                        onClick={() => verDetallesTorneo(torneo)}
+                        className="w-full"
+                        variant="outline"
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        Ver Info del Torneo
+                      </Button>
+                    </>
+                  ) : (
+                    /* Si no está inscrito, mostrar botón de inscripción */
                     <Button 
                       onClick={() => onInscribirse(torneo)}
                       disabled={!puedeInscribirse(torneo)}
