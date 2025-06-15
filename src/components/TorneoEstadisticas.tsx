@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -69,38 +68,139 @@ const TorneoEstadisticas: React.FC<TorneoEstadisticasProps> = ({
 
   const cargarEquiposInscritos = () => {
     console.log('📊 Cargando equipos inscritos para torneo:', torneo.id);
+    console.log('📊 Revisando localStorage completo...');
+    
+    // Primero, listar todas las claves del localStorage para debug
+    const todasLasClaves = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) {
+        todasLasClaves.push(key);
+      }
+    }
+    console.log('📊 Todas las claves en localStorage:', todasLasClaves);
     
     const equiposData: EquipoInscrito[] = [];
     
-    // Buscar todas las inscripciones aprobadas para este torneo
+    // Buscar inscripciones de diferentes formas posibles
+    const posiblesPatrones = [
+      `inscripcion_${torneo.id}_`,
+      `inscripcion_torneo_${torneo.id}_`,
+      `torneo_${torneo.id}_inscripcion_`,
+      `${torneo.id}_inscripcion_`
+    ];
+    
+    console.log('📊 Buscando patrones:', posiblesPatrones);
+    
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith(`inscripcion_${torneo.id}_`)) {
-        const inscripcionData = JSON.parse(localStorage.getItem(key) || '{}');
+      if (key) {
+        // Buscar cualquier clave que contenga el ID del torneo y "inscripcion"
+        const contieneIdTorneo = key.includes(torneo.id);
+        const contieneInscripcion = key.toLowerCase().includes('inscripcion');
         
-        if (inscripcionData.estado === 'aprobado') {
-          const equipoId = inscripcionData.equipoId;
+        if (contieneIdTorneo && contieneInscripcion) {
+          console.log('📊 Clave encontrada que contiene torneo e inscripción:', key);
           
-          // Buscar datos del equipo
-          const equipoKey = `equipo_${equipoId}`;
-          const equipoData = JSON.parse(localStorage.getItem(equipoKey) || '{}');
-          
-          if (equipoData.nombre) {
-            equiposData.push({
-              id: equipoId.toString(),
-              nombre: equipoData.nombre,
-              logo: equipoData.logo || "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center",
-              categoria: torneo.categoria,
-              fechaInscripcion: inscripcionData.fechaInscripcion || new Date().toISOString(),
-              grupo: `Grupo ${String.fromCharCode(65 + (equiposData.length % 4))}`, // A, B, C, D
-              posicion: equiposData.length + 1
-            });
+          try {
+            const inscripcionData = JSON.parse(localStorage.getItem(key) || '{}');
+            console.log('📊 Datos de inscripción:', inscripcionData);
+            
+            // Aceptar diferentes estados posibles
+            const estadosValidos = ['aprobado', 'aprobada', 'inscrito', 'confirmado', 'activo'];
+            const estadoValido = estadosValidos.some(estado => 
+              inscripcionData.estado?.toLowerCase() === estado ||
+              inscripcionData.status?.toLowerCase() === estado
+            );
+            
+            // Si no hay estado específico, asumir que es válida si tiene equipoId
+            const tieneEquipoId = inscripcionData.equipoId || inscripcionData.equipo?.id;
+            
+            console.log('📊 Estado válido:', estadoValido, 'Tiene equipo ID:', tieneEquipoId);
+            
+            if (estadoValido || tieneEquipoId) {
+              const equipoId = inscripcionData.equipoId || inscripcionData.equipo?.id;
+              console.log('📊 Procesando equipo ID:', equipoId);
+              
+              if (equipoId) {
+                // Buscar datos del equipo con diferentes patrones
+                const posiblesClaves = [
+                  `equipo_${equipoId}`,
+                  `team_${equipoId}`,
+                  equipoId.toString()
+                ];
+                
+                let equipoData = null;
+                for (const claveEquipo of posiblesClaves) {
+                  const datos = localStorage.getItem(claveEquipo);
+                  if (datos) {
+                    equipoData = JSON.parse(datos);
+                    console.log('📊 Equipo encontrado con clave:', claveEquipo, equipoData);
+                    break;
+                  }
+                }
+                
+                // Si no encontramos el equipo por ID, usar datos de la inscripción
+                if (!equipoData && inscripcionData.equipo) {
+                  equipoData = inscripcionData.equipo;
+                  console.log('📊 Usando datos del equipo desde inscripción:', equipoData);
+                }
+                
+                if (equipoData && (equipoData.nombre || equipoData.name)) {
+                  const nombreEquipo = equipoData.nombre || equipoData.name;
+                  const logoEquipo = equipoData.logo || equipoData.image || "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center";
+                  
+                  equiposData.push({
+                    id: equipoId.toString(),
+                    nombre: nombreEquipo,
+                    logo: logoEquipo,
+                    categoria: torneo.categoria,
+                    fechaInscripcion: inscripcionData.fechaInscripcion || inscripcionData.fecha || new Date().toISOString(),
+                    grupo: `Grupo ${String.fromCharCode(65 + (equiposData.length % 4))}`,
+                    posicion: equiposData.length + 1
+                  });
+                  
+                  console.log('📊 Equipo agregado:', nombreEquipo);
+                }
+              }
+            }
+          } catch (error) {
+            console.error('📊 Error al procesar inscripción:', key, error);
           }
         }
       }
     }
     
-    console.log('🏆 Equipos inscritos cargados:', equiposData);
+    // También revisar si hay equipos directamente asociados al torneo
+    const equiposTorneoKey = `equipos_${torneo.id}`;
+    const equiposTorneoData = localStorage.getItem(equiposTorneoKey);
+    if (equiposTorneoData) {
+      try {
+        const equiposList = JSON.parse(equiposTorneoData);
+        console.log('📊 Equipos encontrados directamente:', equiposList);
+        
+        if (Array.isArray(equiposList)) {
+          equiposList.forEach((equipo, index) => {
+            if (equipo.nombre || equipo.name) {
+              equiposData.push({
+                id: equipo.id?.toString() || `direct_${index}`,
+                nombre: equipo.nombre || equipo.name,
+                logo: equipo.logo || equipo.image || "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center",
+                categoria: torneo.categoria,
+                fechaInscripcion: equipo.fechaInscripcion || new Date().toISOString(),
+                grupo: `Grupo ${String.fromCharCode(65 + (equiposData.length % 4))}`,
+                posicion: equiposData.length + 1
+              });
+            }
+          });
+        }
+      } catch (error) {
+        console.error('📊 Error al procesar equipos directos:', error);
+      }
+    }
+    
+    console.log('🏆 Total equipos inscritos cargados:', equiposData.length);
+    console.log('🏆 Equipos detalle:', equiposData);
     setEquiposInscritos(equiposData);
   };
 
@@ -215,6 +315,9 @@ const TorneoEstadisticas: React.FC<TorneoEstadisticasProps> = ({
                   <div className="text-center py-8">
                     <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-muted-foreground">No hay equipos inscritos aún</p>
+                    <p className="text-sm text-gray-500 mt-2">
+                      Revisa la consola del navegador para más detalles de depuración
+                    </p>
                   </div>
                 ) : (
                   <Table>
@@ -248,7 +351,7 @@ const TorneoEstadisticas: React.FC<TorneoEstadisticasProps> = ({
                             {new Date(equipo.fechaInscripcion).toLocaleDateString('es-ES')}
                           </TableCell>
                           <TableCell>
-                            <Badge className="bg-green-500">Aprobado</Badge>
+                            <Badge className="bg-green-500">Inscrito</Badge>
                           </TableCell>
                         </TableRow>
                       ))}
