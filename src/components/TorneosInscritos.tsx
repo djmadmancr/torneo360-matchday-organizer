@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -68,39 +67,37 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
       // Buscar notificaciones de aprobación para este equipo
       const solicitudesAceptadas = notificacionesEquipo.filter((n: any) => 
         n.equipoId === equipoId && 
-        n.tipo === 'aprobacion'
+        n.tipo === 'aprobacion' &&
+        n.torneoId // Asegurar que tenga torneoId
       );
       console.log('✅ Solicitudes aceptadas encontradas:', solicitudesAceptadas);
 
-      // Crear lista de inscripciones aprobadas basada en las notificaciones
-      const inscripcionesAprobadas: any[] = [];
-      
-      // Cargar inscripciones desde las notificaciones de aprobación
-      solicitudesAceptadas.forEach((notificacion: any) => {
-        if (notificacion.torneoId) {
-          const inscripcionKey = `inscripcion_${notificacion.torneoId}_${equipoId}`;
-          const inscripcionData = {
-            equipoId: equipoId,
-            torneoId: notificacion.torneoId,
-            fechaInscripcion: notificacion.fecha || new Date().toISOString(),
-            estado: 'aprobado'
-          };
-          
-          // Guardar en localStorage para referencia futura
-          localStorage.setItem(inscripcionKey, JSON.stringify(inscripcionData));
-          inscripcionesAprobadas.push(inscripcionData);
-          
-          console.log('✅ Inscripción registrada:', inscripcionKey, inscripcionData);
-        }
-      });
-
-      console.log('📋 Inscripciones aprobadas procesadas:', inscripcionesAprobadas);
-
-      if (inscripcionesAprobadas.length === 0) {
+      if (solicitudesAceptadas.length === 0) {
         console.log('❌ No hay inscripciones aprobadas para este equipo');
         setTorneosInscritos([]);
         return;
       }
+
+      // Extraer IDs de torneos únicos
+      const torneosIds = [...new Set(solicitudesAceptadas.map((n: any) => n.torneoId))];
+      console.log('🎯 IDs de torneos únicos extraídos:', torneosIds);
+
+      // Crear inscripciones para cada torneo aprobado
+      const inscripcionesAprobadas = torneosIds.map(torneoId => ({
+        equipoId: equipoId,
+        torneoId: torneoId,
+        fechaInscripcion: new Date().toISOString(),
+        estado: 'aprobado'
+      }));
+
+      // Guardar inscripciones en localStorage para referencia futura
+      inscripcionesAprobadas.forEach(inscripcion => {
+        const inscripcionKey = `inscripcion_${inscripcion.torneoId}_${equipoId}`;
+        localStorage.setItem(inscripcionKey, JSON.stringify(inscripcion));
+        console.log('✅ Inscripción registrada:', inscripcionKey, inscripcion);
+      });
+
+      console.log('📋 Inscripciones aprobadas procesadas:', inscripcionesAprobadas);
 
       // Obtener información completa de los torneos
       const torneosPublicos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
