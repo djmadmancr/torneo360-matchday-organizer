@@ -307,7 +307,7 @@ const Equipo = () => {
       <div className="container mx-auto px-4 py-4 md:py-8">
         <Tabs defaultValue="torneos" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="torneos">Torneos Públicos</TabsTrigger>
+            <TabsTrigger value="torneos">Torneos</TabsTrigger>
             <TabsTrigger value="mis-torneos">Mis Torneos</TabsTrigger>
             <TabsTrigger value="mi-equipo">Mi Equipo</TabsTrigger>
           </TabsList>
