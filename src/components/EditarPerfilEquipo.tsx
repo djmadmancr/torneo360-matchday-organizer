@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -180,8 +179,7 @@ const EditarPerfilEquipo: React.FC<EditarPerfilEquipoProps> = ({
                   <SelectItem value="Sub-17">Sub-17</SelectItem>
                   <SelectItem value="Sub-20">Sub-20</SelectItem>
                   <SelectItem value="Libre">Libre</SelectItem>
-                  <SelectItem value="Primera División">Primera División</SelectItem>
-                  <SelectItem value="Segunda División">Segunda División</SelectItem>
+                  <SelectItem value="Profesional">Profesional</SelectItem>
                 </SelectContent>
               </Select>
             </div>
