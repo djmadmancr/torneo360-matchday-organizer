@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Trophy, Calendar, MapPin, Users, Plus, Eye, BarChart3, Award, Target, Search, AlertCircle } from "lucide-react";
 import TorneoEstadisticas from './TorneoEstadisticas';
-import Input from "@/components/ui/input";
+import { Input } from "@/components/ui/input";
 
 interface TorneoPublico {
   id: string;
