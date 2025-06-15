@@ -1,14 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trophy, Calendar, MapPin, Users, Eye, Award, Target, Search, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { obtenerEquipoIdDeUsuario } from '../utils/equipoMigration';
-import EstadisticasEquipo from './EstadisticasEquipo';
+import { buscarInscripcionesPorTorneo } from '../utils/inscripcionesUtils';
 
 interface TorneoInscrito {
   id: string;
@@ -35,7 +35,7 @@ interface TorneoInscrito {
 }
 
 interface TorneosInscritosProps {
-  equipoId: string; // Este es el userId, pero internamente usaremos equipoId numérico
+  equipoId: string;
   equipoNombre: string;
 }
 
@@ -46,84 +46,55 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId: userId, e
   const [mostrarDetalles, setMostrarDetalles] = useState(false);
   const [tabActiva, setTabActiva] = useState('tabla');
   const [equipoIdNumerico, setEquipoIdNumerico] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const cargarTorneosInscritos = () => {
-    console.log('=== INICIO CARGA TORNEOS INSCRITOS (FINAL) ===');
+    console.log('=== INICIO CARGA TORNEOS INSCRITOS (REFACTORIZADO) ===');
+    setLoading(true);
     
     if (!user) {
       console.log('❌ No hay usuario actual');
+      setLoading(false);
       return;
     }
     
-    // Obtener equipoId numérico del usuario actual
-    const equipoId = obtenerEquipoIdDeUsuario(user);
-    
-    if (!equipoId) {
-      console.log('❌ No se pudo obtener equipoId para el usuario');
-      return;
-    }
-    
-    setEquipoIdNumerico(equipoId);
-    console.log('🔍 Usando equipoId numérico:', equipoId);
-    
-    // Buscar inscripciones usando equipoId numérico
-    const todasLasClaves = Object.keys(localStorage);
-    const clavesInscripcion = todasLasClaves.filter(clave => 
-      clave.startsWith(`inscripcion_`) && clave.endsWith(`_${equipoId}`)
-    );
-    
-    console.log('🔑 Claves de inscripción encontradas:', clavesInscripcion);
-    
-    const inscripcionesAprobadas = clavesInscripcion.map(clave => {
-      const inscripcion = JSON.parse(localStorage.getItem(clave) || '{}');
-      console.log('📄 Inscripción encontrada:', clave, inscripcion);
-      return inscripcion;
-    }).filter(inscripcion => inscripcion.estado === 'aprobado');
-    
-    console.log('✅ Inscripciones aprobadas:', inscripcionesAprobadas);
-
-    // También buscar en notificaciones como respaldo
-    const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
-    const solicitudesAceptadas = notificacionesEquipo.filter((n: any) => {
-      return n.equipoId === userId && n.tipo === 'aprobacion';
-    });
-    
-    console.log('📢 Solicitudes aceptadas en notificaciones:', solicitudesAceptadas);
-
-    // Combinar torneoIds de ambas fuentes
-    let torneosIds: string[] = [];
-    
-    // De inscripciones directas
-    const idsDirectos = inscripcionesAprobadas.map(i => i.torneoId).filter(Boolean);
-    torneosIds = [...torneosIds, ...idsDirectos];
-    
-    // De notificaciones
-    const idsDeNotificaciones = solicitudesAceptadas.map((n: any) => n.torneoId).filter(Boolean);
-    torneosIds = [...torneosIds, ...idsDeNotificaciones];
-    
-    // Eliminar duplicados
-    torneosIds = [...new Set(torneosIds)];
-    
-    console.log('🎯 IDs de torneos únicos finales:', torneosIds);
-
-    if (torneosIds.length === 0) {
-      console.log('❌ No hay inscripciones aprobadas');
-      setTorneosInscritos([]);
-      return;
-    }
-
-    // Obtener información completa de los torneos
-    const torneosPublicos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
-    const torneosInscritosData = torneosIds
-      .map((torneoId: string) => {
-        const torneo = torneosPublicos.find((t: any) => t.id === torneoId);
+    try {
+      // Obtener equipoId numérico del usuario actual
+      const equipoId = obtenerEquipoIdDeUsuario(user);
+      
+      if (!equipoId) {
+        console.log('❌ No se pudo obtener equipoId para el usuario');
+        setLoading(false);
+        return;
+      }
+      
+      setEquipoIdNumerico(equipoId);
+      console.log('🔍 Usando equipoId numérico:', equipoId);
+      
+      // Obtener todos los torneos públicos
+      const torneosPublicos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
+      console.log('📋 Torneos públicos disponibles:', torneosPublicos.length);
+      
+      const torneosConInscripcion: TorneoInscrito[] = [];
+      
+      // Para cada torneo, verificar si el equipo está inscrito
+      torneosPublicos.forEach((torneo: any) => {
+        const inscripciones = buscarInscripcionesPorTorneo(torneo.id);
         
-        if (torneo) {
-          // Cargar estadísticas usando equipoId numérico
+        // Verificar si nuestro equipo está inscrito y aprobado
+        const miInscripcion = inscripciones.find(inscripcion => 
+          (inscripcion.equipoId === equipoId || inscripcion.equipoId === userId) &&
+          (inscripcion.estado === 'aprobado' || inscripcion.estado === 'inscrito')
+        );
+        
+        if (miInscripcion) {
+          console.log(`✅ Encontrada inscripción para torneo ${torneo.nombre}:`, miInscripcion);
+          
+          // Cargar estadísticas del equipo para este torneo
           const statsKey = `torneo_${torneo.id}_equipo_${equipoId}_stats`;
           const statsGuardadas = JSON.parse(localStorage.getItem(statsKey) || 'null');
           
-          return {
+          torneosConInscripcion.push({
             ...torneo,
             equipoStats: statsGuardadas || {
               partidosJugados: 0,
@@ -135,15 +106,21 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId: userId, e
               posicion: null,
               grupo: null
             }
-          };
+          });
         }
-        return null;
-      })
-      .filter(Boolean);
-
-    console.log('📊 Torneos inscritos finales:', torneosInscritosData);
-    setTorneosInscritos(torneosInscritosData);
-    console.log('=== FIN CARGA TORNEOS INSCRITOS (FINAL) ===');
+      });
+      
+      console.log('🏆 Torneos inscritos finales:', torneosConInscripcion.length);
+      setTorneosInscritos(torneosConInscripcion);
+      
+    } catch (error) {
+      console.error('❌ Error cargando torneos inscritos:', error);
+      setTorneosInscritos([]);
+    } finally {
+      setLoading(false);
+    }
+    
+    console.log('=== FIN CARGA TORNEOS INSCRITOS (REFACTORIZADO) ===');
   };
 
   useEffect(() => {
@@ -156,7 +133,7 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId: userId, e
       };
       
       window.addEventListener('torneosInscritosUpdate', handleUpdate);
-      const interval = setInterval(cargarTorneosInscritos, 3000);
+      const interval = setInterval(cargarTorneosInscritos, 5000);
       
       return () => {
         clearInterval(interval);
@@ -183,6 +160,21 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId: userId, e
     setMostrarDetalles(true);
   };
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Mis Torneos</h2>
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+        </div>
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Cargando torneos inscritos...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (torneosInscritos.length === 0) {
     return (
       <div className="space-y-6">
@@ -203,6 +195,12 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId: userId, e
               EquipoID: {equipoIdNumerico}
             </p>
           )}
+          <button 
+            onClick={cargarTorneosInscritos}
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Recargar
+          </button>
         </div>
       </div>
     );
@@ -217,6 +215,12 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId: userId, e
           {equipoIdNumerico && (
             <Badge variant="secondary">ID: {equipoIdNumerico}</Badge>
           )}
+          <button 
+            onClick={cargarTorneosInscritos}
+            className="text-xs px-2 py-1 bg-gray-200 rounded hover:bg-gray-300"
+          >
+            Recargar
+          </button>
         </div>
       </div>
 

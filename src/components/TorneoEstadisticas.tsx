@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trophy, Users, Target, TrendingUp, Calendar } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { useTorneoEstadisticas } from '../hooks/useTorneoEstadisticas';
 
 interface Torneo {
   id: string;
@@ -19,23 +21,6 @@ interface Torneo {
   equiposInscritos: number;
   estado: string;
   organizadorId?: string;
-}
-
-interface EquipoInscrito {
-  id: string;
-  nombre: string;
-  logo: string;
-  categoria: string;
-  fechaInscripcion: string;
-  grupo?: string;
-  posicion?: number;
-}
-
-interface EstadisticasReales {
-  partidosJugados: number;
-  golesTotales: number;
-  tarjetasAmarillas: number;
-  tarjetasRojas: number;
 }
 
 interface TorneoEstadisticasProps {
@@ -53,270 +38,7 @@ const TorneoEstadisticas: React.FC<TorneoEstadisticasProps> = ({
   goleadoresTorneo,
   esOrganizador = false
 }) => {
-  const [equiposInscritos, setEquiposInscritos] = useState<EquipoInscrito[]>([]);
-  const [estadisticasReales, setEstadisticasReales] = useState<EstadisticasReales>({
-    partidosJugados: 0,
-    golesTotales: 0,
-    tarjetasAmarillas: 0,
-    tarjetasRojas: 0
-  });
-
-  useEffect(() => {
-    cargarEquiposInscritos();
-    calcularEstadisticasReales();
-  }, [torneo.id]);
-
-  const cargarEquiposInscritos = () => {
-    console.log('🔍 INICIANDO BÚSQUEDA EXHAUSTIVA para torneo:', torneo.id);
-    console.log('🔍 Nombre del torneo:', torneo.nombre);
-    
-    const equiposData: EquipoInscrito[] = [];
-    
-    // Listar TODO el localStorage para debug completo
-    console.log('🔍 Contenido completo de localStorage:');
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key) {
-        const value = localStorage.getItem(key);
-        console.log(`  ${key}:`, value);
-      }
-    }
-    
-    // MÉTODO 1: Buscar inscripciones directas por múltiples patrones
-    const patronesInscripcion = [
-      `inscripcion_${torneo.id}`,
-      `inscripcion_torneo_${torneo.id}`,
-      `torneo_${torneo.id}_inscripcion`,
-      `${torneo.id}_inscripcion`,
-      `inscripciones_${torneo.id}`,
-      `equipos_inscritos_${torneo.id}`,
-      torneo.id // Algunas veces se guarda directamente con el ID
-    ];
-    
-    console.log('🔍 MÉTODO 1 - Buscando patrones directos:', patronesInscripcion);
-    
-    patronesInscripcion.forEach(patron => {
-      const data = localStorage.getItem(patron);
-      if (data) {
-        console.log(`✅ Encontrado patrón: ${patron}`, data);
-        try {
-          const parsed = JSON.parse(data);
-          
-          // Si es un array de equipos
-          if (Array.isArray(parsed)) {
-            parsed.forEach((item, index) => {
-              if (item.equipoId || item.equipo || item.nombre || item.name) {
-                console.log(`📋 Procesando item del array:`, item);
-                agregarEquipoSiEsValido(item, equiposData, index);
-              }
-            });
-          }
-          // Si es un objeto individual
-          else if (parsed.equipoId || parsed.equipo || parsed.nombre || parsed.name) {
-            console.log(`📋 Procesando objeto individual:`, parsed);
-            agregarEquipoSiEsValido(parsed, equiposData, 0);
-          }
-        } catch (error) {
-          console.error(`❌ Error parseando ${patron}:`, error);
-        }
-      }
-    });
-    
-    // MÉTODO 2: Buscar cualquier clave que contenga el ID del torneo
-    console.log('🔍 MÉTODO 2 - Búsqueda por contenido de clave');
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.includes(torneo.id)) {
-        console.log(`🔍 Clave encontrada que contiene ${torneo.id}: ${key}`);
-        
-        const data = localStorage.getItem(key);
-        if (data) {
-          try {
-            const parsed = JSON.parse(data);
-            console.log(`📋 Datos de ${key}:`, parsed);
-            
-            // Si contiene información de equipo
-            if (parsed.equipoId || parsed.equipo || parsed.nombre || parsed.name) {
-              agregarEquipoSiEsValido(parsed, equiposData, equiposData.length);
-            }
-            
-            // Si es un array
-            if (Array.isArray(parsed)) {
-              parsed.forEach((item, index) => {
-                if (item.equipoId || item.equipo || item.nombre || item.name) {
-                  agregarEquipoSiEsValido(item, equiposData, equiposData.length + index);
-                }
-              });
-            }
-          } catch (error) {
-            console.error(`❌ Error parseando ${key}:`, error);
-          }
-        }
-      }
-    }
-    
-    // MÉTODO 3: Buscar en el prop equiposTorneo si existe
-    if (equiposTorneo && Array.isArray(equiposTorneo) && equiposTorneo.length > 0) {
-      console.log('🔍 MÉTODO 3 - Usando prop equiposTorneo:', equiposTorneo);
-      equiposTorneo.forEach((equipo, index) => {
-        agregarEquipoSiEsValido(equipo, equiposData, equiposData.length + index);
-      });
-    }
-    
-    // MÉTODO 4: Buscar inscripciones por pattern matching avanzado
-    console.log('🔍 MÉTODO 4 - Pattern matching avanzado');
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key) {
-        const contieneInscripcion = key.toLowerCase().includes('inscripcion') || 
-                                  key.toLowerCase().includes('inscrito') ||
-                                  key.toLowerCase().includes('equipo');
-        
-        if (contieneInscripcion) {
-          const data = localStorage.getItem(key);
-          if (data) {
-            try {
-              const parsed = JSON.parse(data);
-              
-              // Verificar si menciona nuestro torneo
-              const mencionaTorneo = JSON.stringify(parsed).includes(torneo.id) ||
-                                   JSON.stringify(parsed).includes(torneo.nombre);
-              
-              if (mencionaTorneo) {
-                console.log(`🎯 Encontrado por pattern matching: ${key}`, parsed);
-                if (parsed.equipoId || parsed.equipo || parsed.nombre || parsed.name) {
-                  agregarEquipoSiEsValido(parsed, equiposData, equiposData.length);
-                }
-              }
-            } catch (error) {
-              console.error(`❌ Error en pattern matching ${key}:`, error);
-            }
-          }
-        }
-      }
-    }
-    
-    // Eliminar duplicados
-    const equiposUnicos = equiposData.filter((equipo, index, self) => 
-      index === self.findIndex(e => e.id === equipo.id || e.nombre === equipo.nombre)
-    );
-    
-    console.log('🏆 RESULTADO FINAL - Total equipos encontrados:', equiposUnicos.length);
-    console.log('🏆 Equipos detalle:', equiposUnicos);
-    
-    setEquiposInscritos(equiposUnicos);
-  };
-
-  const agregarEquipoSiEsValido = (item: any, equiposData: EquipoInscrito[], index: number) => {
-    try {
-      console.log(`🔍 Validando item:`, item);
-      
-      // Obtener ID del equipo
-      let equipoId = item.equipoId || item.equipo?.id || item.id;
-      
-      // Obtener datos del equipo
-      let equipoInfo = item.equipo || item;
-      let nombreEquipo = equipoInfo.nombre || equipoInfo.name || item.nombreEquipo;
-      let logoEquipo = equipoInfo.logo || equipoInfo.image || "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center";
-      
-      // Si tenemos ID pero no nombre, buscar el equipo en localStorage
-      if (equipoId && !nombreEquipo) {
-        console.log(`🔍 Buscando datos del equipo ${equipoId} en localStorage`);
-        
-        const posiblesClaves = [
-          `equipo_${equipoId}`,
-          `team_${equipoId}`,
-          equipoId.toString(),
-          `equipos_${equipoId}`
-        ];
-        
-        for (const clave of posiblesClaves) {
-          const equipoData = localStorage.getItem(clave);
-          if (equipoData) {
-            try {
-              const equipoParsed = JSON.parse(equipoData);
-              nombreEquipo = equipoParsed.nombre || equipoParsed.name;
-              logoEquipo = equipoParsed.logo || equipoParsed.image || logoEquipo;
-              console.log(`✅ Equipo encontrado en ${clave}:`, equipoParsed);
-              break;
-            } catch (error) {
-              console.error(`❌ Error parseando equipo ${clave}:`, error);
-            }
-          }
-        }
-      }
-      
-      // Verificar que tenemos datos mínimos
-      if (nombreEquipo && equipoId) {
-        const equipoExiste = equiposData.some(e => e.id === equipoId.toString() || e.nombre === nombreEquipo);
-        
-        if (!equipoExiste) {
-          const equipoInscrito: EquipoInscrito = {
-            id: equipoId.toString(),
-            nombre: nombreEquipo,
-            logo: logoEquipo,
-            categoria: torneo.categoria,
-            fechaInscripcion: item.fechaInscripcion || item.fecha || new Date().toISOString(),
-            grupo: `Grupo ${String.fromCharCode(65 + (equiposData.length % 4))}`,
-            posicion: equiposData.length + 1
-          };
-          
-          equiposData.push(equipoInscrito);
-          console.log(`✅ Equipo agregado: ${nombreEquipo} (ID: ${equipoId})`);
-        } else {
-          console.log(`⚠️ Equipo ya existe: ${nombreEquipo}`);
-        }
-      } else {
-        console.log(`❌ Datos insuficientes para el equipo. Nombre: ${nombreEquipo}, ID: ${equipoId}`);
-      }
-    } catch (error) {
-      console.error('❌ Error agregando equipo:', error, item);
-    }
-  };
-
-  const calcularEstadisticasReales = () => {
-    // Buscar partidos jugados para este torneo
-    const partidosKey = `partidos_${torneo.id}`;
-    const partidosData = JSON.parse(localStorage.getItem(partidosKey) || '[]');
-    
-    // Buscar resultados del torneo
-    const resultadosKey = `resultados_${torneo.id}`;
-    const resultadosData = JSON.parse(localStorage.getItem(resultadosKey) || '[]');
-    
-    // Calcular estadísticas reales basadas en los datos existentes
-    let partidosJugados = 0;
-    let golesTotales = 0;
-    let tarjetasAmarillas = 0;
-    let tarjetasRojas = 0;
-
-    // Contar partidos con estado 'jugado'
-    partidosJugados = partidosData.filter((partido: any) => partido.estado === 'jugado').length;
-    
-    // Sumar goles de los resultados
-    resultadosData.forEach((resultado: any) => {
-      if (resultado.golesLocal !== undefined && resultado.golesVisitante !== undefined) {
-        golesTotales += resultado.golesLocal + resultado.golesVisitante;
-      }
-      
-      // Sumar tarjetas si existen
-      if (resultado.tarjetasAmarillas) tarjetasAmarillas += resultado.tarjetasAmarillas;
-      if (resultado.tarjetasRojas) tarjetasRojas += resultado.tarjetasRojas;
-    });
-
-    console.log('📈 Estadísticas calculadas:', {
-      partidosJugados,
-      golesTotales,
-      tarjetasAmarillas,
-      tarjetasRojas
-    });
-
-    setEstadisticasReales({
-      partidosJugados,
-      golesTotales,
-      tarjetasAmarillas,
-      tarjetasRojas
-    });
-  };
+  const { equiposInscritos, estadisticasReales, loading, recargar } = useTorneoEstadisticas(torneo);
 
   // Datos para gráficos basados en estadísticas reales
   const estadisticasGenerales = [
@@ -378,16 +100,28 @@ const TorneoEstadisticas: React.FC<TorneoEstadisticasProps> = ({
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5" />
                   Equipos Inscritos y Aprobados ({equiposInscritos.length})
+                  {loading && <span className="text-sm text-muted-foreground">(Cargando...)</span>}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {equiposInscritos.length === 0 ? (
+                {loading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+                    <p className="text-muted-foreground mt-2">Cargando equipos...</p>
+                  </div>
+                ) : equiposInscritos.length === 0 ? (
                   <div className="text-center py-8">
                     <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-muted-foreground">No hay equipos inscritos aún</p>
                     <p className="text-sm text-gray-500 mt-2">
-                      Revisa la consola del navegador para más detalles de depuración
+                      Los equipos aparecerán aquí cuando sean aprobados
                     </p>
+                    <button 
+                      onClick={recargar}
+                      className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                      Recargar
+                    </button>
                   </div>
                 ) : (
                   <Table>
