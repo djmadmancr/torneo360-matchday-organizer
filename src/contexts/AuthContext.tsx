@@ -1,5 +1,7 @@
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { User, AuthContextType } from '@/types/auth';
+import { migrarEquipoSiNoTieneId } from '@/utils/equipoMigration';
 
 const initialUsers: User[] = [
   {
@@ -20,6 +22,7 @@ const initialUsers: User[] = [
         torneos: []
       },
       equipo: {
+        equipoId: 1, // Agregado el equipoId requerido
         nombreEquipo: 'Admin Team',
         colores: {
           principal: '#1e40af',
@@ -48,8 +51,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const savedUsers = localStorage.getItem('globalLinkSoccerUsers');
     if (savedUsers) {
       const parsedUsers = JSON.parse(savedUsers);
-      // Si hay usuarios guardados, los usamos tal como están para preservar datos existentes
-      return parsedUsers;
+      // Migrar usuarios existentes para asegurar que tengan equipoId
+      const usuariosMigrados = parsedUsers.map((user: User) => migrarEquipoSiNoTieneId(user));
+      return usuariosMigrados;
     }
     // Solo si no hay usuarios guardados, usamos los iniciales
     return initialUsers;
@@ -57,7 +61,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const [user, setUser] = useState<User | null>(() => {
     const storedUser = localStorage.getItem('globalLinkSoccerUser');
-    return storedUser ? JSON.parse(storedUser) : null;
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      // Migrar el usuario actual si es necesario
+      return migrarEquipoSiNoTieneId(parsedUser);
+    }
+    return null;
   });
   
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!user);
@@ -95,7 +104,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<boolean> => {
     const foundUser = users.find(u => u.email === email && u.password === password && u.activo);
     if (foundUser) {
-      setUser(foundUser);
+      // Migrar el usuario al hacer login si es necesario
+      const userMigrado = migrarEquipoSiNoTieneId(foundUser);
+      setUser(userMigrado);
       setIsAuthenticated(true);
       return true;
     } else {
@@ -134,11 +145,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateUsers = (newUsers: User[]) => {
-    setUsers(newUsers);
+    // Migrar usuarios antes de guardarlos
+    const usuariosMigrados = newUsers.map(user => migrarEquipoSiNoTieneId(user));
+    setUsers(usuariosMigrados);
     
     // Si el usuario actual fue modificado, actualizar también el estado del usuario actual
     if (user) {
-      const updatedCurrentUser = newUsers.find(u => u.id === user.id);
+      const updatedCurrentUser = usuariosMigrados.find(u => u.id === user.id);
       if (updatedCurrentUser) {
         setUser(updatedCurrentUser);
       }
