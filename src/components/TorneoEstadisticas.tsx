@@ -67,141 +67,211 @@ const TorneoEstadisticas: React.FC<TorneoEstadisticasProps> = ({
   }, [torneo.id]);
 
   const cargarEquiposInscritos = () => {
-    console.log('📊 Cargando equipos inscritos para torneo:', torneo.id);
-    console.log('📊 Revisando localStorage completo...');
-    
-    // Primero, listar todas las claves del localStorage para debug
-    const todasLasClaves = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key) {
-        todasLasClaves.push(key);
-      }
-    }
-    console.log('📊 Todas las claves en localStorage:', todasLasClaves);
+    console.log('🔍 INICIANDO BÚSQUEDA EXHAUSTIVA para torneo:', torneo.id);
+    console.log('🔍 Nombre del torneo:', torneo.nombre);
     
     const equiposData: EquipoInscrito[] = [];
     
-    // Buscar inscripciones de diferentes formas posibles
-    const posiblesPatrones = [
-      `inscripcion_${torneo.id}_`,
-      `inscripcion_torneo_${torneo.id}_`,
-      `torneo_${torneo.id}_inscripcion_`,
-      `${torneo.id}_inscripcion_`
-    ];
-    
-    console.log('📊 Buscando patrones:', posiblesPatrones);
-    
+    // Listar TODO el localStorage para debug completo
+    console.log('🔍 Contenido completo de localStorage:');
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key) {
-        // Buscar cualquier clave que contenga el ID del torneo y "inscripcion"
-        const contieneIdTorneo = key.includes(torneo.id);
-        const contieneInscripcion = key.toLowerCase().includes('inscripcion');
-        
-        if (contieneIdTorneo && contieneInscripcion) {
-          console.log('📊 Clave encontrada que contiene torneo e inscripción:', key);
+        const value = localStorage.getItem(key);
+        console.log(`  ${key}:`, value);
+      }
+    }
+    
+    // MÉTODO 1: Buscar inscripciones directas por múltiples patrones
+    const patronesInscripcion = [
+      `inscripcion_${torneo.id}`,
+      `inscripcion_torneo_${torneo.id}`,
+      `torneo_${torneo.id}_inscripcion`,
+      `${torneo.id}_inscripcion`,
+      `inscripciones_${torneo.id}`,
+      `equipos_inscritos_${torneo.id}`,
+      torneo.id // Algunas veces se guarda directamente con el ID
+    ];
+    
+    console.log('🔍 MÉTODO 1 - Buscando patrones directos:', patronesInscripcion);
+    
+    patronesInscripcion.forEach(patron => {
+      const data = localStorage.getItem(patron);
+      if (data) {
+        console.log(`✅ Encontrado patrón: ${patron}`, data);
+        try {
+          const parsed = JSON.parse(data);
           
-          try {
-            const inscripcionData = JSON.parse(localStorage.getItem(key) || '{}');
-            console.log('📊 Datos de inscripción:', inscripcionData);
-            
-            // Aceptar diferentes estados posibles
-            const estadosValidos = ['aprobado', 'aprobada', 'inscrito', 'confirmado', 'activo'];
-            const estadoValido = estadosValidos.some(estado => 
-              inscripcionData.estado?.toLowerCase() === estado ||
-              inscripcionData.status?.toLowerCase() === estado
-            );
-            
-            // Si no hay estado específico, asumir que es válida si tiene equipoId
-            const tieneEquipoId = inscripcionData.equipoId || inscripcionData.equipo?.id;
-            
-            console.log('📊 Estado válido:', estadoValido, 'Tiene equipo ID:', tieneEquipoId);
-            
-            if (estadoValido || tieneEquipoId) {
-              const equipoId = inscripcionData.equipoId || inscripcionData.equipo?.id;
-              console.log('📊 Procesando equipo ID:', equipoId);
-              
-              if (equipoId) {
-                // Buscar datos del equipo con diferentes patrones
-                const posiblesClaves = [
-                  `equipo_${equipoId}`,
-                  `team_${equipoId}`,
-                  equipoId.toString()
-                ];
-                
-                let equipoData = null;
-                for (const claveEquipo of posiblesClaves) {
-                  const datos = localStorage.getItem(claveEquipo);
-                  if (datos) {
-                    equipoData = JSON.parse(datos);
-                    console.log('📊 Equipo encontrado con clave:', claveEquipo, equipoData);
-                    break;
-                  }
-                }
-                
-                // Si no encontramos el equipo por ID, usar datos de la inscripción
-                if (!equipoData && inscripcionData.equipo) {
-                  equipoData = inscripcionData.equipo;
-                  console.log('📊 Usando datos del equipo desde inscripción:', equipoData);
-                }
-                
-                if (equipoData && (equipoData.nombre || equipoData.name)) {
-                  const nombreEquipo = equipoData.nombre || equipoData.name;
-                  const logoEquipo = equipoData.logo || equipoData.image || "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center";
-                  
-                  equiposData.push({
-                    id: equipoId.toString(),
-                    nombre: nombreEquipo,
-                    logo: logoEquipo,
-                    categoria: torneo.categoria,
-                    fechaInscripcion: inscripcionData.fechaInscripcion || inscripcionData.fecha || new Date().toISOString(),
-                    grupo: `Grupo ${String.fromCharCode(65 + (equiposData.length % 4))}`,
-                    posicion: equiposData.length + 1
-                  });
-                  
-                  console.log('📊 Equipo agregado:', nombreEquipo);
-                }
+          // Si es un array de equipos
+          if (Array.isArray(parsed)) {
+            parsed.forEach((item, index) => {
+              if (item.equipoId || item.equipo || item.nombre || item.name) {
+                console.log(`📋 Procesando item del array:`, item);
+                agregarEquipoSiEsValido(item, equiposData, index);
               }
+            });
+          }
+          // Si es un objeto individual
+          else if (parsed.equipoId || parsed.equipo || parsed.nombre || parsed.name) {
+            console.log(`📋 Procesando objeto individual:`, parsed);
+            agregarEquipoSiEsValido(parsed, equiposData, 0);
+          }
+        } catch (error) {
+          console.error(`❌ Error parseando ${patron}:`, error);
+        }
+      }
+    });
+    
+    // MÉTODO 2: Buscar cualquier clave que contenga el ID del torneo
+    console.log('🔍 MÉTODO 2 - Búsqueda por contenido de clave');
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.includes(torneo.id)) {
+        console.log(`🔍 Clave encontrada que contiene ${torneo.id}: ${key}`);
+        
+        const data = localStorage.getItem(key);
+        if (data) {
+          try {
+            const parsed = JSON.parse(data);
+            console.log(`📋 Datos de ${key}:`, parsed);
+            
+            // Si contiene información de equipo
+            if (parsed.equipoId || parsed.equipo || parsed.nombre || parsed.name) {
+              agregarEquipoSiEsValido(parsed, equiposData, equiposData.length);
+            }
+            
+            // Si es un array
+            if (Array.isArray(parsed)) {
+              parsed.forEach((item, index) => {
+                if (item.equipoId || item.equipo || item.nombre || item.name) {
+                  agregarEquipoSiEsValido(item, equiposData, equiposData.length + index);
+                }
+              });
             }
           } catch (error) {
-            console.error('📊 Error al procesar inscripción:', key, error);
+            console.error(`❌ Error parseando ${key}:`, error);
           }
         }
       }
     }
     
-    // También revisar si hay equipos directamente asociados al torneo
-    const equiposTorneoKey = `equipos_${torneo.id}`;
-    const equiposTorneoData = localStorage.getItem(equiposTorneoKey);
-    if (equiposTorneoData) {
-      try {
-        const equiposList = JSON.parse(equiposTorneoData);
-        console.log('📊 Equipos encontrados directamente:', equiposList);
+    // MÉTODO 3: Buscar en el prop equiposTorneo si existe
+    if (equiposTorneo && Array.isArray(equiposTorneo) && equiposTorneo.length > 0) {
+      console.log('🔍 MÉTODO 3 - Usando prop equiposTorneo:', equiposTorneo);
+      equiposTorneo.forEach((equipo, index) => {
+        agregarEquipoSiEsValido(equipo, equiposData, equiposData.length + index);
+      });
+    }
+    
+    // MÉTODO 4: Buscar inscripciones por pattern matching avanzado
+    console.log('🔍 MÉTODO 4 - Pattern matching avanzado');
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) {
+        const contieneInscripcion = key.toLowerCase().includes('inscripcion') || 
+                                  key.toLowerCase().includes('inscrito') ||
+                                  key.toLowerCase().includes('equipo');
         
-        if (Array.isArray(equiposList)) {
-          equiposList.forEach((equipo, index) => {
-            if (equipo.nombre || equipo.name) {
-              equiposData.push({
-                id: equipo.id?.toString() || `direct_${index}`,
-                nombre: equipo.nombre || equipo.name,
-                logo: equipo.logo || equipo.image || "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center",
-                categoria: torneo.categoria,
-                fechaInscripcion: equipo.fechaInscripcion || new Date().toISOString(),
-                grupo: `Grupo ${String.fromCharCode(65 + (equiposData.length % 4))}`,
-                posicion: equiposData.length + 1
-              });
+        if (contieneInscripcion) {
+          const data = localStorage.getItem(key);
+          if (data) {
+            try {
+              const parsed = JSON.parse(data);
+              
+              // Verificar si menciona nuestro torneo
+              const mencionaTorneo = JSON.stringify(parsed).includes(torneo.id) ||
+                                   JSON.stringify(parsed).includes(torneo.nombre);
+              
+              if (mencionaTorneo) {
+                console.log(`🎯 Encontrado por pattern matching: ${key}`, parsed);
+                if (parsed.equipoId || parsed.equipo || parsed.nombre || parsed.name) {
+                  agregarEquipoSiEsValido(parsed, equiposData, equiposData.length);
+                }
+              }
+            } catch (error) {
+              console.error(`❌ Error en pattern matching ${key}:`, error);
             }
-          });
+          }
         }
-      } catch (error) {
-        console.error('📊 Error al procesar equipos directos:', error);
       }
     }
     
-    console.log('🏆 Total equipos inscritos cargados:', equiposData.length);
-    console.log('🏆 Equipos detalle:', equiposData);
-    setEquiposInscritos(equiposData);
+    // Eliminar duplicados
+    const equiposUnicos = equiposData.filter((equipo, index, self) => 
+      index === self.findIndex(e => e.id === equipo.id || e.nombre === equipo.nombre)
+    );
+    
+    console.log('🏆 RESULTADO FINAL - Total equipos encontrados:', equiposUnicos.length);
+    console.log('🏆 Equipos detalle:', equiposUnicos);
+    
+    setEquiposInscritos(equiposUnicos);
+  };
+
+  const agregarEquipoSiEsValido = (item: any, equiposData: EquipoInscrito[], index: number) => {
+    try {
+      console.log(`🔍 Validando item:`, item);
+      
+      // Obtener ID del equipo
+      let equipoId = item.equipoId || item.equipo?.id || item.id;
+      
+      // Obtener datos del equipo
+      let equipoInfo = item.equipo || item;
+      let nombreEquipo = equipoInfo.nombre || equipoInfo.name || item.nombreEquipo;
+      let logoEquipo = equipoInfo.logo || equipoInfo.image || "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center";
+      
+      // Si tenemos ID pero no nombre, buscar el equipo en localStorage
+      if (equipoId && !nombreEquipo) {
+        console.log(`🔍 Buscando datos del equipo ${equipoId} en localStorage`);
+        
+        const posiblesClaves = [
+          `equipo_${equipoId}`,
+          `team_${equipoId}`,
+          equipoId.toString(),
+          `equipos_${equipoId}`
+        ];
+        
+        for (const clave of posiblesClaves) {
+          const equipoData = localStorage.getItem(clave);
+          if (equipoData) {
+            try {
+              const equipoParsed = JSON.parse(equipoData);
+              nombreEquipo = equipoParsed.nombre || equipoParsed.name;
+              logoEquipo = equipoParsed.logo || equipoParsed.image || logoEquipo;
+              console.log(`✅ Equipo encontrado en ${clave}:`, equipoParsed);
+              break;
+            } catch (error) {
+              console.error(`❌ Error parseando equipo ${clave}:`, error);
+            }
+          }
+        }
+      }
+      
+      // Verificar que tenemos datos mínimos
+      if (nombreEquipo && equipoId) {
+        const equipoExiste = equiposData.some(e => e.id === equipoId.toString() || e.nombre === nombreEquipo);
+        
+        if (!equipoExiste) {
+          const equipoInscrito: EquipoInscrito = {
+            id: equipoId.toString(),
+            nombre: nombreEquipo,
+            logo: logoEquipo,
+            categoria: torneo.categoria,
+            fechaInscripcion: item.fechaInscripcion || item.fecha || new Date().toISOString(),
+            grupo: `Grupo ${String.fromCharCode(65 + (equiposData.length % 4))}`,
+            posicion: equiposData.length + 1
+          };
+          
+          equiposData.push(equipoInscrito);
+          console.log(`✅ Equipo agregado: ${nombreEquipo} (ID: ${equipoId})`);
+        } else {
+          console.log(`⚠️ Equipo ya existe: ${nombreEquipo}`);
+        }
+      } else {
+        console.log(`❌ Datos insuficientes para el equipo. Nombre: ${nombreEquipo}, ID: ${equipoId}`);
+      }
+    } catch (error) {
+      console.error('❌ Error agregando equipo:', error, item);
+    }
   };
 
   const calcularEstadisticasReales = () => {
