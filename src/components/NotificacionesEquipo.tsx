@@ -129,8 +129,6 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
       const torneos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
       const torneo = torneos.find((t: any) => t.id === notificacion.torneoId);
       
-      const equipoIdNumerico = obtenerEquipoIdDeUsuario(user);
-      
       if (torneo) {
         return (
           <div className="mt-2 p-2 bg-green-50 rounded-md">
@@ -140,11 +138,6 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
             <p className="text-xs text-green-600">
               ID: {torneo.id} | Organizador: {torneo.organizadorNombre}
             </p>
-            {equipoIdNumerico && (
-              <p className="text-xs text-blue-600 mt-1">
-                <strong>EquipoId numérico:</strong> {equipoIdNumerico}
-              </p>
-            )}
           </div>
         );
       } else {
@@ -156,11 +149,6 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
             <p className="text-xs text-yellow-600">
               (Torneo no encontrado en la lista pública)
             </p>
-            {equipoIdNumerico && (
-              <p className="text-xs text-blue-600 mt-1">
-                <strong>EquipoId numérico:</strong> {equipoIdNumerico}
-              </p>
-            )}
           </div>
         );
       }
