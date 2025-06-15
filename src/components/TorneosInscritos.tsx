@@ -141,7 +141,6 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
     }
   }, [equipoId, equipoNombre]);
 
-  // Función de búsqueda mejorada
   useEffect(() => {
     if (busqueda.trim() === '') {
       setTorneosBusqueda([]);
@@ -168,7 +167,6 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
     setMostrandoBusqueda(true);
   }, [busqueda]);
 
-  // Filtrar torneos inscritos según la búsqueda
   const torneosFiltrados = mostrandoBusqueda ? 
     torneosBusqueda : 
     torneosInscritos.filter(torneo => 
@@ -275,11 +273,16 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
                         <div className="flex-1">
                           <CardTitle className="text-lg">{torneo.nombre}</CardTitle>
                           <p className="text-sm text-muted-foreground">por {torneo.organizadorNombre}</p>
-                          <p className="text-xs text-blue-600 font-mono">ID: {torneo.id}</p>
                         </div>
                         <Badge variant={torneo.esPublico ? "default" : "secondary"}>
                           {torneo.esPublico ? "Público" : "Privado"}
                         </Badge>
+                      </div>
+                      {/* ID del torneo más prominente */}
+                      <div className="bg-blue-50 border border-blue-200 rounded-md p-2 mt-2">
+                        <p className="text-sm font-medium text-blue-700">
+                          <span className="font-bold">ID Torneo:</span> {torneo.id}
+                        </p>
                       </div>
                     </CardHeader>
                     
@@ -393,9 +396,6 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
                 <div className="flex-1">
                   <CardTitle className="text-lg">{torneo.nombre}</CardTitle>
                   <p className="text-sm text-muted-foreground">por {torneo.organizadorNombre}</p>
-                  <p className={`text-xs font-mono ${mostrandoBusqueda ? 'text-blue-600' : 'text-muted-foreground'}`}>
-                    ID: {torneo.id}
-                  </p>
                 </div>
                 {mostrandoBusqueda ? (
                   <Badge variant={torneo.esPublico ? "default" : "secondary"}>
@@ -404,6 +404,12 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
                 ) : (
                   getEstadoBadge(torneo.estado)
                 )}
+              </div>
+              {/* ID del torneo más prominente */}
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-2 mt-2">
+                <p className="text-sm font-medium text-blue-700">
+                  <span className="font-bold">ID Torneo:</span> {torneo.id}
+                </p>
               </div>
             </CardHeader>
             

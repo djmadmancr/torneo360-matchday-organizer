@@ -57,39 +57,48 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
     const cargarTorneos = () => {
       console.log('=== CARGANDO TODOS LOS TORNEOS PÚBLICOS ===');
       const torneosGuardados = localStorage.getItem('torneosPublicos');
-      const equipoId = localStorage.getItem('userId');
+      
+      // Obtener equipoId desde diferentes fuentes posibles
+      let equipoId = localStorage.getItem('userId') || 
+                     localStorage.getItem('equipoId') || 
+                     localStorage.getItem('currentUserId');
       
       console.log('🔍 Datos en localStorage:');
       console.log('- torneosPublicos:', torneosGuardados);
-      console.log('- equipoId (userId):', equipoId);
+      console.log('- equipoId encontrado:', equipoId);
       console.log('- equipoCategoria recibida:', equipoCategoria);
       
-      if (torneosGuardados && equipoId) {
+      if (torneosGuardados) {
         const torneosData = JSON.parse(torneosGuardados);
         console.log('📋 Todos los torneos encontrados:', torneosData);
         console.log('📊 Total de torneos en localStorage:', torneosData.length);
         
-        // Obtener notificaciones de aprobación para filtrar torneos ya aprobados
-        const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
-        console.log('📢 Todas las notificaciones de equipo:', notificacionesEquipo);
+        // Si hay equipoId, obtener notificaciones para filtrar
+        let torneosAprobados: string[] = [];
+        let solicitudesPendientesEquipo: any[] = [];
         
-        const torneosAprobados = notificacionesEquipo
-          .filter((n: any) => 
-            n.equipoId === equipoId && 
-            n.tipo === 'aprobacion'
-          )
-          .map((n: any) => n.torneoId);
-        
-        console.log('✅ Torneos ya aprobados para este equipo:', torneosAprobados);
-        
-        // Obtener solicitudes pendientes
-        const solicitudesGuardadas = JSON.parse(localStorage.getItem('notificaciones') || '[]');
-        const solicitudesPendientesEquipo = solicitudesGuardadas.filter((s: any) => 
-          s.equipoId === equipoId && 
-          s.tipo === 'inscripcion' && 
-          s.accionRequerida === true
-        );
-        console.log('⏳ Solicitudes pendientes para este equipo:', solicitudesPendientesEquipo);
+        if (equipoId) {
+          const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
+          console.log('📢 Todas las notificaciones de equipo:', notificacionesEquipo);
+          
+          torneosAprobados = notificacionesEquipo
+            .filter((n: any) => 
+              n.equipoId === equipoId && 
+              n.tipo === 'aprobacion'
+            )
+            .map((n: any) => n.torneoId);
+          
+          console.log('✅ Torneos ya aprobados para este equipo:', torneosAprobados);
+          
+          // Obtener solicitudes pendientes
+          const solicitudesGuardadas = JSON.parse(localStorage.getItem('notificaciones') || '[]');
+          solicitudesPendientesEquipo = solicitudesGuardadas.filter((s: any) => 
+            s.equipoId === equipoId && 
+            s.tipo === 'inscripcion' && 
+            s.accionRequerida === true
+          );
+          console.log('⏳ Solicitudes pendientes para este equipo:', solicitudesPendientesEquipo);
+        }
         
         // Verificar fecha de cierre de inscripciones
         const fechaActual = new Date();
@@ -101,8 +110,15 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
           const fechaCierre = new Date(t.fechaCierre);
           const inscripcionesAbiertas = fechaCierre > fechaActual;
           const esPublico = t.esPublico;
-          const noEstaAprobado = !torneosAprobados.includes(t.id);
-          const noTieneSolicitudPendiente = !solicitudesPendientesEquipo.some((s: any) => s.torneoId === t.id);
+          
+          // Solo filtrar por aprobación/solicitudes si hay equipoId
+          let noEstaAprobado = true;
+          let noTieneSolicitudPendiente = true;
+          
+          if (equipoId) {
+            noEstaAprobado = !torneosAprobados.includes(t.id);
+            noTieneSolicitudPendiente = !solicitudesPendientesEquipo.some((s: any) => s.torneoId === t.id);
+          }
           
           console.log(`📋 Evaluando torneo "${t.nombre}" (${t.id}):`, {
             esPublico,
@@ -113,7 +129,7 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
             cumpleCondiciones: esPublico && inscripcionesAbiertas && noEstaAprobado && noTieneSolicitudPendiente
           });
           
-          // Mostrar TODOS los torneos públicos, independientemente del organizador
+          // Mostrar TODOS los torneos públicos con inscripciones abiertas
           return esPublico && inscripcionesAbiertas && noEstaAprobado && noTieneSolicitudPendiente;
         });
         
@@ -122,7 +138,7 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
         
         setTorneos(torneosPublicos);
       } else {
-        console.log('❌ No hay torneos guardados o no hay equipoId');
+        console.log('❌ No hay torneos guardados');
         setTorneos([]);
       }
       console.log('=== FIN CARGA TORNEOS PÚBLICOS ===');
@@ -195,9 +211,14 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
                 <div className="flex-1">
                   <CardTitle className="text-lg">{torneo.nombre}</CardTitle>
                   <p className="text-sm text-muted-foreground">por {torneo.organizadorNombre}</p>
-                  <p className="text-xs text-blue-600 font-mono">ID: {torneo.id}</p>
                 </div>
                 {getEstadoBadge(torneo.estado)}
+              </div>
+              {/* ID del torneo más prominente */}
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-2 mt-2">
+                <p className="text-sm font-medium text-blue-700">
+                  <span className="font-bold">ID Torneo:</span> {torneo.id}
+                </p>
               </div>
             </CardHeader>
             
