@@ -47,22 +47,30 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
   const [mostrarDetalle, setMostrarDetalle] = useState(false);
   const [busquedaId, setBusquedaId] = useState('');
   const [torneosBuscados, setTorneosBuscados] = useState<TorneoPublico[]>([]);
+  const [equiposInscritos, setEquiposInscritos] = useState<string[]>([]);
 
   useEffect(() => {
     const cargarTorneos = () => {
       console.log('=== INICIO CARGA TORNEOS PÚBLICOS ===');
       const torneosPublicos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
       console.log('🎯 Torneos públicos en localStorage:', torneosPublicos);
-      console.log('📋 Torneos inscritos actuales:', torneosInscritos);
       
-      // Filtrar torneos - excluir aquellos donde el equipo ya está inscrito
+      // Cargar inscripciones aprobadas para determinar en qué torneos está inscrito el equipo
+      const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
+      const inscripcionesAprobadas = notificacionesEquipo
+        .filter((n: any) => n.tipo === 'aprobacion')
+        .map((n: any) => n.torneoId)
+        .filter(Boolean);
+      
+      console.log('✅ Inscripciones aprobadas detectadas:', inscripcionesAprobadas);
+      setEquiposInscritos(inscripcionesAprobadas);
+      
+      // Mostrar TODOS los torneos públicos, sin filtrar los inscritos
       const torneosDisponibles = torneosPublicos.filter((torneo: TorneoPublico) => {
-        const yaInscrito = torneosInscritos.includes(torneo.id);
-        console.log(`⚡ Torneo ${torneo.nombre} (${torneo.id}) - Ya inscrito: ${yaInscrito}`);
-        return torneo.esPublico && !yaInscrito;
+        return torneo.esPublico;
       });
       
-      console.log('✅ Torneos disponibles (sin inscritos):', torneosDisponibles);
+      console.log('✅ Torneos públicos disponibles:', torneosDisponibles);
       setTorneos(torneosDisponibles);
       console.log('📊 Total de torneos públicos:', torneosDisponibles.length);
       console.log('=== FIN CARGA TORNEOS PÚBLICOS ===');
@@ -71,7 +79,7 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
     cargarTorneos();
     const interval = setInterval(cargarTorneos, 3000);
     return () => clearInterval(interval);
-  }, [torneosInscritos]);
+  }, []);
 
   const buscarPorId = () => {
     if (!busquedaId.trim()) {
@@ -109,11 +117,11 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
     return torneo.estado === 'inscripciones_abiertas' && 
            new Date(torneo.fechaCierre) > new Date() &&
            !solicitudesPendientes.includes(torneo.id) &&
-           !torneosInscritos.includes(torneo.id);
+           !estaInscrito(torneo.id);
   };
 
   const getTextoBoton = (torneo: TorneoPublico) => {
-    if (torneosInscritos.includes(torneo.id)) {
+    if (estaInscrito(torneo.id)) {
       return "Inscrito";
     }
     if (solicitudesPendientes.includes(torneo.id)) {
@@ -136,7 +144,7 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
   const torneosAMostrar = torneosBuscados.length > 0 ? torneosBuscados : torneos;
 
   const estaInscrito = (torneoId: string) => {
-    return torneosInscritos.includes(torneoId);
+    return equiposInscritos.includes(torneoId);
   };
 
   return (
@@ -238,10 +246,10 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
                   )}
                 </div>
 
-                {/* Solo mostrar estadísticas si el equipo está inscrito */}
+                {/* Mostrar estado de inscripción */}
                 {estaInscrito(torneo.id) && (
                   <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                    <h4 className="font-medium text-green-800 mb-2">Equipo Inscrito</h4>
+                    <h4 className="font-medium text-green-800 mb-2">✅ Equipo Inscrito</h4>
                     <p className="text-sm text-green-700">
                       Tu equipo está participando en este torneo
                     </p>

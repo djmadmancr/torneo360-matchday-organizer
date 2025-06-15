@@ -38,7 +38,7 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
     const nuevasNotificaciones = notificaciones.filter(n => n.id !== id);
     setNotificaciones(nuevasNotificaciones);
     
-    // Actualizar localStorage
+    // Actualizar localStorage para notificaciones de equipo
     const allNotificaciones = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
     const filteredNotificaciones = allNotificaciones.filter((n: Notificacion) => n.id !== id);
     localStorage.setItem('notificacionesEquipo', JSON.stringify(filteredNotificaciones));
@@ -55,7 +55,7 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
     );
     setNotificaciones(updatedNotificaciones);
 
-    // Actualizar localStorage
+    // Actualizar localStorage para notificaciones de equipo
     const allNotificaciones = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
     const updatedAllNotificaciones = allNotificaciones.map((n: Notificacion) => 
       n.id === id ? { ...n, accionRequerida: false } : n

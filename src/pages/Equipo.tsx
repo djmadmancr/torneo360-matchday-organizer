@@ -128,7 +128,7 @@ const Equipo = () => {
     };
 
     actualizarNotificaciones();
-    const interval = setInterval(actualizarNotificaciones, 5000); // Actualizar cada 5 segundos
+    const interval = setInterval(actualizarNotificaciones, 5000);
 
     return () => clearInterval(interval);
   }, [user?.id]);
@@ -151,19 +151,21 @@ const Equipo = () => {
   }, [user?.id]);
 
   useEffect(() => {
-    // Cargar torneos donde el equipo fue aceptado
+    // Cargar torneos donde el equipo fue aceptado basado en notificaciones de aprobación
     const cargarTorneosInscritos = () => {
       const notificaciones = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
       const solicitudesAceptadas = notificaciones.filter((n: any) => 
         n.equipoId === user?.id && 
         n.tipo === 'aprobacion'
       );
-      const torneosIds = solicitudesAceptadas.map((s: any) => s.torneoId);
+      const torneosIds = solicitudesAceptadas.map((s: any) => s.torneoId).filter(Boolean);
+      
+      console.log('🔄 Actualizando torneos inscritos en Equipo.tsx:', torneosIds);
       setTorneosInscritos(torneosIds);
     };
 
     cargarTorneosInscritos();
-    const interval = setInterval(cargarTorneosInscritos, 5000);
+    const interval = setInterval(cargarTorneosInscritos, 3000);
     return () => clearInterval(interval);
   }, [user?.id]);
 

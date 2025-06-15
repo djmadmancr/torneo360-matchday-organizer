@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -57,10 +58,10 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
 
   useEffect(() => {
     const cargarTorneosInscritos = () => {
-      console.log('=== INICIO CARGA TORNEOS INSCRITOS (DATOS REALES) ===');
+      console.log('=== INICIO CARGA TORNEOS INSCRITOS ===');
       console.log('🔍 Cargando torneos inscritos para equipoId:', equipoId);
       
-      // Cargar todas las notificaciones de equipo (fuente principal)
+      // Cargar notificaciones de aprobación para este equipo
       const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
       console.log('📢 Todas las notificaciones equipo encontradas:', notificacionesEquipo);
       
@@ -71,25 +72,32 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
       );
       console.log('✅ Solicitudes aceptadas encontradas:', solicitudesAceptadas);
 
-      // Agregar inscripción manual para Herediano al torneo TRN-912 si no existe
-      if (equipoNombre === 'Herediano' || equipoId === 'herediano-id') {
-        const yaExisteHerediano = solicitudesAceptadas.some((s: any) => s.torneoId === 'TRN-912');
-        if (!yaExisteHerediano) {
-          const inscripcionHerediano = {
+      // Crear lista de inscripciones aprobadas basada en las notificaciones
+      const inscripcionesAprobadas: any[] = [];
+      
+      // Cargar inscripciones desde las notificaciones de aprobación
+      solicitudesAceptadas.forEach((notificacion: any) => {
+        if (notificacion.torneoId) {
+          const inscripcionKey = `inscripcion_${notificacion.torneoId}_${equipoId}`;
+          const inscripcionData = {
             equipoId: equipoId,
-            tipo: 'aprobacion',
-            torneoId: 'TRN-912',
-            titulo: 'Inscripción Aprobada',
-            mensaje: 'Tu equipo ha sido aceptado en el torneo',
-            fecha: new Date().toISOString()
+            torneoId: notificacion.torneoId,
+            fechaInscripcion: notificacion.fecha || new Date().toISOString(),
+            estado: 'aprobado'
           };
-          solicitudesAceptadas.push(inscripcionHerediano);
-          console.log('✅ Agregada inscripción manual de Herediano al torneo TRN-912');
+          
+          // Guardar en localStorage para referencia futura
+          localStorage.setItem(inscripcionKey, JSON.stringify(inscripcionData));
+          inscripcionesAprobadas.push(inscripcionData);
+          
+          console.log('✅ Inscripción registrada:', inscripcionKey, inscripcionData);
         }
-      }
+      });
 
-      if (solicitudesAceptadas.length === 0) {
-        console.log('❌ No hay solicitudes aceptadas para este equipo');
+      console.log('📋 Inscripciones aprobadas procesadas:', inscripcionesAprobadas);
+
+      if (inscripcionesAprobadas.length === 0) {
+        console.log('❌ No hay inscripciones aprobadas para este equipo');
         setTorneosInscritos([]);
         return;
       }
@@ -98,14 +106,14 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
       const torneosPublicos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
       console.log('📋 Todos los torneos públicos encontrados:', torneosPublicos);
       
-      const torneosInscritosData = solicitudesAceptadas
-        .map((solicitud: any) => {
-          console.log('🔍 Buscando torneo para solicitud:', solicitud);
-          const torneo = torneosPublicos.find((t: any) => t.id === solicitud.torneoId);
+      const torneosInscritosData = inscripcionesAprobadas
+        .map((inscripcion: any) => {
+          console.log('🔍 Buscando torneo para inscripción:', inscripcion);
+          const torneo = torneosPublicos.find((t: any) => t.id === inscripcion.torneoId);
           
           if (torneo) {
             console.log('✅ Torneo encontrado:', torneo.nombre, torneo.id);
-            // Cargar estadísticas REALES si existen, sino usar valores vacíos
+            // Cargar estadísticas si existen
             const statsKey = `torneo_${torneo.id}_equipo_${equipoId}_stats`;
             const statsGuardadas = JSON.parse(localStorage.getItem(statsKey) || 'null');
             
@@ -125,13 +133,13 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
             
             return torneoCompleto;
           } else {
-            console.log('❌ Torneo no encontrado para ID:', solicitud.torneoId);
+            console.log('❌ Torneo no encontrado para ID:', inscripcion.torneoId);
             return null;
           }
         })
         .filter(Boolean);
 
-      console.log('📊 Torneos inscritos finales (datos reales):', torneosInscritosData);
+      console.log('📊 Torneos inscritos finales:', torneosInscritosData);
       setTorneosInscritos(torneosInscritosData);
       console.log('=== FIN CARGA TORNEOS INSCRITOS ===');
     };
@@ -160,40 +168,6 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
     setTorneoSeleccionado(torneo);
     setMostrarDetalles(true);
   };
-
-  // Datos demo para tabla de grupo
-  const tablaGrupo = [
-    { pos: 1, equipo: equipoNombre, logo: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center", pj: 3, pg: 2, pe: 1, pp: 0, gf: 7, gc: 3, dg: 4, pts: 7 },
-    { pos: 2, equipo: "Rivales FC", logo: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=50&h=50&fit=crop&crop=center", pj: 3, pg: 2, pe: 0, pp: 1, gf: 6, gc: 4, dg: 2, pts: 6 },
-    { pos: 3, equipo: "Unidos SC", logo: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=50&h=50&fit=crop&crop=center", pj: 3, pg: 1, pe: 1, pp: 1, gf: 4, gc: 5, dg: -1, pts: 4 },
-    { pos: 4, equipo: "Deportivo XYZ", logo: "https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=50&h=50&fit=crop&crop=center", pj: 3, pg: 0, pe: 0, pp: 3, gf: 2, gc: 7, dg: -5, pts: 0 }
-  ];
-
-  // Datos demo para partidos pendientes
-  const partidosPendientes: PartidoPendiente[] = [
-    {
-      id: "p1",
-      fecha: "2024-06-20",
-      hora: "15:00",
-      equipoLocal: equipoNombre,
-      equipoVisitante: "Rivales FC",
-      logoLocal: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center",
-      logoVisitante: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=50&h=50&fit=crop&crop=center",
-      jornada: 4,
-      ubicacion: "Estadio Municipal"
-    },
-    {
-      id: "p2",
-      fecha: "2024-06-27",
-      hora: "17:30",
-      equipoLocal: "Unidos SC",
-      equipoVisitante: equipoNombre,
-      logoLocal: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=50&h=50&fit=crop&crop=center",
-      logoVisitante: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center",
-      jornada: 5,
-      ubicacion: "Complejo Deportivo Norte"
-    }
-  ];
 
   if (torneosInscritos.length === 0) {
     return (
@@ -238,7 +212,6 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
                 </div>
                 {getEstadoBadge(torneo.estado)}
               </div>
-              {/* ID del torneo más prominente */}
               <div className="bg-blue-50 border border-blue-200 rounded-md p-2 mt-2">
                 <p className="text-sm font-medium text-blue-700">
                   <span className="font-bold">ID Torneo:</span> {torneo.id}
