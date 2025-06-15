@@ -65,7 +65,7 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
     
     console.log('✅ Notificación marcada como leída:', id);
 
-    // IMPORTANTE: Si es una notificación de aprobación, crear la inscripción usando equipoId numérico
+    // CRUCIAL: Si es una notificación de aprobación, crear MÚLTIPLES registros de inscripción
     const notificacion = allNotificaciones.find((n: any) => n.id === id);
     if (notificacion && notificacion.tipo === 'aprobacion' && notificacion.torneoId && user) {
       console.log('🎯 Procesando notificación de aprobación:', notificacion);
@@ -74,23 +74,82 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
       const equipoIdNumerico = obtenerEquipoIdDeUsuario(user);
       
       if (equipoIdNumerico) {
-        // Crear registro de inscripción con equipoId numérico
-        const inscripcionKey = `inscripcion_${notificacion.torneoId}_${equipoIdNumerico}`;
-        const inscripcionData = {
-          equipoId: equipoIdNumerico, // Usar equipoId numérico
+        const timestamp = new Date().toISOString();
+        
+        // Método 1: Clave con equipoId numérico (PRINCIPAL)
+        const inscripcionKey1 = `inscripcion_${notificacion.torneoId}_${equipoIdNumerico}`;
+        const inscripcionData1 = {
+          equipoId: equipoIdNumerico,
           torneoId: notificacion.torneoId,
-          fechaInscripcion: new Date().toISOString(),
+          fechaInscripcion: timestamp,
           estado: 'aprobado',
-          fechaAprobacion: new Date().toISOString()
+          fechaAprobacion: timestamp
         };
         
-        localStorage.setItem(inscripcionKey, JSON.stringify(inscripcionData));
-        console.log('✅ Inscripción registrada con equipoId numérico:', inscripcionKey, inscripcionData);
+        // Método 2: Clave con userId (RESPALDO)
+        const inscripcionKey2 = `inscripcion_${notificacion.torneoId}_${user.id}`;
+        const inscripcionData2 = {
+          equipoId: user.id,
+          torneoId: notificacion.torneoId,
+          fechaInscripcion: timestamp,
+          estado: 'aprobado',
+          fechaAprobacion: timestamp
+        };
         
-        // Forzar actualización de la lista de torneos inscritos
-        window.dispatchEvent(new Event('torneosInscritosUpdate'));
+        // Método 3: Clave inversa (RESPALDO ADICIONAL)
+        const inscripcionKey3 = `torneo_${notificacion.torneoId}_equipo_${equipoIdNumerico}`;
+        const inscripcionData3 = {
+          equipoId: equipoIdNumerico,
+          torneoId: notificacion.torneoId,
+          fechaInscripcion: timestamp,
+          estado: 'aprobado',
+          fechaAprobacion: timestamp
+        };
         
-        toast.success('¡Inscripción confirmada! El torneo aparecerá en "Mis Torneos"');
+        // Guardar TODAS las variantes para máxima compatibilidad
+        localStorage.setItem(inscripcionKey1, JSON.stringify(inscripcionData1));
+        localStorage.setItem(inscripcionKey2, JSON.stringify(inscripcionData2));
+        localStorage.setItem(inscripcionKey3, JSON.stringify(inscripcionData3));
+        
+        console.log('✅ Inscripciones registradas MÚLTIPLES:', {
+          key1: inscripcionKey1,
+          key2: inscripcionKey2,
+          key3: inscripcionKey3,
+          data: inscripcionData1
+        });
+        
+        // También agregar a la lista general de equipos inscritos si existe
+        const equiposInscritosKey = `equipos_inscritos_${notificacion.torneoId}`;
+        const equiposInscritos = JSON.parse(localStorage.getItem(equiposInscritosKey) || '[]');
+        
+        // Verificar si ya está en la lista
+        const yaInscrito = equiposInscritos.some((e: any) => 
+          e.equipoId === equipoIdNumerico || e.equipoId === user.id
+        );
+        
+        if (!yaInscrito) {
+          equiposInscritos.push({
+            equipoId: equipoIdNumerico,
+            userId: user.id,
+            fechaInscripcion: timestamp,
+            estado: 'aprobado'
+          });
+          localStorage.setItem(equiposInscritosKey, JSON.stringify(equiposInscritos));
+          console.log('✅ Agregado a lista general de equipos inscritos');
+        }
+        
+        // Forzar actualización INMEDIATA de todos los componentes
+        window.dispatchEvent(new CustomEvent('torneosInscritosUpdate'));
+        window.dispatchEvent(new CustomEvent('equiposInscritosUpdate'));
+        window.dispatchEvent(new CustomEvent('inscripcionesUpdate'));
+        
+        // Forzar recarga después de un breve delay
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('torneosInscritosUpdate'));
+          window.location.reload();
+        }, 1000);
+        
+        toast.success('¡Inscripción confirmada! El torneo aparecerá en "Mis Torneos" y se marcará como inscrito');
       } else {
         console.error('❌ No se pudo obtener equipoId numérico para la inscripción');
         toast.error('Error al procesar la inscripción');

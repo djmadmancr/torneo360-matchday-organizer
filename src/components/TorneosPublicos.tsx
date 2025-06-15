@@ -52,9 +52,100 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
   const [equiposInscritos, setEquiposInscritos] = useState<string[]>([]);
   const [equipoIdNumerico, setEquipoIdNumerico] = useState<number | null>(null);
 
+  const verificarInscripcionDetallada = (torneoId: string, equipoId: number, userId: string): boolean => {
+    console.log(`🔍 VERIFICACIÓN DETALLADA - Torneo: ${torneoId}, EquipoId: ${equipoId}, UserId: ${userId}`);
+    
+    // Método 1: Búsqueda por clave principal
+    const clave1 = `inscripcion_${torneoId}_${equipoId}`;
+    const inscripcion1 = localStorage.getItem(clave1);
+    if (inscripcion1) {
+      try {
+        const data = JSON.parse(inscripcion1);
+        if (data.estado === 'aprobado') {
+          console.log(`✅ INSCRITO por clave1: ${clave1}`);
+          return true;
+        }
+      } catch (e) {
+        console.error(`❌ Error parseando ${clave1}:`, e);
+      }
+    }
+    
+    // Método 2: Búsqueda por userId
+    const clave2 = `inscripcion_${torneoId}_${userId}`;
+    const inscripcion2 = localStorage.getItem(clave2);
+    if (inscripcion2) {
+      try {
+        const data = JSON.parse(inscripcion2);
+        if (data.estado === 'aprobado') {
+          console.log(`✅ INSCRITO por clave2: ${clave2}`);
+          return true;
+        }
+      } catch (e) {
+        console.error(`❌ Error parseando ${clave2}:`, e);
+      }
+    }
+    
+    // Método 3: Búsqueda por clave inversa
+    const clave3 = `torneo_${torneoId}_equipo_${equipoId}`;
+    const inscripcion3 = localStorage.getItem(clave3);
+    if (inscripcion3) {
+      try {
+        const data = JSON.parse(inscripcion3);
+        if (data.estado === 'aprobado') {
+          console.log(`✅ INSCRITO por clave3: ${clave3}`);
+          return true;
+        }
+      } catch (e) {
+        console.error(`❌ Error parseando ${clave3}:`, e);
+      }
+    }
+    
+    // Método 4: Búsqueda en lista general
+    const equiposInscritosKey = `equipos_inscritos_${torneoId}`;
+    const equiposInscritos = localStorage.getItem(equiposInscritosKey);
+    if (equiposInscritos) {
+      try {
+        const lista = JSON.parse(equiposInscritos);
+        const encontrado = lista.some((e: any) => 
+          (e.equipoId === equipoId || e.equipoId === userId || e.userId === userId) &&
+          e.estado === 'aprobado'
+        );
+        if (encontrado) {
+          console.log(`✅ INSCRITO por lista general: ${equiposInscritosKey}`);
+          return true;
+        }
+      } catch (e) {
+        console.error(`❌ Error parseando lista general:`, e);
+      }
+    }
+    
+    // Método 5: Búsqueda por todas las claves que contengan el torneoId
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.includes(torneoId) && key.includes('inscripcion')) {
+        try {
+          const data = localStorage.getItem(key);
+          if (data) {
+            const parsed = JSON.parse(data);
+            if (parsed.estado === 'aprobado' && 
+                (parsed.equipoId === equipoId || parsed.equipoId === userId)) {
+              console.log(`✅ INSCRITO por búsqueda amplia: ${key}`);
+              return true;
+            }
+          }
+        } catch (e) {
+          // Continúa con la siguiente clave
+        }
+      }
+    }
+    
+    console.log(`❌ NO INSCRITO después de verificación completa`);
+    return false;
+  };
+
   useEffect(() => {
     const cargarTorneos = () => {
-      console.log('=== INICIO CARGA TORNEOS PÚBLICOS (CON INSCRIPCIONES) ===');
+      console.log('=== INICIO CARGA TORNEOS PÚBLICOS (MEJORADO) ===');
       
       if (!user) {
         console.log('❌ No hay usuario logueado');
@@ -67,38 +158,31 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
       console.log('🔍 EquipoId numérico obtenido:', equipoId);
       
       if (equipoId) {
-        // Cargar inscripciones usando equipoId numérico
-        const todasLasClaves = Object.keys(localStorage);
-        const clavesInscripcion = todasLasClaves.filter(clave => 
-          clave.startsWith('inscripcion_') && clave.endsWith(`_${equipoId}`)
-        );
+        const torneosPublicos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
+        console.log('🎯 Torneos públicos en localStorage:', torneosPublicos.length);
         
-        console.log('🔑 Claves de inscripción encontradas:', clavesInscripcion);
+        // Verificar inscripciones para cada torneo
+        const inscripcionesDetectadas: string[] = [];
         
-        const inscripcionesAprobadas = clavesInscripcion
-          .map(clave => {
-            const inscripcion = JSON.parse(localStorage.getItem(clave) || '{}');
-            console.log('📄 Revisando inscripción:', clave, inscripcion);
-            return inscripcion;
-          })
-          .filter(inscripcion => inscripcion.estado === 'aprobado')
-          .map(inscripcion => inscripcion.torneoId)
-          .filter(Boolean);
+        torneosPublicos.forEach((torneo: any) => {
+          const estaInscrito = verificarInscripcionDetallada(torneo.id, equipoId, user.id);
+          if (estaInscrito) {
+            inscripcionesDetectadas.push(torneo.id);
+          }
+        });
         
-        console.log('✅ Inscripciones aprobadas (torneoIds):', inscripcionesAprobadas);
-        setEquiposInscritos(inscripcionesAprobadas);
+        console.log('✅ Inscripciones detectadas (torneoIds):', inscripcionesDetectadas);
+        setEquiposInscritos(inscripcionesDetectadas);
+        
+        const torneosDisponibles = torneosPublicos.filter((torneo: TorneoPublico) => {
+          return torneo.esPublico;
+        });
+        
+        console.log('✅ Torneos públicos disponibles:', torneosDisponibles.length);
+        setTorneos(torneosDisponibles);
       }
       
-      const torneosPublicos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
-      console.log('🎯 Torneos públicos en localStorage:', torneosPublicos);
-      
-      const torneosDisponibles = torneosPublicos.filter((torneo: TorneoPublico) => {
-        return torneo.esPublico;
-      });
-      
-      console.log('✅ Torneos públicos disponibles:', torneosDisponibles);
-      setTorneos(torneosDisponibles);
-      console.log('=== FIN CARGA TORNEOS PÚBLICOS (CON INSCRIPCIONES) ===');
+      console.log('=== FIN CARGA TORNEOS PÚBLICOS (MEJORADO) ===');
     };
 
     cargarTorneos();
@@ -109,12 +193,18 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
       setTimeout(cargarTorneos, 100);
     };
     
+    // Escuchar múltiples tipos de eventos
     window.addEventListener('torneosInscritosUpdate', handleUpdate);
-    const interval = setInterval(cargarTorneos, 5000);
+    window.addEventListener('equiposInscritosUpdate', handleUpdate);
+    window.addEventListener('inscripcionesUpdate', handleUpdate);
+    
+    const interval = setInterval(cargarTorneos, 3000); // Más frecuente
     
     return () => {
       clearInterval(interval);
       window.removeEventListener('torneosInscritosUpdate', handleUpdate);
+      window.removeEventListener('equiposInscritosUpdate', handleUpdate);
+      window.removeEventListener('inscripcionesUpdate', handleUpdate);
     };
   }, [user]);
 
@@ -182,8 +272,7 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
 
   const estaInscrito = (torneoId: string) => {
     const inscrito = equiposInscritos.includes(torneoId);
-    console.log(`🔍 Verificando inscripción para torneo ${torneoId}:`, inscrito);
-    console.log('📋 Lista de torneos inscritos:', equiposInscritos);
+    console.log(`🔍 Estado de inscripción para torneo ${torneoId}:`, inscrito ? 'INSCRITO' : 'NO INSCRITO');
     return inscrito;
   };
 
@@ -251,11 +340,6 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
                     <p className="text-sm text-muted-foreground">por {torneo.organizadorNombre}</p>
                   </div>
                   {getEstadoBadge(torneo.estado)}
-                </div>
-                <div className="bg-blue-50 border border-blue-200 rounded-md p-2 mt-2">
-                  <p className="text-sm font-medium text-blue-700">
-                    <span className="font-bold">ID:</span> {torneo.id}
-                  </p>
                 </div>
               </CardHeader>
               
