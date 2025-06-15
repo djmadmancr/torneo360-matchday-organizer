@@ -19,9 +19,10 @@ interface EquipoCardProps {
     jugadores: number;
   };
   onEdit: () => void;
+  showIds?: boolean; // Nueva prop para controlar si mostrar IDs
 }
 
-const EquipoCard: React.FC<EquipoCardProps> = ({ equipo, onEdit }) => {
+const EquipoCard: React.FC<EquipoCardProps> = ({ equipo, onEdit, showIds = true }) => {
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-4">
@@ -44,12 +45,14 @@ const EquipoCard: React.FC<EquipoCardProps> = ({ equipo, onEdit }) => {
             </div>
             <div>
               <h3 className="font-semibold">{equipo.nombre}</h3>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">ID Usuario: {equipo.id}</p>
-                {equipo.equipoId && (
-                  <p className="text-sm text-blue-600 font-medium">EquipoID: {equipo.equipoId}</p>
-                )}
-              </div>
+              {showIds && (
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">ID Usuario: {equipo.id}</p>
+                  {equipo.equipoId && (
+                    <p className="text-sm text-blue-600 font-medium">EquipoID: {equipo.equipoId}</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           <Button variant="outline" size="sm" onClick={onEdit}>
