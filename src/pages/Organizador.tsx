@@ -752,6 +752,7 @@ const Organizador = () => {
                               <div>
                                 <CardTitle className="text-lg">{torneo.nombre}</CardTitle>
                                 <p className="text-sm text-muted-foreground">{torneo.categoria}</p>
+                                <p className="text-xs text-blue-600 font-medium">ID: {torneo.id}</p>
                               </div>
                             </div>
                             <div className="flex gap-1">
