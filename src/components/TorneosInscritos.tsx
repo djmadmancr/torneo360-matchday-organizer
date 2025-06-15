@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -61,29 +60,29 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
       console.log('=== INICIO CARGA TORNEOS INSCRITOS (DATOS REALES) ===');
       console.log('🔍 Cargando torneos inscritos para equipoId:', equipoId);
       
-      // Cargar torneos donde el equipo fue aceptado
+      // Cargar todas las notificaciones de equipo (fuente principal)
       const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
       console.log('📢 Todas las notificaciones equipo encontradas:', notificacionesEquipo);
       
+      // Buscar notificaciones de aprobación para este equipo
       const solicitudesAceptadas = notificacionesEquipo.filter((n: any) => 
         n.equipoId === equipoId && 
         n.tipo === 'aprobacion'
       );
-      console.log('✅ Solicitudes aceptadas:', solicitudesAceptadas);
+      console.log('✅ Solicitudes aceptadas encontradas:', solicitudesAceptadas);
 
-      // Agregar inscripción manual para Herediano al torneo TRN-912
+      // Agregar inscripción manual para Herediano al torneo TRN-912 si no existe
       if (equipoNombre === 'Herediano' || equipoId === 'herediano-id') {
-        const inscripcionHerediano = {
-          equipoId: equipoId,
-          tipo: 'aprobacion',
-          torneoId: 'TRN-912',
-          titulo: 'Inscripción Aprobada',
-          mensaje: 'Tu equipo ha sido aceptado en el torneo',
-          fecha: new Date().toISOString()
-        };
-        
-        const yaExiste = solicitudesAceptadas.some((s: any) => s.torneoId === 'TRN-912');
-        if (!yaExiste) {
+        const yaExisteHerediano = solicitudesAceptadas.some((s: any) => s.torneoId === 'TRN-912');
+        if (!yaExisteHerediano) {
+          const inscripcionHerediano = {
+            equipoId: equipoId,
+            tipo: 'aprobacion',
+            torneoId: 'TRN-912',
+            titulo: 'Inscripción Aprobada',
+            mensaje: 'Tu equipo ha sido aceptado en el torneo',
+            fecha: new Date().toISOString()
+          };
           solicitudesAceptadas.push(inscripcionHerediano);
           console.log('✅ Agregada inscripción manual de Herediano al torneo TRN-912');
         }
@@ -99,32 +98,38 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
       const torneosPublicos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
       console.log('📋 Todos los torneos públicos encontrados:', torneosPublicos);
       
-      const torneosInscritosData = solicitudesAceptadas.map((solicitud: any) => {
-        const torneo = torneosPublicos.find((t: any) => t.id === solicitud.torneoId);
-        
-        if (torneo) {
-          // Cargar estadísticas REALES si existen, sino usar valores vacíos
-          const statsKey = `torneo_${torneo.id}_equipo_${equipoId}_stats`;
-          const statsGuardadas = JSON.parse(localStorage.getItem(statsKey) || 'null');
+      const torneosInscritosData = solicitudesAceptadas
+        .map((solicitud: any) => {
+          console.log('🔍 Buscando torneo para solicitud:', solicitud);
+          const torneo = torneosPublicos.find((t: any) => t.id === solicitud.torneoId);
           
-          const torneoCompleto = {
-            ...torneo,
-            equipoStats: statsGuardadas || {
-              partidosJugados: 0,
-              victorias: 0,
-              empates: 0,
-              derrotas: 0,
-              golesAFavor: 0,
-              golesEnContra: 0,
-              posicion: null,
-              grupo: null
-            }
-          };
-          
-          return torneoCompleto;
-        }
-        return null;
-      }).filter(Boolean);
+          if (torneo) {
+            console.log('✅ Torneo encontrado:', torneo.nombre, torneo.id);
+            // Cargar estadísticas REALES si existen, sino usar valores vacíos
+            const statsKey = `torneo_${torneo.id}_equipo_${equipoId}_stats`;
+            const statsGuardadas = JSON.parse(localStorage.getItem(statsKey) || 'null');
+            
+            const torneoCompleto = {
+              ...torneo,
+              equipoStats: statsGuardadas || {
+                partidosJugados: 0,
+                victorias: 0,
+                empates: 0,
+                derrotas: 0,
+                golesAFavor: 0,
+                golesEnContra: 0,
+                posicion: null,
+                grupo: null
+              }
+            };
+            
+            return torneoCompleto;
+          } else {
+            console.log('❌ Torneo no encontrado para ID:', solicitud.torneoId);
+            return null;
+          }
+        })
+        .filter(Boolean);
 
       console.log('📊 Torneos inscritos finales (datos reales):', torneosInscritosData);
       setTorneosInscritos(torneosInscritosData);

@@ -43,6 +43,9 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
     const filteredNotificaciones = allNotificaciones.filter((n: Notificacion) => n.id !== id);
     localStorage.setItem('notificacionesEquipo', JSON.stringify(filteredNotificaciones));
     
+    console.log('🗑️ Notificación eliminada:', id);
+    console.log('📋 Notificaciones restantes:', filteredNotificaciones);
+    
     toast.success('Notificación eliminada');
   };
 
@@ -58,6 +61,8 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
       n.id === id ? { ...n, accionRequerida: false } : n
     );
     localStorage.setItem('notificacionesEquipo', JSON.stringify(updatedAllNotificaciones));
+    
+    console.log('✅ Notificación marcada como leída:', id);
   };
 
   const getIconoTipo = (tipo: string) => {
@@ -84,6 +89,28 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
       default:
         return 'outline';
     }
+  };
+
+  // Mostrar información adicional del torneo para notificaciones de aprobación
+  const getDetallesNotificacion = (notificacion: Notificacion) => {
+    if (notificacion.tipo === 'aprobacion' && notificacion.torneoId) {
+      const torneos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
+      const torneo = torneos.find((t: any) => t.id === notificacion.torneoId);
+      
+      if (torneo) {
+        return (
+          <div className="mt-2 p-2 bg-green-50 rounded-md">
+            <p className="text-sm text-green-700">
+              <strong>Torneo:</strong> {torneo.nombre}
+            </p>
+            <p className="text-xs text-green-600">
+              ID: {torneo.id} | Organizador: {torneo.organizadorNombre}
+            </p>
+          </div>
+        );
+      }
+    }
+    return null;
   };
 
   return (
@@ -115,6 +142,7 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
                         <p className="text-sm text-muted-foreground mb-2">
                           {notificacion.mensaje}
                         </p>
+                        {getDetallesNotificacion(notificacion)}
                         <p className="text-xs text-muted-foreground">
                           Fecha: {notificacion.fecha}
                         </p>
