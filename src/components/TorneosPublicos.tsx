@@ -53,62 +53,94 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
   const [equipoIdNumerico, setEquipoIdNumerico] = useState<number | null>(null);
 
   const verificarInscripcionDetallada = (torneoId: string, equipoId: number, userId: string): boolean => {
-    console.log(`🔍 VERIFICACIÓN DETALLADA - Torneo: ${torneoId}, EquipoId: ${equipoId}, UserId: ${userId}`);
+    console.log(`🔍 VERIFICACIÓN EXHAUSTIVA - Torneo: ${torneoId}, EquipoId: ${equipoId}, UserId: ${userId}`);
+    
+    // Lista de todas las claves de localStorage para debugging
+    const todasLasClaves: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) todasLasClaves.push(key);
+    }
+    console.log(`📋 Total claves en localStorage: ${todasLasClaves.length}`);
+    
+    // Buscar claves que contengan el torneoId
+    const clavesRelacionadas = todasLasClaves.filter(key => 
+      key.includes(torneoId) || key.includes('inscripcion')
+    );
+    console.log(`🎯 Claves relacionadas con ${torneoId}:`, clavesRelacionadas);
     
     // Método 1: Búsqueda por clave principal
     const clave1 = `inscripcion_${torneoId}_${equipoId}`;
+    console.log(`🔍 Buscando clave1: ${clave1}`);
     const inscripcion1 = localStorage.getItem(clave1);
     if (inscripcion1) {
+      console.log(`📄 Contenido clave1:`, inscripcion1);
       try {
         const data = JSON.parse(inscripcion1);
-        if (data.estado === 'aprobado') {
+        console.log(`📊 Data parseada clave1:`, data);
+        if (data.estado === 'aprobado' || data.estado === 'inscrito') {
           console.log(`✅ INSCRITO por clave1: ${clave1}`);
           return true;
         }
       } catch (e) {
         console.error(`❌ Error parseando ${clave1}:`, e);
       }
+    } else {
+      console.log(`❌ No existe clave1: ${clave1}`);
     }
     
     // Método 2: Búsqueda por userId
     const clave2 = `inscripcion_${torneoId}_${userId}`;
+    console.log(`🔍 Buscando clave2: ${clave2}`);
     const inscripcion2 = localStorage.getItem(clave2);
     if (inscripcion2) {
+      console.log(`📄 Contenido clave2:`, inscripcion2);
       try {
         const data = JSON.parse(inscripcion2);
-        if (data.estado === 'aprobado') {
+        console.log(`📊 Data parseada clave2:`, data);
+        if (data.estado === 'aprobado' || data.estado === 'inscrito') {
           console.log(`✅ INSCRITO por clave2: ${clave2}`);
           return true;
         }
       } catch (e) {
         console.error(`❌ Error parseando ${clave2}:`, e);
       }
+    } else {
+      console.log(`❌ No existe clave2: ${clave2}`);
     }
     
     // Método 3: Búsqueda por clave inversa
     const clave3 = `torneo_${torneoId}_equipo_${equipoId}`;
+    console.log(`🔍 Buscando clave3: ${clave3}`);
     const inscripcion3 = localStorage.getItem(clave3);
     if (inscripcion3) {
+      console.log(`📄 Contenido clave3:`, inscripcion3);
       try {
         const data = JSON.parse(inscripcion3);
-        if (data.estado === 'aprobado') {
+        console.log(`📊 Data parseada clave3:`, data);
+        if (data.estado === 'aprobado' || data.estado === 'inscrito') {
           console.log(`✅ INSCRITO por clave3: ${clave3}`);
           return true;
         }
       } catch (e) {
         console.error(`❌ Error parseando ${clave3}:`, e);
       }
+    } else {
+      console.log(`❌ No existe clave3: ${clave3}`);
     }
     
     // Método 4: Búsqueda en lista general
     const equiposInscritosKey = `equipos_inscritos_${torneoId}`;
+    console.log(`🔍 Buscando lista general: ${equiposInscritosKey}`);
     const equiposInscritos = localStorage.getItem(equiposInscritosKey);
     if (equiposInscritos) {
+      console.log(`📄 Contenido lista general:`, equiposInscritos);
       try {
         const lista = JSON.parse(equiposInscritos);
+        console.log(`📊 Lista parseada:`, lista);
         const encontrado = lista.some((e: any) => 
           (e.equipoId === equipoId || e.equipoId === userId || e.userId === userId) &&
-          e.estado === 'aprobado'
+          (e.estado === 'aprobado' || e.estado === 'inscrito')
         );
         if (encontrado) {
           console.log(`✅ INSCRITO por lista general: ${equiposInscritosKey}`);
@@ -117,35 +149,57 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
       } catch (e) {
         console.error(`❌ Error parseando lista general:`, e);
       }
+    } else {
+      console.log(`❌ No existe lista general: ${equiposInscritosKey}`);
     }
     
-    // Método 5: Búsqueda por todas las claves que contengan el torneoId
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.includes(torneoId) && key.includes('inscripcion')) {
+    // Método 5: Búsqueda exhaustiva por TODAS las claves que contengan el torneoId
+    console.log(`🔍 Iniciando búsqueda exhaustiva para ${torneoId}...`);
+    for (const key of clavesRelacionadas) {
+      if (key.includes(torneoId)) {
+        console.log(`🔍 Revisando clave relacionada: ${key}`);
         try {
           const data = localStorage.getItem(key);
           if (data) {
+            console.log(`📄 Contenido de ${key}:`, data);
             const parsed = JSON.parse(data);
-            if (parsed.estado === 'aprobado' && 
-                (parsed.equipoId === equipoId || parsed.equipoId === userId)) {
-              console.log(`✅ INSCRITO por búsqueda amplia: ${key}`);
+            console.log(`📊 Data parseada de ${key}:`, parsed);
+            
+            // Verificar si es una inscripción válida
+            if (parsed.torneoId === torneoId && 
+                (parsed.equipoId === equipoId || parsed.equipoId === userId) &&
+                (parsed.estado === 'aprobado' || parsed.estado === 'inscrito')) {
+              console.log(`✅ INSCRITO por búsqueda exhaustiva: ${key}`);
               return true;
             }
           }
         } catch (e) {
-          // Continúa con la siguiente clave
+          console.log(`❌ Error parseando ${key}:`, e);
         }
       }
     }
     
-    console.log(`❌ NO INSCRITO después de verificación completa`);
+    // Método 6: Búsqueda por notificaciones aprobadas
+    console.log(`🔍 Buscando en notificaciones aprobadas...`);
+    const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
+    const notificacionAprobacion = notificacionesEquipo.find((n: any) => 
+      n.tipo === 'aprobacion' && 
+      n.torneoId === torneoId && 
+      !n.accionRequerida
+    );
+    
+    if (notificacionAprobacion) {
+      console.log(`✅ INSCRITO por notificación aprobada:`, notificacionAprobacion);
+      return true;
+    }
+    
+    console.log(`❌ NO INSCRITO después de verificación EXHAUSTIVA`);
     return false;
   };
 
   useEffect(() => {
     const cargarTorneos = () => {
-      console.log('=== INICIO CARGA TORNEOS PÚBLICOS (MEJORADO) ===');
+      console.log('=== INICIO CARGA TORNEOS PÚBLICOS (VERSIÓN EXHAUSTIVA) ===');
       
       if (!user) {
         console.log('❌ No hay usuario logueado');
@@ -160,14 +214,19 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
       if (equipoId) {
         const torneosPublicos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
         console.log('🎯 Torneos públicos en localStorage:', torneosPublicos.length);
+        console.log('📋 Lista completa de torneos:', torneosPublicos.map((t: any) => ({ id: t.id, nombre: t.nombre })));
         
         // Verificar inscripciones para cada torneo
         const inscripcionesDetectadas: string[] = [];
         
         torneosPublicos.forEach((torneo: any) => {
+          console.log(`\n🎯 Verificando torneo: ${torneo.id} (${torneo.nombre})`);
           const estaInscrito = verificarInscripcionDetallada(torneo.id, equipoId, user.id);
           if (estaInscrito) {
             inscripcionesDetectadas.push(torneo.id);
+            console.log(`✅ CONFIRMADO: Inscrito en ${torneo.id}`);
+          } else {
+            console.log(`❌ CONFIRMADO: NO inscrito en ${torneo.id}`);
           }
         });
         
@@ -182,7 +241,7 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
         setTorneos(torneosDisponibles);
       }
       
-      console.log('=== FIN CARGA TORNEOS PÚBLICOS (MEJORADO) ===');
+      console.log('=== FIN CARGA TORNEOS PÚBLICOS (VERSIÓN EXHAUSTIVA) ===');
     };
 
     cargarTorneos();
@@ -198,7 +257,7 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
     window.addEventListener('equiposInscritosUpdate', handleUpdate);
     window.addEventListener('inscripcionesUpdate', handleUpdate);
     
-    const interval = setInterval(cargarTorneos, 3000); // Más frecuente
+    const interval = setInterval(cargarTorneos, 3000);
     
     return () => {
       clearInterval(interval);

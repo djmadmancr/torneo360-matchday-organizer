@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trophy, Calendar, MapPin, Users, Eye, Award, Target, Search, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { obtenerEquipoIdDeUsuario } from '../utils/equipoMigration';
-import { buscarInscripcionesPorTorneo } from '../utils/inscripcionesUtils';
 
 interface TorneoInscrito {
   id: string;
@@ -48,8 +46,93 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId: userId, e
   const [equipoIdNumerico, setEquipoIdNumerico] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const verificarInscripcionExhaustiva = (torneoId: string, equipoId: number, userId: string): boolean => {
+    console.log(`🔍 VERIFICACIÓN EXHAUSTIVA TORNEOS INSCRITOS - Torneo: ${torneoId}, EquipoId: ${equipoId}, UserId: ${userId}`);
+    
+    // Todas las variantes de claves posibles
+    const clavesAVerificar = [
+      `inscripcion_${torneoId}_${equipoId}`,
+      `inscripcion_${torneoId}_${userId}`,
+      `torneo_${torneoId}_equipo_${equipoId}`,
+      `equipos_inscritos_${torneoId}`
+    ];
+    
+    console.log(`🔍 Claves a verificar:`, clavesAVerificar);
+    
+    // Verificar cada clave
+    for (const clave of clavesAVerificar) {
+      const data = localStorage.getItem(clave);
+      if (data) {
+        console.log(`📄 Encontrada data en ${clave}:`, data);
+        try {
+          const parsed = JSON.parse(data);
+          console.log(`📊 Data parseada de ${clave}:`, parsed);
+          
+          // Si es una lista (equipos_inscritos)
+          if (Array.isArray(parsed)) {
+            const encontrado = parsed.some((item: any) => 
+              (item.equipoId === equipoId || item.equipoId === userId || item.userId === userId) &&
+              (item.estado === 'aprobado' || item.estado === 'inscrito')
+            );
+            if (encontrado) {
+              console.log(`✅ INSCRITO encontrado en lista ${clave}`);
+              return true;
+            }
+          } 
+          // Si es un objeto individual
+          else if (parsed.torneoId === torneoId && 
+                   (parsed.equipoId === equipoId || parsed.equipoId === userId) &&
+                   (parsed.estado === 'aprobado' || parsed.estado === 'inscrito')) {
+            console.log(`✅ INSCRITO encontrado en objeto ${clave}`);
+            return true;
+          }
+        } catch (e) {
+          console.error(`❌ Error parseando ${clave}:`, e);
+        }
+      }
+    }
+    
+    // Búsqueda exhaustiva en todas las claves
+    console.log(`🔍 Búsqueda exhaustiva en localStorage...`);
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.includes(torneoId) && (key.includes('inscripcion') || key.includes('equipo'))) {
+        try {
+          const data = localStorage.getItem(key);
+          if (data) {
+            const parsed = JSON.parse(data);
+            if (parsed.torneoId === torneoId && 
+                (parsed.equipoId === equipoId || parsed.equipoId === userId) &&
+                (parsed.estado === 'aprobado' || parsed.estado === 'inscrito')) {
+              console.log(`✅ INSCRITO encontrado por búsqueda exhaustiva: ${key}`);
+              return true;
+            }
+          }
+        } catch (e) {
+          // Continuar con la siguiente clave
+        }
+      }
+    }
+    
+    // Verificar en notificaciones aprobadas
+    const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
+    const notificacionAprobacion = notificacionesEquipo.find((n: any) => 
+      n.tipo === 'aprobacion' && 
+      n.torneoId === torneoId && 
+      !n.accionRequerida
+    );
+    
+    if (notificacionAprobacion) {
+      console.log(`✅ INSCRITO por notificación aprobada:`, notificacionAprobacion);
+      return true;
+    }
+    
+    console.log(`❌ NO INSCRITO después de verificación exhaustiva`);
+    return false;
+  };
+
   const cargarTorneosInscritos = () => {
-    console.log('=== INICIO CARGA TORNEOS INSCRITOS (REFACTORIZADO) ===');
+    console.log('=== INICIO CARGA TORNEOS INSCRITOS (VERSIÓN EXHAUSTIVA) ===');
     setLoading(true);
     
     if (!user) {
@@ -74,21 +157,17 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId: userId, e
       // Obtener todos los torneos públicos
       const torneosPublicos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
       console.log('📋 Torneos públicos disponibles:', torneosPublicos.length);
+      console.log('📋 Lista de torneos:', torneosPublicos.map((t: any) => ({ id: t.id, nombre: t.nombre })));
       
       const torneosConInscripcion: TorneoInscrito[] = [];
       
       // Para cada torneo, verificar si el equipo está inscrito
       torneosPublicos.forEach((torneo: any) => {
-        const inscripciones = buscarInscripcionesPorTorneo(torneo.id);
+        console.log(`\n🎯 Verificando inscripción en torneo: ${torneo.id} (${torneo.nombre})`);
+        const estaInscrito = verificarInscripcionExhaustiva(torneo.id, equipoId, user.id);
         
-        // Verificar si nuestro equipo está inscrito y aprobado
-        const miInscripcion = inscripciones.find(inscripcion => 
-          (inscripcion.equipoId === equipoId || inscripcion.equipoId === userId) &&
-          (inscripcion.estado === 'aprobado' || inscripcion.estado === 'inscrito')
-        );
-        
-        if (miInscripcion) {
-          console.log(`✅ Encontrada inscripción para torneo ${torneo.nombre}:`, miInscripcion);
+        if (estaInscrito) {
+          console.log(`✅ CONFIRMADO: Inscrito en ${torneo.nombre} (${torneo.id})`);
           
           // Cargar estadísticas del equipo para este torneo
           const statsKey = `torneo_${torneo.id}_equipo_${equipoId}_stats`;
@@ -107,10 +186,13 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId: userId, e
               grupo: null
             }
           });
+        } else {
+          console.log(`❌ CONFIRMADO: NO inscrito en ${torneo.nombre} (${torneo.id})`);
         }
       });
       
-      console.log('🏆 Torneos inscritos finales:', torneosConInscripcion.length);
+      console.log(`🏆 Torneos inscritos finales: ${torneosConInscripcion.length}`);
+      console.log('📋 Lista final:', torneosConInscripcion.map(t => ({ id: t.id, nombre: t.nombre })));
       setTorneosInscritos(torneosConInscripcion);
       
     } catch (error) {
@@ -120,7 +202,7 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId: userId, e
       setLoading(false);
     }
     
-    console.log('=== FIN CARGA TORNEOS INSCRITOS (REFACTORIZADO) ===');
+    console.log('=== FIN CARGA TORNEOS INSCRITOS (VERSIÓN EXHAUSTIVA) ===');
   };
 
   useEffect(() => {
@@ -133,11 +215,15 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId: userId, e
       };
       
       window.addEventListener('torneosInscritosUpdate', handleUpdate);
+      window.addEventListener('equiposInscritosUpdate', handleUpdate);
+      window.addEventListener('inscripcionesUpdate', handleUpdate);
       const interval = setInterval(cargarTorneosInscritos, 5000);
       
       return () => {
         clearInterval(interval);
         window.removeEventListener('torneosInscritosUpdate', handleUpdate);
+        window.removeEventListener('equiposInscritosUpdate', handleUpdate);
+        window.removeEventListener('inscripcionesUpdate', handleUpdate);
       };
     }
   }, [user, equipoNombre]);
