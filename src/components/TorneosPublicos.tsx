@@ -55,7 +55,7 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
 
   useEffect(() => {
     const cargarTorneos = () => {
-      console.log('=== INICIO CARGA DE TORNEOS ===');
+      console.log('=== CARGANDO TODOS LOS TORNEOS PÚBLICOS ===');
       const torneosGuardados = localStorage.getItem('torneosPublicos');
       const equipoId = localStorage.getItem('userId');
       
@@ -69,18 +69,9 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
         console.log('📋 Todos los torneos encontrados:', torneosData);
         console.log('📊 Total de torneos en localStorage:', torneosData.length);
         
-        // Buscar específicamente el torneo "Liga de Ascenso Apertura 2025"
-        const torneoEspecifico = torneosData.find((t: TorneoPublico) => 
-          t.nombre.toLowerCase().includes('liga de ascenso apertura 2025')
-        );
-        console.log('🎯 Torneo "Liga de Ascenso Apertura 2025" encontrado:', torneoEspecifico);
-        
         // Obtener notificaciones de aprobación para filtrar torneos ya aprobados
         const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
         console.log('📢 Todas las notificaciones de equipo:', notificacionesEquipo);
-        
-        const notificacionesParaEsteEquipo = notificacionesEquipo.filter((n: any) => n.equipoId === equipoId);
-        console.log('📢 Notificaciones para este equipo específico:', notificacionesParaEsteEquipo);
         
         const torneosAprobados = notificacionesEquipo
           .filter((n: any) => 
@@ -93,8 +84,6 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
         
         // Obtener solicitudes pendientes
         const solicitudesGuardadas = JSON.parse(localStorage.getItem('notificaciones') || '[]');
-        console.log('📋 Todas las solicitudes:', solicitudesGuardadas);
-        
         const solicitudesPendientesEquipo = solicitudesGuardadas.filter((s: any) => 
           s.equipoId === equipoId && 
           s.tipo === 'inscripcion' && 
@@ -106,49 +95,37 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
         const fechaActual = new Date();
         console.log('📅 Fecha actual:', fechaActual.toISOString());
         
-        // Filtrar torneos con logs detallados
-        console.log('🔍 INICIANDO FILTRADO DE TORNEOS:');
-        const torneosDisponibles = torneosData.filter((t: TorneoPublico) => {
+        // MOSTRAR TODOS LOS TORNEOS PÚBLICOS DE CUALQUIER ORGANIZADOR
+        console.log('🔍 FILTRANDO TORNEOS PÚBLICOS:');
+        const torneosPublicos = torneosData.filter((t: TorneoPublico) => {
           const fechaCierre = new Date(t.fechaCierre);
           const inscripcionesAbiertas = fechaCierre > fechaActual;
           const esPublico = t.esPublico;
           const noEstaAprobado = !torneosAprobados.includes(t.id);
           const noTieneSolicitudPendiente = !solicitudesPendientesEquipo.some((s: any) => s.torneoId === t.id);
           
-          console.log(`📋 Evaluando torneo "${t.nombre}":`, {
-            id: t.id,
+          console.log(`📋 Evaluando torneo "${t.nombre}" (${t.id}):`, {
             esPublico,
-            fechaCierre: t.fechaCierre,
-            fechaCierreDate: fechaCierre.toISOString(),
+            organizador: t.organizadorNombre,
             inscripcionesAbiertas,
             noEstaAprobado,
             noTieneSolicitudPendiente,
-            categoria: t.categoria,
-            organizadorId: t.organizadorId,
-            estado: t.estado,
             cumpleCondiciones: esPublico && inscripcionesAbiertas && noEstaAprobado && noTieneSolicitudPendiente
           });
           
+          // Mostrar TODOS los torneos públicos, independientemente del organizador
           return esPublico && inscripcionesAbiertas && noEstaAprobado && noTieneSolicitudPendiente;
         });
         
-        console.log('✅ Torneos disponibles después del filtrado:', torneosDisponibles);
-        console.log('📊 Total de torneos disponibles:', torneosDisponibles.length);
+        console.log('✅ Torneos públicos disponibles:', torneosPublicos);
+        console.log('📊 Total de torneos públicos:', torneosPublicos.length);
         
-        // Verificar específicamente si el torneo buscado está en la lista final
-        const torneoEspecificoEnLista = torneosDisponibles.find((t: TorneoPublico) => 
-          t.nombre.toLowerCase().includes('liga de ascenso apertura 2025')
-        );
-        console.log('🎯 ¿Torneo "Liga de Ascenso Apertura 2025" en lista final?:', torneoEspecificoEnLista);
-        
-        setTorneos(torneosDisponibles);
+        setTorneos(torneosPublicos);
       } else {
         console.log('❌ No hay torneos guardados o no hay equipoId');
-        console.log('- torneosGuardados existe:', !!torneosGuardados);
-        console.log('- equipoId existe:', !!equipoId);
         setTorneos([]);
       }
-      console.log('=== FIN CARGA DE TORNEOS ===');
+      console.log('=== FIN CARGA TORNEOS PÚBLICOS ===');
     };
 
     cargarTorneos();
@@ -192,8 +169,8 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
     return (
       <div className="text-center py-12">
         <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay torneos disponibles</h3>
-        <p className="text-gray-500">Los torneos públicos aparecerán aquí cuando estén disponibles</p>
+        <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay torneos públicos disponibles</h3>
+        <p className="text-gray-500">Los torneos públicos creados por organizadores aparecerán aquí cuando estén disponibles</p>
       </div>
     );
   }
@@ -218,6 +195,7 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
                 <div className="flex-1">
                   <CardTitle className="text-lg">{torneo.nombre}</CardTitle>
                   <p className="text-sm text-muted-foreground">por {torneo.organizadorNombre}</p>
+                  <p className="text-xs text-blue-600 font-mono">ID: {torneo.id}</p>
                 </div>
                 {getEstadoBadge(torneo.estado)}
               </div>

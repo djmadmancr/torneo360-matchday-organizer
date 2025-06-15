@@ -97,7 +97,6 @@ const Equipo = () => {
     const allNotificaciones = savedNotificaciones ? JSON.parse(savedNotificaciones) : [];
     return allNotificaciones.filter((n: any) => n.equipoId === user?.id);
   });
-  const [mostrarLogs, setMostrarLogs] = useState(false);
   const [mostrarSeleccionJugadores, setMostrarSeleccionJugadores] = useState(false);
   const [torneoSeleccionado, setTorneoSeleccionado] = useState<any>(null);
   const [solicitudesPendientes, setSolicitudesPendientes] = useState<string[]>([]);
@@ -294,14 +293,6 @@ const Equipo = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setMostrarLogs(true)}
-              >
-                <FileText className="w-4 h-4" />
-                Logs
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
                 onClick={() => setMostrarEditarPerfil(true)}
               >
                 <User className="w-4 h-4" />
@@ -394,51 +385,6 @@ const Equipo = () => {
           </TabsContent>
         </Tabs>
       </div>
-
-      {/* Modal de Logs */}
-      <Dialog open={mostrarLogs} onOpenChange={setMostrarLogs}>
-        <DialogContent className="w-[95vw] max-w-4xl max-h-[80vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle>Registro de Actividades</DialogTitle>
-          </DialogHeader>
-          <div className="overflow-y-auto max-h-[70vh]">
-            <div className="space-y-3">
-              {logs.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  No hay actividades registradas
-                </p>
-              ) : (
-                logs.map((log) => (
-                  <div key={log.id} className="p-3 border rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Badge variant={
-                          log.tipo === "creacion" ? "default" :
-                          log.tipo === "edicion" ? "secondary" :
-                          log.tipo === "inscripcion" ? "default" :
-                          log.tipo === "aprobacion" ? "default" : "outline"
-                        }>
-                          {log.tipo}
-                        </Badge>
-                        <span className="font-medium">{log.accion}</span>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {log.fecha} - {log.hora}
-                      </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">{log.detalles}</p>
-                    {log.entidad && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {log.entidad}: {log.entidadId}
-                      </p>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Modal Editar Perfil */}
       <EditarPerfilEquipo

@@ -61,15 +61,12 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
 
   useEffect(() => {
     const cargarTorneosInscritos = () => {
-      console.log('=== INICIO CARGA TORNEOS INSCRITOS ===');
+      console.log('=== INICIO CARGA TORNEOS INSCRITOS (DATOS REALES) ===');
       console.log('🔍 Cargando torneos inscritos para equipoId:', equipoId);
       
       // Cargar torneos donde el equipo fue aceptado
       const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
       console.log('📢 Todas las notificaciones equipo encontradas:', notificacionesEquipo);
-      
-      const notificacionesParaEsteEquipo = notificacionesEquipo.filter((n: any) => n.equipoId === equipoId);
-      console.log('📢 Notificaciones para este equipo específico:', notificacionesParaEsteEquipo);
       
       const solicitudesAceptadas = notificacionesEquipo.filter((n: any) => 
         n.equipoId === equipoId && 
@@ -88,7 +85,6 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
           fecha: new Date().toISOString()
         };
         
-        // Verificar si ya existe la inscripción
         const yaExiste = solicitudesAceptadas.some((s: any) => s.torneoId === 'TRN-912');
         if (!yaExiste) {
           solicitudesAceptadas.push(inscripcionHerediano);
@@ -106,54 +102,41 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
       const torneosPublicos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
       console.log('📋 Todos los torneos públicos encontrados:', torneosPublicos);
       
-      console.log('🔍 Buscando torneos correspondientes a solicitudes aceptadas:');
       const torneosInscritosData = solicitudesAceptadas.map((solicitud: any) => {
-        console.log(`🔎 Buscando torneo con id: ${solicitud.torneoId}`);
         const torneo = torneosPublicos.find((t: any) => t.id === solicitud.torneoId);
-        console.log('✅ Torneo encontrado:', torneo);
         
         if (torneo) {
-          // Cargar estadísticas reales si existen
+          // Cargar estadísticas REALES si existen, sino usar valores vacíos
           const statsKey = `torneo_${torneo.id}_equipo_${equipoId}_stats`;
           const statsGuardadas = JSON.parse(localStorage.getItem(statsKey) || 'null');
           
           const torneoCompleto = {
             ...torneo,
             equipoStats: statsGuardadas || {
-              partidosJugados: Math.floor(Math.random() * 6) + 1,
-              victorias: Math.floor(Math.random() * 4),
-              empates: Math.floor(Math.random() * 3),
-              derrotas: Math.floor(Math.random() * 2),
-              golesAFavor: Math.floor(Math.random() * 10) + 3,
-              golesEnContra: Math.floor(Math.random() * 8) + 1,
-              posicion: Math.floor(Math.random() * 8) + 1,
-              grupo: `Grupo ${String.fromCharCode(65 + Math.floor(Math.random() * 4))}`
+              partidosJugados: 0,
+              victorias: 0,
+              empates: 0,
+              derrotas: 0,
+              golesAFavor: 0,
+              golesEnContra: 0,
+              posicion: null,
+              grupo: null
             }
           };
           
-          console.log('📋 Torneo completo preparado:', torneoCompleto);
           return torneoCompleto;
         }
-        console.log('❌ No se encontró torneo para el id:', solicitud.torneoId);
         return null;
       }).filter(Boolean);
 
-      console.log('📊 Torneos inscritos finales:', torneosInscritosData);
-      console.log('📊 Total de torneos inscritos:', torneosInscritosData.length);
-      
-      // Verificar específicamente si el torneo buscado está aquí
-      const torneoEspecifico = torneosInscritosData.find((t: any) => 
-        t && t.nombre && t.nombre.toLowerCase().includes('liga de ascenso apertura 2025')
-      );
-      console.log('🎯 ¿Torneo "Liga de Ascenso Apertura 2025" en torneos inscritos?:', torneoEspecifico);
-      
+      console.log('📊 Torneos inscritos finales (datos reales):', torneosInscritosData);
       setTorneosInscritos(torneosInscritosData);
       console.log('=== FIN CARGA TORNEOS INSCRITOS ===');
     };
 
     if (equipoId) {
       cargarTorneosInscritos();
-      const interval = setInterval(cargarTorneosInscritos, 3000); // Revisar más frecuentemente
+      const interval = setInterval(cargarTorneosInscritos, 3000);
       return () => clearInterval(interval);
     }
   }, [equipoId, equipoNombre]);
@@ -345,9 +328,9 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
           <div className="text-center py-12">
             <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay torneos inscritos</h3>
-            <p className="text-gray-500">Los torneos en los que participes aparecerán aquí</p>
+            <p className="text-gray-500">Los torneos en los que tu equipo sea aceptado aparecerán aquí</p>
             <p className="text-sm text-muted-foreground mt-2">
-              Usa el buscador para encontrar cualquier torneo por ID
+              También podrás ver aquí el historial de torneos finalizados
             </p>
           </div>
         )}
@@ -449,12 +432,12 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
                 )}
               </div>
 
-              {torneo.equipoStats && (
+              {torneo.equipoStats && (torneo.equipoStats.partidosJugados > 0 || torneo.equipoStats.posicion) && (
                 <div className="bg-muted p-3 rounded-lg">
                   <h4 className="font-medium mb-2">Mi Rendimiento</h4>
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>Grupo: {torneo.equipoStats.grupo}</div>
-                    <div>Posición: #{torneo.equipoStats.posicion}</div>
+                    {torneo.equipoStats.grupo && <div>Grupo: {torneo.equipoStats.grupo}</div>}
+                    {torneo.equipoStats.posicion && <div>Posición: #{torneo.equipoStats.posicion}</div>}
                     <div>Partidos: {torneo.equipoStats.partidosJugados}</div>
                     <div>Victorias: {torneo.equipoStats.victorias}</div>
                   </div>
@@ -492,6 +475,9 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
             <DialogTitle className="flex items-center gap-2">
               <Trophy className="w-5 h-5" />
               {torneoSeleccionado?.nombre} - Detalles
+              {torneoSeleccionado && (
+                <Badge variant="outline" className="ml-2">ID: {torneoSeleccionado.id}</Badge>
+              )}
             </DialogTitle>
           </DialogHeader>
           
@@ -508,54 +494,16 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Trophy className="w-5 h-5" />
-                        {torneoSeleccionado.equipoStats?.grupo || 'Grupo A'}
+                        {torneoSeleccionado.equipoStats?.grupo || 'Información de Grupo'}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-12">Pos</TableHead>
-                            <TableHead>Equipo</TableHead>
-                            <TableHead className="text-center">PJ</TableHead>
-                            <TableHead className="text-center">PG</TableHead>
-                            <TableHead className="text-center">PE</TableHead>
-                            <TableHead className="text-center">PP</TableHead>
-                            <TableHead className="text-center">GF</TableHead>
-                            <TableHead className="text-center">GC</TableHead>
-                            <TableHead className="text-center">DG</TableHead>
-                            <TableHead className="text-center">Pts</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {tablaGrupo.map((equipo) => (
-                            <TableRow 
-                              key={equipo.pos}
-                              className={equipo.equipo === equipoNombre ? "bg-blue-50 font-medium" : ""}
-                            >
-                              <TableCell className="text-center">{equipo.pos}</TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <img 
-                                    src={equipo.logo} 
-                                    alt={equipo.equipo}
-                                    className="w-6 h-6 rounded object-cover"
-                                  />
-                                  <span>{equipo.equipo}</span>
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-center">{equipo.pj}</TableCell>
-                              <TableCell className="text-center">{equipo.pg}</TableCell>
-                              <TableCell className="text-center">{equipo.pe}</TableCell>
-                              <TableCell className="text-center">{equipo.pp}</TableCell>
-                              <TableCell className="text-center">{equipo.gf}</TableCell>
-                              <TableCell className="text-center">{equipo.gc}</TableCell>
-                              <TableCell className="text-center">{equipo.dg > 0 ? '+' : ''}{equipo.dg}</TableCell>
-                              <TableCell className="text-center font-bold">{equipo.pts}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                      <div className="text-center py-8">
+                        <Trophy className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-muted-foreground">
+                          Los datos de la tabla se mostrarán cuando se ingresen resultados reales del torneo
+                        </p>
+                      </div>
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -565,63 +513,16 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Calendar className="w-5 h-5" />
-                        Próximos Partidos
+                        Fixtures del Torneo
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      {partidosPendientes.length === 0 ? (
-                        <div className="text-center py-8">
-                          <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                          <p className="text-muted-foreground">No hay partidos pendientes</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {partidosPendientes.map((partido) => (
-                            <Card key={partido.id} className="border-l-4 border-l-blue-500">
-                              <CardContent className="p-4">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-4">
-                                    <div className="text-center">
-                                      <p className="text-sm font-medium">Jornada {partido.jornada}</p>
-                                      <p className="text-xs text-muted-foreground">
-                                        {new Date(partido.fecha).toLocaleDateString('es-ES')}
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">{partido.hora}</p>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                      <div className="flex items-center gap-2">
-                                        <img 
-                                          src={partido.logoLocal} 
-                                          alt={partido.equipoLocal}
-                                          className="w-8 h-8 rounded object-cover"
-                                        />
-                                        <span className="font-medium">{partido.equipoLocal}</span>
-                                      </div>
-                                      <span className="text-muted-foreground">vs</span>
-                                      <div className="flex items-center gap-2">
-                                        <span className="font-medium">{partido.equipoVisitante}</span>
-                                        <img 
-                                          src={partido.logoVisitante} 
-                                          alt={partido.equipoVisitante}
-                                          className="w-8 h-8 rounded object-cover"
-                                        />
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    {partido.ubicacion && (
-                                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                        <MapPin className="w-4 h-4" />
-                                        <span>{partido.ubicacion}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      )}
+                      <div className="text-center py-8">
+                        <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-muted-foreground">
+                          Los fixtures se mostrarán cuando el organizador los genere
+                        </p>
+                      </div>
                     </CardContent>
                   </Card>
                 </TabsContent>

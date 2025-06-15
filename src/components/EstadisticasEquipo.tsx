@@ -22,6 +22,7 @@ interface EstadisticasTorneo {
   posicion?: number;
   fechaInicio: string;
   fechaFin?: string;
+  estado: 'activo' | 'finalizado';
 }
 
 interface EstadisticasJugador {
@@ -45,9 +46,13 @@ const EstadisticasEquipo: React.FC<EstadisticasEquipoProps> = ({ equipoId, equip
   }, [equipoId]);
 
   const cargarEstadisticas = () => {
-    // Cargar estadísticas reales del localStorage
+    // Cargar estadísticas reales del localStorage - solo datos que existan
     const historialTorneos = JSON.parse(localStorage.getItem(`historialTorneos_${equipoId}`) || '[]');
     const historialJugadores = JSON.parse(localStorage.getItem(`historialJugadores_${equipoId}`) || '[]');
+    
+    console.log('Cargando estadísticas reales para equipo:', equipoId);
+    console.log('Historial de torneos encontrado:', historialTorneos);
+    console.log('Historial de jugadores encontrado:', historialJugadores);
     
     setEstadisticasTorneos(historialTorneos);
     setEstadisticasJugadores(historialJugadores);
@@ -81,7 +86,7 @@ const EstadisticasEquipo: React.FC<EstadisticasEquipoProps> = ({ equipoId, equip
 
     const porcentajeVictorias = stats.partidosJugados > 0 ? (stats.victorias / stats.partidosJugados * 100).toFixed(1) : '0';
     const golesPorPartido = stats.partidosJugados > 0 ? (stats.golesAFavor / stats.partidosJugados).toFixed(1) : '0';
-    const arcosEnCero = stats.partidosJugados > 0 ? ((stats.partidosJugados - (stats.derrotas + stats.empates)) / stats.partidosJugados * 100).toFixed(1) : '0';
+    const arcosEnCero = stats.partidosJugados > 0 ? Math.max(0, (stats.partidosJugados - stats.golesEnContra) / stats.partidosJugados * 100).toFixed(1) : '0';
 
     return {
       ...stats,
@@ -119,7 +124,7 @@ const EstadisticasEquipo: React.FC<EstadisticasEquipoProps> = ({ equipoId, equip
       <div className="text-center py-12">
         <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
         <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay estadísticas disponibles</h3>
-        <p className="text-gray-500">Las estadísticas aparecerán cuando el equipo participe en torneos</p>
+        <p className="text-gray-500">Las estadísticas se generarán automáticamente cuando el equipo participe en torneos y se ingresen resultados reales</p>
       </div>
     );
   }
@@ -198,8 +203,16 @@ const EstadisticasEquipo: React.FC<EstadisticasEquipoProps> = ({ equipoId, equip
               {estadisticasFiltradas.map((torneo) => (
                 <div key={torneo.torneoId} className="border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium">{torneo.torneoNombre}</h4>
-                    <Badge variant="outline">{new Date(torneo.fechaInicio).getFullYear()}</Badge>
+                    <div>
+                      <h4 className="font-medium">{torneo.torneoNombre}</h4>
+                      <p className="text-sm text-muted-foreground font-mono">ID: {torneo.torneoId}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Badge variant={torneo.estado === 'finalizado' ? 'secondary' : 'default'}>
+                        {torneo.estado === 'finalizado' ? 'Finalizado' : 'En curso'}
+                      </Badge>
+                      <Badge variant="outline">{new Date(torneo.fechaInicio).getFullYear()}</Badge>
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
