@@ -63,6 +63,28 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
     localStorage.setItem('notificacionesEquipo', JSON.stringify(updatedAllNotificaciones));
     
     console.log('✅ Notificación marcada como leída:', id);
+
+    // IMPORTANTE: Si es una notificación de aprobación, crear la inscripción
+    const notificacion = allNotificaciones.find((n: any) => n.id === id);
+    if (notificacion && notificacion.tipo === 'aprobacion' && notificacion.torneoId && notificacion.equipoId) {
+      console.log('🎯 Procesando notificación de aprobación para inscripción:', notificacion);
+      
+      // Crear registro de inscripción aprobada
+      const inscripcionKey = `inscripcion_${notificacion.torneoId}_${notificacion.equipoId}`;
+      const inscripcionData = {
+        equipoId: notificacion.equipoId,
+        torneoId: notificacion.torneoId,
+        fechaInscripcion: new Date().toISOString(),
+        estado: 'aprobado',
+        fechaAprobacion: new Date().toISOString()
+      };
+      
+      localStorage.setItem(inscripcionKey, JSON.stringify(inscripcionData));
+      console.log('✅ Inscripción registrada al marcar como leída:', inscripcionKey, inscripcionData);
+      
+      // Forzar actualización de la lista de torneos inscritos
+      window.dispatchEvent(new Event('torneosInscritosUpdate'));
+    }
   };
 
   const getIconoTipo = (tipo: string) => {
@@ -106,6 +128,20 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
             <p className="text-xs text-green-600">
               ID: {torneo.id} | Organizador: {torneo.organizadorNombre}
             </p>
+            <p className="text-xs text-green-600 mt-1">
+              <strong>TorneoId en notificación:</strong> {notificacion.torneoId}
+            </p>
+          </div>
+        );
+      } else {
+        return (
+          <div className="mt-2 p-2 bg-yellow-50 rounded-md">
+            <p className="text-sm text-yellow-700">
+              <strong>TorneoId:</strong> {notificacion.torneoId}
+            </p>
+            <p className="text-xs text-yellow-600">
+              (Torneo no encontrado en la lista pública)
+            </p>
           </div>
         );
       }
@@ -146,6 +182,11 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
                         <p className="text-xs text-muted-foreground">
                           Fecha: {notificacion.fecha}
                         </p>
+                        <div className="text-xs text-muted-foreground mt-1 bg-gray-100 p-2 rounded">
+                          <p><strong>ID Notificación:</strong> {notificacion.id}</p>
+                          {notificacion.equipoId && <p><strong>EquipoId:</strong> {notificacion.equipoId}</p>}
+                          {notificacion.torneoId && <p><strong>TorneoId:</strong> {notificacion.torneoId}</p>}
+                        </div>
                       </div>
                     </div>
                     
