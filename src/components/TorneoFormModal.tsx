@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -355,12 +354,12 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="ubicacion">Ubicación</Label>
+            <Label htmlFor="ubicacion">País, Región, Ciudad</Label>
             <Input
               id="ubicacion"
               value={formData.ubicacion}
               onChange={(e) => setFormData(prev => ({ ...prev, ubicacion: e.target.value }))}
-              placeholder="Ej: Estadio Municipal, Ciudad"
+              placeholder="Ej: Argentina, Buenos Aires, Capital Federal"
             />
           </div>
 
