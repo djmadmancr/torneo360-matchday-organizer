@@ -46,79 +46,166 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId: userId, e
   const [equipoIdNumerico, setEquipoIdNumerico] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const verificarInscripcionExhaustiva = (torneoId: string, equipoId: number, userId: string): boolean => {
-    console.log(`🔍 VERIFICACIÓN EXHAUSTIVA TORNEOS INSCRITOS - Torneo: ${torneoId}, EquipoId: ${equipoId}, UserId: ${userId}`);
+  const debugLocalStorage = () => {
+    console.log('🔍 === DEBUG COMPLETO DE LOCALSTORAGE ===');
+    console.log(`📊 Total de claves en localStorage: ${localStorage.length}`);
     
-    // Todas las variantes de claves posibles
-    const clavesAVerificar = [
+    const todasLasClaves: string[] = [];
+    const clavesRelacionadas: { [key: string]: string } = {};
+    
+    // Recopilar TODAS las claves
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) {
+        todasLasClaves.push(key);
+        
+        // Buscar claves que contengan términos relacionados con inscripciones
+        if (key.includes('inscripcion') || key.includes('torneo') || key.includes('TRN-') || key.includes('equipo')) {
+          const value = localStorage.getItem(key);
+          clavesRelacionadas[key] = value || '';
+        }
+      }
+    }
+    
+    console.log('📋 TODAS las claves de localStorage:', todasLasClaves);
+    console.log('🎯 Claves relacionadas con inscripciones/torneos:', Object.keys(clavesRelacionadas));
+    
+    // Mostrar el contenido de cada clave relacionada
+    Object.entries(clavesRelacionadas).forEach(([key, value]) => {
+      console.log(`📄 ${key}:`, value);
+      try {
+        const parsed = JSON.parse(value);
+        console.log(`📊 ${key} (parseado):`, parsed);
+      } catch (e) {
+        console.log(`❌ ${key} no es JSON válido`);
+      }
+    });
+    
+    // Buscar específicamente TRN-937
+    console.log('🎯 === BÚSQUEDA ESPECÍFICA PARA TRN-937 ===');
+    Object.entries(clavesRelacionadas).forEach(([key, value]) => {
+      if (key.includes('TRN-937') || value.includes('TRN-937')) {
+        console.log(`🔍 TRN-937 encontrado en ${key}:`, value);
+        try {
+          const parsed = JSON.parse(value);
+          console.log(`📊 TRN-937 data parseada:`, parsed);
+        } catch (e) {
+          console.log(`❌ Error parseando TRN-937 en ${key}`);
+        }
+      }
+    });
+  };
+
+  const verificarInscripcionUltraExhaustiva = (torneoId: string, equipoId: number, userId: string): boolean => {
+    console.log(`🔍 === VERIFICACIÓN ULTRA EXHAUSTIVA ===`);
+    console.log(`Torneo: ${torneoId}, EquipoId: ${equipoId}, UserId: ${userId}`);
+    
+    // Ejecutar debug completo
+    debugLocalStorage();
+    
+    // Método 1: Búsqueda por patrones estándar
+    const patronesEstandar = [
       `inscripcion_${torneoId}_${equipoId}`,
       `inscripcion_${torneoId}_${userId}`,
       `torneo_${torneoId}_equipo_${equipoId}`,
-      `equipos_inscritos_${torneoId}`
+      `equipos_inscritos_${torneoId}`,
+      `${torneoId}_inscripcion_${equipoId}`,
+      `${torneoId}_inscripcion_${userId}`,
+      `${equipoId}_inscripcion_${torneoId}`,
+      `${userId}_inscripcion_${torneoId}`
     ];
     
-    console.log(`🔍 Claves a verificar:`, clavesAVerificar);
+    console.log('🎯 Patrones estándar a verificar:', patronesEstandar);
     
-    // Verificar cada clave
-    for (const clave of clavesAVerificar) {
-      const data = localStorage.getItem(clave);
+    for (const patron of patronesEstandar) {
+      const data = localStorage.getItem(patron);
       if (data) {
-        console.log(`📄 Encontrada data en ${clave}:`, data);
+        console.log(`📄 Encontrado en patrón ${patron}:`, data);
         try {
           const parsed = JSON.parse(data);
-          console.log(`📊 Data parseada de ${clave}:`, parsed);
+          console.log(`📊 Data parseada:`, parsed);
           
-          // Si es una lista (equipos_inscritos)
+          // Verificar si es una inscripción válida
           if (Array.isArray(parsed)) {
             const encontrado = parsed.some((item: any) => 
               (item.equipoId === equipoId || item.equipoId === userId || item.userId === userId) &&
+              item.torneoId === torneoId &&
               (item.estado === 'aprobado' || item.estado === 'inscrito')
             );
             if (encontrado) {
-              console.log(`✅ INSCRITO encontrado en lista ${clave}`);
+              console.log(`✅ INSCRITO encontrado en array ${patron}`);
               return true;
             }
-          } 
-          // Si es un objeto individual
-          else if (parsed.torneoId === torneoId && 
-                   (parsed.equipoId === equipoId || parsed.equipoId === userId) &&
-                   (parsed.estado === 'aprobado' || parsed.estado === 'inscrito')) {
-            console.log(`✅ INSCRITO encontrado en objeto ${clave}`);
+          } else if (parsed.torneoId === torneoId && 
+                    (parsed.equipoId === equipoId || parsed.equipoId === userId) &&
+                    (parsed.estado === 'aprobado' || parsed.estado === 'inscrito')) {
+            console.log(`✅ INSCRITO encontrado en objeto ${patron}`);
             return true;
           }
         } catch (e) {
-          console.error(`❌ Error parseando ${clave}:`, e);
+          console.error(`❌ Error parseando ${patron}:`, e);
         }
       }
     }
     
-    // Búsqueda exhaustiva en todas las claves
-    console.log(`🔍 Búsqueda exhaustiva en localStorage...`);
+    // Método 2: Búsqueda COMPLETAMENTE exhaustiva por TODAS las claves
+    console.log('🔍 === BÚSQUEDA COMPLETAMENTE EXHAUSTIVA ===');
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.includes(torneoId) && (key.includes('inscripcion') || key.includes('equipo'))) {
-        try {
-          const data = localStorage.getItem(key);
-          if (data) {
-            const parsed = JSON.parse(data);
-            if (parsed.torneoId === torneoId && 
-                (parsed.equipoId === equipoId || parsed.equipoId === userId) &&
-                (parsed.estado === 'aprobado' || parsed.estado === 'inscrito')) {
-              console.log(`✅ INSCRITO encontrado por búsqueda exhaustiva: ${key}`);
-              return true;
+      if (key) {
+        const data = localStorage.getItem(key);
+        if (data) {
+          try {
+            // Verificar si el contenido menciona el torneoId
+            if (data.includes(torneoId)) {
+              console.log(`🎯 TorneoId ${torneoId} encontrado en clave: ${key}`);
+              console.log(`📄 Contenido:`, data);
+              
+              const parsed = JSON.parse(data);
+              console.log(`📊 Data parseada:`, parsed);
+              
+              // Verificar inscripción en objetos
+              if (parsed.torneoId === torneoId && 
+                  (parsed.equipoId === equipoId || parsed.equipoId === userId) &&
+                  (parsed.estado === 'aprobado' || parsed.estado === 'inscrito')) {
+                console.log(`✅ INSCRITO encontrado por búsqueda exhaustiva: ${key}`);
+                return true;
+              }
+              
+              // Verificar inscripción en arrays
+              if (Array.isArray(parsed)) {
+                const encontrado = parsed.some((item: any) => 
+                  item.torneoId === torneoId &&
+                  (item.equipoId === equipoId || item.equipoId === userId || item.userId === userId) &&
+                  (item.estado === 'aprobado' || item.estado === 'inscrito')
+                );
+                if (encontrado) {
+                  console.log(`✅ INSCRITO encontrado en array por búsqueda exhaustiva: ${key}`);
+                  return true;
+                }
+              }
+              
+              // Verificar en notificaciones
+              if (parsed.tipo === 'aprobacion' && parsed.torneoId === torneoId) {
+                console.log(`✅ INSCRITO por notificación de aprobación: ${key}`);
+                return true;
+              }
             }
+          } catch (e) {
+            // Continuar con la siguiente clave si no es JSON
           }
-        } catch (e) {
-          // Continuar con la siguiente clave
         }
       }
     }
     
-    // Verificar en notificaciones aprobadas
+    // Método 3: Verificar notificaciones específicamente
+    console.log('🔍 === VERIFICACIÓN EN NOTIFICACIONES ===');
     const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
+    console.log('📋 Notificaciones del equipo:', notificacionesEquipo);
+    
     const notificacionAprobacion = notificacionesEquipo.find((n: any) => 
       n.tipo === 'aprobacion' && 
-      n.torneoId === torneoId && 
+      n.torneoId === torneoId &&
       !n.accionRequerida
     );
     
@@ -127,12 +214,12 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId: userId, e
       return true;
     }
     
-    console.log(`❌ NO INSCRITO después de verificación exhaustiva`);
+    console.log(`❌ NO INSCRITO después de verificación ULTRA EXHAUSTIVA`);
     return false;
   };
 
   const cargarTorneosInscritos = () => {
-    console.log('=== INICIO CARGA TORNEOS INSCRITOS (VERSIÓN EXHAUSTIVA) ===');
+    console.log('=== INICIO CARGA TORNEOS INSCRITOS (VERSIÓN ULTRA EXHAUSTIVA) ===');
     setLoading(true);
     
     if (!user) {
@@ -153,6 +240,7 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId: userId, e
       
       setEquipoIdNumerico(equipoId);
       console.log('🔍 Usando equipoId numérico:', equipoId);
+      console.log('🔍 Usando userId:', user.id);
       
       // Obtener todos los torneos públicos
       const torneosPublicos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
@@ -163,11 +251,11 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId: userId, e
       
       // Para cada torneo, verificar si el equipo está inscrito
       torneosPublicos.forEach((torneo: any) => {
-        console.log(`\n🎯 Verificando inscripción en torneo: ${torneo.id} (${torneo.nombre})`);
-        const estaInscrito = verificarInscripcionExhaustiva(torneo.id, equipoId, user.id);
+        console.log(`\n🎯 ===== VERIFICANDO TORNEO: ${torneo.id} (${torneo.nombre}) =====`);
+        const estaInscrito = verificarInscripcionUltraExhaustiva(torneo.id, equipoId, user.id);
         
         if (estaInscrito) {
-          console.log(`✅ CONFIRMADO: Inscrito en ${torneo.nombre} (${torneo.id})`);
+          console.log(`✅ ===== CONFIRMADO: INSCRITO EN ${torneo.nombre} (${torneo.id}) =====`);
           
           // Cargar estadísticas del equipo para este torneo
           const statsKey = `torneo_${torneo.id}_equipo_${equipoId}_stats`;
@@ -187,7 +275,7 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId: userId, e
             }
           });
         } else {
-          console.log(`❌ CONFIRMADO: NO inscrito en ${torneo.nombre} (${torneo.id})`);
+          console.log(`❌ ===== CONFIRMADO: NO INSCRITO EN ${torneo.nombre} (${torneo.id}) =====`);
         }
       });
       
@@ -202,7 +290,7 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId: userId, e
       setLoading(false);
     }
     
-    console.log('=== FIN CARGA TORNEOS INSCRITOS (VERSIÓN EXHAUSTIVA) ===');
+    console.log('=== FIN CARGA TORNEOS INSCRITOS (VERSIÓN ULTRA EXHAUSTIVA) ===');
   };
 
   useEffect(() => {
