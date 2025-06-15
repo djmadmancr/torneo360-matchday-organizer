@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trophy, Calendar, MapPin, Users, Eye, Award, Target, Search, AlertCircle } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { obtenerEquipoIdDeUsuario } from '../utils/equipoMigration';
 import EstadisticasEquipo from './EstadisticasEquipo';
 
@@ -33,24 +34,13 @@ interface TorneoInscrito {
   };
 }
 
-interface PartidoPendiente {
-  id: string;
-  fecha: string;
-  hora: string;
-  equipoLocal: string;
-  equipoVisitante: string;
-  logoLocal: string;
-  logoVisitante: string;
-  jornada: number;
-  ubicacion?: string;
-}
-
 interface TorneosInscritosProps {
   equipoId: string; // Este es el userId, pero internamente usaremos equipoId numérico
   equipoNombre: string;
 }
 
 const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId: userId, equipoNombre }) => {
+  const { user } = useAuth();
   const [torneosInscritos, setTorneosInscritos] = useState<TorneoInscrito[]>([]);
   const [torneoSeleccionado, setTorneoSeleccionado] = useState<TorneoInscrito | null>(null);
   const [mostrarDetalles, setMostrarDetalles] = useState(false);
@@ -58,16 +48,14 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId: userId, e
   const [equipoIdNumerico, setEquipoIdNumerico] = useState<number | null>(null);
 
   const cargarTorneosInscritos = () => {
-    console.log('=== INICIO CARGA TORNEOS INSCRITOS (MEJORADO) ===');
+    console.log('=== INICIO CARGA TORNEOS INSCRITOS (FINAL) ===');
     
-    // Obtener equipoId numérico del usuario actual
-    const userStr = localStorage.getItem('currentUser');
-    if (!userStr) {
+    if (!user) {
       console.log('❌ No hay usuario actual');
       return;
     }
     
-    const user = JSON.parse(userStr);
+    // Obtener equipoId numérico del usuario actual
     const equipoId = obtenerEquipoIdDeUsuario(user);
     
     if (!equipoId) {
@@ -97,7 +85,7 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId: userId, e
     // También buscar en notificaciones como respaldo
     const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
     const solicitudesAceptadas = notificacionesEquipo.filter((n: any) => {
-      return n.equipoId === equipoId && n.tipo === 'aprobacion';
+      return n.equipoId === userId && n.tipo === 'aprobacion';
     });
     
     console.log('📢 Solicitudes aceptadas en notificaciones:', solicitudesAceptadas);
@@ -155,11 +143,11 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId: userId, e
 
     console.log('📊 Torneos inscritos finales:', torneosInscritosData);
     setTorneosInscritos(torneosInscritosData);
-    console.log('=== FIN CARGA TORNEOS INSCRITOS (MEJORADO) ===');
+    console.log('=== FIN CARGA TORNEOS INSCRITOS (FINAL) ===');
   };
 
   useEffect(() => {
-    if (userId) {
+    if (user) {
       cargarTorneosInscritos();
       
       const handleUpdate = () => {
@@ -175,7 +163,7 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId: userId, e
         window.removeEventListener('torneosInscritosUpdate', handleUpdate);
       };
     }
-  }, [userId, equipoNombre]);
+  }, [user, equipoNombre]);
 
   const getEstadoBadge = (estado: string) => {
     switch (estado) {

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, XCircle, Clock, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 import { obtenerEquipoIdDeUsuario } from '../utils/equipoMigration';
 
 interface Notificacion {
@@ -34,6 +35,8 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
   notificaciones,
   setNotificaciones
 }) => {
+  const { user } = useAuth();
+
   const eliminarNotificacion = (id: string) => {
     const nuevasNotificaciones = notificaciones.filter(n => n.id !== id);
     setNotificaciones(nuevasNotificaciones);
@@ -44,8 +47,6 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
     localStorage.setItem('notificacionesEquipo', JSON.stringify(filteredNotificaciones));
     
     console.log('🗑️ Notificación eliminada:', id);
-    console.log('📋 Notificaciones restantes:', filteredNotificaciones);
-    
     toast.success('Notificación eliminada');
   };
 
@@ -66,34 +67,33 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
 
     // IMPORTANTE: Si es una notificación de aprobación, crear la inscripción usando equipoId numérico
     const notificacion = allNotificaciones.find((n: any) => n.id === id);
-    if (notificacion && notificacion.tipo === 'aprobacion' && notificacion.torneoId) {
+    if (notificacion && notificacion.tipo === 'aprobacion' && notificacion.torneoId && user) {
       console.log('🎯 Procesando notificación de aprobación:', notificacion);
       
       // Obtener equipoId numérico del usuario actual
-      const userStr = localStorage.getItem('currentUser');
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        const equipoIdNumerico = obtenerEquipoIdDeUsuario(user);
+      const equipoIdNumerico = obtenerEquipoIdDeUsuario(user);
+      
+      if (equipoIdNumerico) {
+        // Crear registro de inscripción con equipoId numérico
+        const inscripcionKey = `inscripcion_${notificacion.torneoId}_${equipoIdNumerico}`;
+        const inscripcionData = {
+          equipoId: equipoIdNumerico, // Usar equipoId numérico
+          torneoId: notificacion.torneoId,
+          fechaInscripcion: new Date().toISOString(),
+          estado: 'aprobado',
+          fechaAprobacion: new Date().toISOString()
+        };
         
-        if (equipoIdNumerico) {
-          // Crear registro de inscripción con equipoId numérico
-          const inscripcionKey = `inscripcion_${notificacion.torneoId}_${equipoIdNumerico}`;
-          const inscripcionData = {
-            equipoId: equipoIdNumerico, // Usar equipoId numérico
-            torneoId: notificacion.torneoId,
-            fechaInscripcion: new Date().toISOString(),
-            estado: 'aprobado',
-            fechaAprobacion: new Date().toISOString()
-          };
-          
-          localStorage.setItem(inscripcionKey, JSON.stringify(inscripcionData));
-          console.log('✅ Inscripción registrada con equipoId numérico:', inscripcionKey, inscripcionData);
-          
-          // Forzar actualización de la lista de torneos inscritos
-          window.dispatchEvent(new Event('torneosInscritosUpdate'));
-        } else {
-          console.error('❌ No se pudo obtener equipoId numérico para la inscripción');
-        }
+        localStorage.setItem(inscripcionKey, JSON.stringify(inscripcionData));
+        console.log('✅ Inscripción registrada con equipoId numérico:', inscripcionKey, inscripcionData);
+        
+        // Forzar actualización de la lista de torneos inscritos
+        window.dispatchEvent(new Event('torneosInscritosUpdate'));
+        
+        toast.success('¡Inscripción confirmada! El torneo aparecerá en "Mis Torneos"');
+      } else {
+        console.error('❌ No se pudo obtener equipoId numérico para la inscripción');
+        toast.error('Error al procesar la inscripción');
       }
     }
   };
@@ -124,19 +124,12 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
     }
   };
 
-  // Mostrar información adicional del torneo para notificaciones de aprobación
   const getDetallesNotificacion = (notificacion: Notificacion) => {
-    if (notificacion.tipo === 'aprobacion' && notificacion.torneoId) {
+    if (notificacion.tipo === 'aprobacion' && notificacion.torneoId && user) {
       const torneos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
       const torneo = torneos.find((t: any) => t.id === notificacion.torneoId);
       
-      // Obtener equipoId numérico para mostrar en debug
-      const userStr = localStorage.getItem('currentUser');
-      let equipoIdNumerico = null;
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        equipoIdNumerico = obtenerEquipoIdDeUsuario(user);
-      }
+      const equipoIdNumerico = obtenerEquipoIdDeUsuario(user);
       
       if (torneo) {
         return (
@@ -146,9 +139,6 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
             </p>
             <p className="text-xs text-green-600">
               ID: {torneo.id} | Organizador: {torneo.organizadorNombre}
-            </p>
-            <p className="text-xs text-green-600 mt-1">
-              <strong>TorneoId en notificación:</strong> {notificacion.torneoId}
             </p>
             {equipoIdNumerico && (
               <p className="text-xs text-blue-600 mt-1">
@@ -211,11 +201,6 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
                         <p className="text-xs text-muted-foreground">
                           Fecha: {notificacion.fecha}
                         </p>
-                        <div className="text-xs text-muted-foreground mt-1 bg-gray-100 p-2 rounded">
-                          <p><strong>ID Notificación:</strong> {notificacion.id}</p>
-                          {notificacion.equipoId && <p><strong>EquipoId (legacy):</strong> {notificacion.equipoId}</p>}
-                          {notificacion.torneoId && <p><strong>TorneoId:</strong> {notificacion.torneoId}</p>}
-                        </div>
                       </div>
                     </div>
                     
