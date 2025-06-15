@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,15 +41,69 @@ interface FixtureGeneratorProps {
 const FixtureGenerator: React.FC<FixtureGeneratorProps> = ({ torneo, equipos }) => {
   const [partidos, setPartidos] = useState<Partido[]>([]);
   const [fixtureGenerado, setFixtureGenerado] = useState(false);
+  const [equiposInscritos, setEquiposInscritos] = useState<Equipo[]>([]);
+
+  useEffect(() => {
+    // Cargar equipos inscritos desde localStorage
+    const cargarEquiposInscritos = () => {
+      const equiposData: Equipo[] = [];
+      
+      // Buscar todas las inscripciones aprobadas para este torneo
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(`inscripcion_${torneo.id}_`)) {
+          const inscripcionData = JSON.parse(localStorage.getItem(key) || '{}');
+          if (inscripcionData.estado === 'aprobado') {
+            const equipoId = inscripcionData.equipoId;
+            
+            // Buscar datos del equipo
+            const equipoKey = `equipo_${equipoId}`;
+            const equipoData = JSON.parse(localStorage.getItem(equipoKey) || '{}');
+            
+            if (equipoData.nombre) {
+              equiposData.push({
+                id: equipoId.toString(),
+                nombre: equipoData.nombre,
+                logo: equipoData.logo || "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=50&h=50&fit=crop&crop=center"
+              });
+            }
+          }
+        }
+      }
+      
+      console.log('🏆 Equipos inscritos cargados para fixture:', equiposData);
+      setEquiposInscritos(equiposData);
+    };
+
+    cargarEquiposInscritos();
+
+    // Escuchar cambios en las inscripciones
+    const handleInscripcionesUpdate = () => {
+      cargarEquiposInscritos();
+    };
+
+    window.addEventListener('torneosInscritosUpdate', handleInscripcionesUpdate);
+    
+    return () => {
+      window.removeEventListener('torneosInscritosUpdate', handleInscripcionesUpdate);
+    };
+  }, [torneo.id]);
 
   const generarFixture = () => {
+    if (equiposInscritos.length < 2) {
+      alert('Se necesitan al menos 2 equipos inscritos para generar el fixture');
+      return;
+    }
+
     const nuevosPartidos: Partido[] = [];
     let partidoId = 1;
 
+    console.log('🏁 Generando fixture con equipos:', equiposInscritos);
+
     if (torneo.formato.includes('Grupos')) {
       // Generar partidos de grupos
-      const grupoA = equipos.slice(0, Math.ceil(equipos.length / 2));
-      const grupoB = equipos.slice(Math.ceil(equipos.length / 2));
+      const grupoA = equiposInscritos.slice(0, Math.ceil(equiposInscritos.length / 2));
+      const grupoB = equiposInscritos.slice(Math.ceil(equiposInscritos.length / 2));
 
       [grupoA, grupoB].forEach((grupo, grupoIndex) => {
         const nombreGrupo = grupoIndex === 0 ? 'A' : 'B';
@@ -73,7 +126,7 @@ const FixtureGenerator: React.FC<FixtureGeneratorProps> = ({ torneo, equipos }) 
       });
     } else if (torneo.formato.includes('Eliminatorio')) {
       // Generar eliminatorias
-      let equiposRestantes = [...equipos];
+      let equiposRestantes = [...equiposInscritos];
       let fase = 'Octavos';
       
       if (equiposRestantes.length <= 4) fase = 'Semifinal';
@@ -107,12 +160,12 @@ const FixtureGenerator: React.FC<FixtureGeneratorProps> = ({ torneo, equipos }) 
       }
     } else {
       // Todos contra todos
-      for (let i = 0; i < equipos.length; i++) {
-        for (let j = i + 1; j < equipos.length; j++) {
+      for (let i = 0; i < equiposInscritos.length; i++) {
+        for (let j = i + 1; j < equiposInscritos.length; j++) {
           nuevosPartidos.push({
             id: `P${partidoId.toString().padStart(3, '0')}`,
-            equipoLocal: equipos[i],
-            equipoVisitante: equipos[j],
+            equipoLocal: equiposInscritos[i],
+            equipoVisitante: equiposInscritos[j],
             fecha: new Date(Date.now() + partidoId * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             hora: '15:00',
             fase: 'Liga',
@@ -123,6 +176,7 @@ const FixtureGenerator: React.FC<FixtureGeneratorProps> = ({ torneo, equipos }) 
       }
     }
 
+    console.log('⚽ Fixture generado:', nuevosPartidos);
     setPartidos(nuevosPartidos);
     setFixtureGenerado(true);
   };
@@ -144,16 +198,54 @@ const FixtureGenerator: React.FC<FixtureGeneratorProps> = ({ torneo, equipos }) 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Fixture del Torneo</h3>
+        <div>
+          <h3 className="text-lg font-semibold">Fixture del Torneo</h3>
+          <p className="text-sm text-muted-foreground">
+            Equipos inscritos: {equiposInscritos.length} / {torneo.maxEquipos}
+          </p>
+        </div>
         {!fixtureGenerado ? (
-          <Button onClick={generarFixture}>
-            <Calendar className="w-4 h-4 mr-2" />
-            Generar Fixture
-          </Button>
+          <div className="text-right">
+            {equiposInscritos.length < 2 ? (
+              <p className="text-sm text-red-500 mb-2">Se necesitan al menos 2 equipos inscritos</p>
+            ) : null}
+            <Button 
+              onClick={generarFixture}
+              disabled={equiposInscritos.length < 2}
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              Generar Fixture
+            </Button>
+          </div>
         ) : (
           <Badge variant="secondary">Fixture Generado</Badge>
         )}
       </div>
+
+      {equiposInscritos.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Equipos Inscritos ({equiposInscritos.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {equiposInscritos.map((equipo) => (
+                <div key={equipo.id} className="flex items-center gap-2 p-2 border rounded-lg">
+                  <img 
+                    src={equipo.logo} 
+                    alt={equipo.nombre}
+                    className="w-8 h-8 rounded object-cover"
+                  />
+                  <span className="text-sm font-medium truncate">{equipo.nombre}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {fixtureGenerado && (
         <div className="space-y-4">
