@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Trophy, Calendar, MapPin, Users, Plus, Clock, Search, Eye, Target, Award, CheckCircle } from "lucide-react";
+import { obtenerEquipoIdDeUsuario } from '../utils/equipoMigration';
 
 interface TorneoPublico {
   id: string;
@@ -47,24 +48,41 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
   const [busquedaId, setBusquedaId] = useState('');
   const [torneosBuscados, setTorneosBuscados] = useState<TorneoPublico[]>([]);
   const [equiposInscritos, setEquiposInscritos] = useState<string[]>([]);
+  const [equipoIdNumerico, setEquipoIdNumerico] = useState<number | null>(null);
 
   useEffect(() => {
     const cargarTorneos = () => {
-      console.log('=== INICIO CARGA TORNEOS PÚBLICOS ===');
+      console.log('=== INICIO CARGA TORNEOS PÚBLICOS (MEJORADO) ===');
+      
+      // Obtener equipoId numérico del usuario actual
+      const userStr = localStorage.getItem('currentUser');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        const equipoId = obtenerEquipoIdDeUsuario(user);
+        setEquipoIdNumerico(equipoId);
+        console.log('🔍 EquipoId numérico obtenido:', equipoId);
+        
+        if (equipoId) {
+          // Cargar inscripciones usando equipoId numérico
+          const todasLasClaves = Object.keys(localStorage);
+          const clavesInscripcion = todasLasClaves.filter(clave => 
+            clave.startsWith('inscripcion_') && clave.endsWith(`_${equipoId}`)
+          );
+          
+          const inscripcionesAprobadas = clavesInscripcion
+            .map(clave => JSON.parse(localStorage.getItem(clave) || '{}'))
+            .filter(inscripcion => inscripcion.estado === 'aprobado')
+            .map(inscripcion => inscripcion.torneoId)
+            .filter(Boolean);
+          
+          console.log('✅ Inscripciones aprobadas (equipoId numérico):', inscripcionesAprobadas);
+          setEquiposInscritos(inscripcionesAprobadas);
+        }
+      }
+      
       const torneosPublicos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
       console.log('🎯 Torneos públicos en localStorage:', torneosPublicos);
       
-      // Cargar inscripciones aprobadas para determinar en qué torneos está inscrito el equipo
-      const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
-      const inscripcionesAprobadas = notificacionesEquipo
-        .filter((n: any) => n.tipo === 'aprobacion')
-        .map((n: any) => n.torneoId)
-        .filter(Boolean);
-      
-      console.log('✅ Inscripciones aprobadas detectadas:', inscripcionesAprobadas);
-      setEquiposInscritos(inscripcionesAprobadas);
-      
-      // Mostrar TODOS los torneos públicos, sin filtrar los inscritos
       const torneosDisponibles = torneosPublicos.filter((torneo: TorneoPublico) => {
         return torneo.esPublico;
       });
@@ -72,7 +90,7 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
       console.log('✅ Torneos públicos disponibles:', torneosDisponibles);
       setTorneos(torneosDisponibles);
       console.log('📊 Total de torneos públicos:', torneosDisponibles.length);
-      console.log('=== FIN CARGA TORNEOS PÚBLICOS ===');
+      console.log('=== FIN CARGA TORNEOS PÚBLICOS (MEJORADO) ===');
     };
 
     cargarTorneos();
@@ -150,7 +168,12 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Torneos</h2>
-        <Badge variant="outline">{torneos.length} torneos disponibles</Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline">{torneos.length} torneos disponibles</Badge>
+          {equipoIdNumerico && (
+            <Badge variant="secondary">Mi ID: {equipoIdNumerico}</Badge>
+          )}
+        </div>
       </div>
 
       {/* Buscador por ID */}
@@ -252,6 +275,11 @@ const TorneosPublicos: React.FC<TorneosPublicosProps> = ({
                     <p className="text-sm text-green-700">
                       Tu equipo está participando en este torneo
                     </p>
+                    {equipoIdNumerico && (
+                      <p className="text-xs text-green-600 mt-1">
+                        EquipoID: {equipoIdNumerico}
+                      </p>
+                    )}
                   </div>
                 )}
 

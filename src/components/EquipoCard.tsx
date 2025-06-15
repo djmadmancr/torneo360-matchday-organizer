@@ -8,6 +8,7 @@ import { Edit, Users } from "lucide-react";
 interface EquipoCardProps {
   equipo: {
     id: string;
+    equipoId?: number; // Nuevo: ID numérico del equipo
     nombre: string;
     logo?: string;
     colores: {
@@ -43,7 +44,12 @@ const EquipoCard: React.FC<EquipoCardProps> = ({ equipo, onEdit }) => {
             </div>
             <div>
               <h3 className="font-semibold">{equipo.nombre}</h3>
-              <p className="text-sm text-muted-foreground">ID: {equipo.id}</p>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">ID Usuario: {equipo.id}</p>
+                {equipo.equipoId && (
+                  <p className="text-sm text-blue-600 font-medium">EquipoID: {equipo.equipoId}</p>
+                )}
+              </div>
             </div>
           </div>
           <Button variant="outline" size="sm" onClick={onEdit}>

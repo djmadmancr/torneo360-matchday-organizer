@@ -25,6 +25,7 @@ export interface OrganizadorPerfil {
 }
 
 export interface EquipoPerfil {
+  equipoId: number; // Nuevo: ID numérico único para el equipo
   nombreEquipo: string;
   logo?: string;
   colores: {

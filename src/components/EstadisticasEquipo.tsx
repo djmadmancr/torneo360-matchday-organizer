@@ -1,12 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trophy, Target, Shield, Clock, Calendar, TrendingUp, Users, Award } from "lucide-react";
+import { obtenerEquipoIdDeUsuario } from '../utils/equipoMigration';
 
 interface EstadisticasEquipoProps {
-  equipoId: string;
+  equipoId: string; // Este es el userId, pero internamente usaremos equipoId numérico
   equipoNombre: string;
 }
 
@@ -35,24 +35,42 @@ interface EstadisticasJugador {
   tarjetasRojas: number;
 }
 
-const EstadisticasEquipo: React.FC<EstadisticasEquipoProps> = ({ equipoId, equipoNombre }) => {
+const EstadisticasEquipo: React.FC<EstadisticasEquipoProps> = ({ equipoId: userId, equipoNombre }) => {
   const [estadisticasTorneos, setEstadisticasTorneos] = useState<EstadisticasTorneo[]>([]);
   const [estadisticasJugadores, setEstadisticasJugadores] = useState<EstadisticasJugador[]>([]);
   const [filtroAnio, setFiltroAnio] = useState<string>('todos');
   const [filtroTorneo, setFiltroTorneo] = useState<string>('todos');
+  const [equipoIdNumerico, setEquipoIdNumerico] = useState<number | null>(null);
 
   useEffect(() => {
     cargarEstadisticas();
-  }, [equipoId]);
+  }, [userId]);
 
   const cargarEstadisticas = () => {
-    // Cargar estadísticas reales del localStorage - solo datos que existan
+    // Obtener equipoId numérico del usuario actual
+    const userStr = localStorage.getItem('currentUser');
+    if (!userStr) {
+      console.log('❌ No hay usuario actual para estadísticas');
+      return;
+    }
+    
+    const user = JSON.parse(userStr);
+    const equipoId = obtenerEquipoIdDeUsuario(user);
+    
+    if (!equipoId) {
+      console.log('❌ No se pudo obtener equipoId para estadísticas');
+      return;
+    }
+    
+    setEquipoIdNumerico(equipoId);
+    console.log('📊 Cargando estadísticas para equipoId numérico:', equipoId);
+    
+    // Cargar estadísticas usando equipoId numérico
     const historialTorneos = JSON.parse(localStorage.getItem(`historialTorneos_${equipoId}`) || '[]');
     const historialJugadores = JSON.parse(localStorage.getItem(`historialJugadores_${equipoId}`) || '[]');
     
-    console.log('Cargando estadísticas reales para equipo:', equipoId);
-    console.log('Historial de torneos encontrado:', historialTorneos);
-    console.log('Historial de jugadores encontrado:', historialJugadores);
+    console.log('📈 Historial de torneos encontrado (equipoId numérico):', historialTorneos);
+    console.log('⚽ Historial de jugadores encontrado (equipoId numérico):', historialJugadores);
     
     setEstadisticasTorneos(historialTorneos);
     setEstadisticasJugadores(historialJugadores);
@@ -125,12 +143,25 @@ const EstadisticasEquipo: React.FC<EstadisticasEquipoProps> = ({ equipoId, equip
         <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
         <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay estadísticas disponibles</h3>
         <p className="text-gray-500">Las estadísticas se generarán automáticamente cuando el equipo participe en torneos y se ingresen resultados reales</p>
+        {equipoIdNumerico && (
+          <p className="text-xs text-blue-600 mt-2">
+            EquipoID: {equipoIdNumerico}
+          </p>
+        )}
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      {/* Header con información del equipo */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Estadísticas del Equipo</h2>
+        {equipoIdNumerico && (
+          <Badge variant="secondary">EquipoID: {equipoIdNumerico}</Badge>
+        )}
+      </div>
+
       {/* Filtros */}
       <div className="flex gap-4 mb-6">
         <div className="flex-1">

@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trophy, Calendar, MapPin, Users, Eye, Award, Target, Search, AlertCircle } from "lucide-react";
+import { obtenerEquipoIdDeUsuario } from '../utils/equipoMigration';
 import EstadisticasEquipo from './EstadisticasEquipo';
 
 interface TorneoInscrito {
@@ -45,21 +46,39 @@ interface PartidoPendiente {
 }
 
 interface TorneosInscritosProps {
-  equipoId: string;
+  equipoId: string; // Este es el userId, pero internamente usaremos equipoId numérico
   equipoNombre: string;
 }
 
-const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNombre }) => {
+const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId: userId, equipoNombre }) => {
   const [torneosInscritos, setTorneosInscritos] = useState<TorneoInscrito[]>([]);
   const [torneoSeleccionado, setTorneoSeleccionado] = useState<TorneoInscrito | null>(null);
   const [mostrarDetalles, setMostrarDetalles] = useState(false);
   const [tabActiva, setTabActiva] = useState('tabla');
+  const [equipoIdNumerico, setEquipoIdNumerico] = useState<number | null>(null);
 
   const cargarTorneosInscritos = () => {
-    console.log('=== INICIO CARGA TORNEOS INSCRITOS ===');
-    console.log('🔍 Cargando torneos inscritos para equipoId:', equipoId);
+    console.log('=== INICIO CARGA TORNEOS INSCRITOS (MEJORADO) ===');
     
-    // Método 1: Buscar inscripciones directas guardadas
+    // Obtener equipoId numérico del usuario actual
+    const userStr = localStorage.getItem('currentUser');
+    if (!userStr) {
+      console.log('❌ No hay usuario actual');
+      return;
+    }
+    
+    const user = JSON.parse(userStr);
+    const equipoId = obtenerEquipoIdDeUsuario(user);
+    
+    if (!equipoId) {
+      console.log('❌ No se pudo obtener equipoId para el usuario');
+      return;
+    }
+    
+    setEquipoIdNumerico(equipoId);
+    console.log('🔍 Usando equipoId numérico:', equipoId);
+    
+    // Buscar inscripciones usando equipoId numérico
     const todasLasClaves = Object.keys(localStorage);
     const clavesInscripcion = todasLasClaves.filter(clave => 
       clave.startsWith(`inscripcion_`) && clave.endsWith(`_${equipoId}`)
@@ -67,78 +86,31 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
     
     console.log('🔑 Claves de inscripción encontradas:', clavesInscripcion);
     
-    const inscripcionesDirectas = clavesInscripcion.map(clave => {
+    const inscripcionesAprobadas = clavesInscripcion.map(clave => {
       const inscripcion = JSON.parse(localStorage.getItem(clave) || '{}');
-      console.log('📄 Inscripción directa encontrada:', clave, inscripcion);
+      console.log('📄 Inscripción encontrada:', clave, inscripcion);
       return inscripcion;
     }).filter(inscripcion => inscripcion.estado === 'aprobado');
     
-    console.log('✅ Inscripciones directas aprobadas:', inscripcionesDirectas);
+    console.log('✅ Inscripciones aprobadas:', inscripcionesAprobadas);
 
-    // Método 2: Buscar notificaciones de aprobación y extraer torneoId del mensaje
+    // También buscar en notificaciones como respaldo
     const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
-    console.log('📢 Todas las notificaciones equipo encontradas:', notificacionesEquipo);
-    
-    const torneosPublicos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
-    console.log('📋 Torneos públicos disponibles:', torneosPublicos);
-    
     const solicitudesAceptadas = notificacionesEquipo.filter((n: any) => {
-      const esParaEsteEquipo = n.equipoId === equipoId;
-      const esAprobacion = n.tipo === 'aprobacion';
-      
-      console.log(`🔍 Evaluando notificación ${n.id}:`, {
-        esParaEsteEquipo,
-        esAprobacion,
-        equipoId: n.equipoId,
-        tipo: n.tipo,
-        mensaje: n.mensaje
-      });
-      
-      return esParaEsteEquipo && esAprobacion;
+      return n.equipoId === equipoId && n.tipo === 'aprobacion';
     });
     
-    console.log('✅ Solicitudes aceptadas encontradas:', solicitudesAceptadas);
+    console.log('📢 Solicitudes aceptadas en notificaciones:', solicitudesAceptadas);
 
-    // Intentar extraer torneoId del mensaje si no está presente
-    const solicitudesConTorneoId = solicitudesAceptadas.map((notificacion: any) => {
-      if (notificacion.torneoId) {
-        console.log('✅ Notificación ya tiene torneoId:', notificacion.torneoId);
-        return notificacion;
-      }
-      
-      // Intentar extraer el nombre del torneo del mensaje
-      const mensaje = notificacion.mensaje || '';
-      console.log('🔍 Intentando extraer torneoId del mensaje:', mensaje);
-      
-      // Buscar coincidencia por nombre en el mensaje
-      for (const torneo of torneosPublicos) {
-        if (mensaje.includes(torneo.nombre)) {
-          console.log('✅ Torneo encontrado por nombre en mensaje:', torneo.nombre, '->', torneo.id);
-          return {
-            ...notificacion,
-            torneoId: torneo.id,
-            torneoExtraido: true
-          };
-        }
-      }
-      
-      console.log('❌ No se pudo extraer torneoId del mensaje');
-      return notificacion;
-    });
-    
-    console.log('🎯 Solicitudes procesadas con torneoId:', solicitudesConTorneoId);
-
-    // Combinar ambos métodos
+    // Combinar torneoIds de ambas fuentes
     let torneosIds: string[] = [];
     
-    // Agregar IDs de inscripciones directas
-    const idsDirectos = inscripcionesDirectas.map(i => i.torneoId).filter(Boolean);
+    // De inscripciones directas
+    const idsDirectos = inscripcionesAprobadas.map(i => i.torneoId).filter(Boolean);
     torneosIds = [...torneosIds, ...idsDirectos];
     
-    // Agregar IDs de notificaciones de aprobación
-    const idsDeNotificaciones = solicitudesConTorneoId
-      .map((n: any) => n.torneoId)
-      .filter(Boolean);
+    // De notificaciones
+    const idsDeNotificaciones = solicitudesAceptadas.map((n: any) => n.torneoId).filter(Boolean);
     torneosIds = [...torneosIds, ...idsDeNotificaciones];
     
     // Eliminar duplicados
@@ -147,41 +119,23 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
     console.log('🎯 IDs de torneos únicos finales:', torneosIds);
 
     if (torneosIds.length === 0) {
-      console.log('❌ No hay inscripciones aprobadas para este equipo');
+      console.log('❌ No hay inscripciones aprobadas');
       setTorneosInscritos([]);
       return;
     }
 
-    // Para cada torneo encontrado, crear/actualizar la inscripción en localStorage
-    torneosIds.forEach(torneoId => {
-      const inscripcionKey = `inscripcion_${torneoId}_${equipoId}`;
-      const inscripcionExistente = localStorage.getItem(inscripcionKey);
-      
-      if (!inscripcionExistente) {
-        const nuevaInscripcion = {
-          equipoId: equipoId,
-          torneoId: torneoId,
-          fechaInscripcion: new Date().toISOString(),
-          estado: 'aprobado'
-        };
-        localStorage.setItem(inscripcionKey, JSON.stringify(nuevaInscripcion));
-        console.log('✅ Nueva inscripción creada:', inscripcionKey, nuevaInscripcion);
-      }
-    });
-
     // Obtener información completa de los torneos
+    const torneosPublicos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
     const torneosInscritosData = torneosIds
       .map((torneoId: string) => {
-        console.log('🔍 Buscando torneo para ID:', torneoId);
         const torneo = torneosPublicos.find((t: any) => t.id === torneoId);
         
         if (torneo) {
-          console.log('✅ Torneo encontrado:', torneo.nombre, torneo.id);
-          // Cargar estadísticas si existen
+          // Cargar estadísticas usando equipoId numérico
           const statsKey = `torneo_${torneo.id}_equipo_${equipoId}_stats`;
           const statsGuardadas = JSON.parse(localStorage.getItem(statsKey) || 'null');
           
-          const torneoCompleto = {
+          return {
             ...torneo,
             equipoStats: statsGuardadas || {
               partidosJugados: 0,
@@ -194,32 +148,26 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
               grupo: null
             }
           };
-          
-          return torneoCompleto;
-        } else {
-          console.log('❌ Torneo no encontrado para ID:', torneoId);
-          return null;
         }
+        return null;
       })
       .filter(Boolean);
 
     console.log('📊 Torneos inscritos finales:', torneosInscritosData);
     setTorneosInscritos(torneosInscritosData);
-    console.log('=== FIN CARGA TORNEOS INSCRITOS ===');
+    console.log('=== FIN CARGA TORNEOS INSCRITOS (MEJORADO) ===');
   };
 
   useEffect(() => {
-    if (equipoId) {
+    if (userId) {
       cargarTorneosInscritos();
       
-      // Escuchar evento personalizado para actualizaciones
       const handleUpdate = () => {
-        console.log('🔄 Evento de actualización recibido, recargando torneos inscritos...');
+        console.log('🔄 Evento de actualización recibido, recargando...');
         setTimeout(cargarTorneosInscritos, 100);
       };
       
       window.addEventListener('torneosInscritosUpdate', handleUpdate);
-      
       const interval = setInterval(cargarTorneosInscritos, 3000);
       
       return () => {
@@ -227,7 +175,7 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
         window.removeEventListener('torneosInscritosUpdate', handleUpdate);
       };
     }
-  }, [equipoId, equipoNombre]);
+  }, [userId, equipoNombre]);
 
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
@@ -262,6 +210,11 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
           <p className="text-sm text-muted-foreground mt-2">
             También podrás ver aquí el historial de torneos finalizados
           </p>
+          {equipoIdNumerico && (
+            <p className="text-xs text-blue-600 mt-2">
+              EquipoID: {equipoIdNumerico}
+            </p>
+          )}
         </div>
       </div>
     );
@@ -271,7 +224,12 @@ const TorneosInscritos: React.FC<TorneosInscritosProps> = ({ equipoId, equipoNom
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Mis Torneos</h2>
-        <Badge variant="outline">{torneosInscritos.length} torneos inscritos</Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline">{torneosInscritos.length} torneos inscritos</Badge>
+          {equipoIdNumerico && (
+            <Badge variant="secondary">ID: {equipoIdNumerico}</Badge>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
