@@ -513,59 +513,55 @@ const Organizador = () => {
   };
 
   const aprobarTodo = () => {
-  const notificacionesPendientes = notificaciones.filter(n => n.accionRequerida);
-
-  notificacionesPendientes.forEach((notificacion) => {
-    if (notificacion.tipo === "inscripcion" && notificacion.torneoId) {
-      // Actualizar torneo con nueva inscripción
-      setTorneos(prev =>
-        prev.map(torneo =>
-          torneo.id === notificacion.torneoId
+    const notificacionesPendientes = notificaciones.filter(n => n.accionRequerida);
+    
+    notificacionesPendientes.forEach(notificacion => {
+      if (notificacion.tipo === "inscripcion" && notificacion.torneoId) {
+        setTorneos(prev => prev.map(torneo => 
+          torneo.id === notificacion.torneoId 
             ? { ...torneo, equiposInscritos: torneo.equiposInscritos + 1 }
             : torneo
-        )
-      );
+        ));
 
-      // Crear notificación para el equipo
-      const notificacionEquipo = {
-        id: `NOT-${Date.now() + Math.random()}`,
-        tipo: "aprobacion",
-        titulo: "Inscripción Aprobada",
-        mensaje: `Tu solicitud para ${notificacion.mensaje.split(" a ")[1]} ha sido aprobada`,
-        fecha: new Date().toISOString().split("T")[0],
-        equipoId: notificacion.equipoId,
-        accionRequerida: false,
-      };
-
-      const notificacionesEquipo = JSON.parse(localStorage.getItem("notificacionesEquipo") || "[]");
-      notificacionesEquipo.push(notificacionEquipo);
-      localStorage.setItem("notificacionesEquipo", JSON.stringify(notificacionesEquipo));
-
-      // ✅ NUEVO: guardar inscripción como aprobada
-      const claveInscripcion = `inscripcion_${notificacion.torneoId}_${notificacion.equipoId}`;
-      localStorage.setItem(
-        claveInscripcion,
-        JSON.stringify({
-          estado: "aprobado",
+        // Crear notificación para el equipo
+        const notificacionEquipo = {
+          id: `NOT-${Date.now() + Math.random()}`,
+          tipo: 'aprobacion',
+          titulo: 'Inscripción Aprobada',
+          mensaje: `Tu solicitud para ${notificacion.mensaje.split(' a ')[1]} ha sido aprobada`,
+          fecha: new Date().toISOString().split('T')[0],
           equipoId: notificacion.equipoId,
-          torneoId: notificacion.torneoId,
-          fechaAprobacion: new Date().toISOString(),
-        })
-      );
+          accionRequerida: false
+        };
+
+        const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
+        notificacionesEquipo.push(notificacionEquipo);
+        localStorage.setItem('notificacionesEquipo', JSON.stringify(notificacionesEquipo));
+      }
+    });
+
+    // Eliminar todas las notificaciones pendientes
+    const todasNotificaciones = JSON.parse(localStorage.getItem('notificaciones') || '[]');
+    const notificacionesActualizadas = todasNotificaciones.filter((n: any) => 
+      !notificacionesPendientes.some(np => np.id === n.id)
+    );
+    localStorage.setItem('notificaciones', JSON.stringify(notificacionesActualizadas));
+
+    setNotificaciones(prev => prev.filter(n => !n.accionRequerida));
+    toast.success("Todas las solicitudes han sido aprobadas");
+  };
+
+  const guardarPerfil = () => {
+    if (organizadorPerfil) {
+      updateUserProfile('organizador', {
+        ...organizadorPerfil,
+        nombreOrganizacion: perfil.nombre,
+        logo: perfil.logo,
+        telefono: perfil.telefono
+      });
+      toast.success('Perfil actualizado exitosamente');
     }
-  });
-
-  // Eliminar notificaciones del localStorage general
-  const todasNotificaciones = JSON.parse(localStorage.getItem("notificaciones") || "[]");
-  const notificacionesActualizadas = todasNotificaciones.filter(
-    (n: any) => !notificacionesPendientes.some((np) => np.id === n.id)
-  );
-  localStorage.setItem("notificaciones", JSON.stringify(notificacionesActualizadas));
-
-  // Actualizar estado local
-  setNotificaciones((prev) => prev.filter((n) => !n.accionRequerida));
-  toast.success("Todas las solicitudes han sido aprobadas");
-};
+  };
 
   const handleEliminarTorneo = (torneoId: string) => {
     const torneo = torneos.find(t => t.id === torneoId);
