@@ -472,6 +472,7 @@ const Organizador = () => {
 
       addLog('Aprobar Inscripción', `Inscripción de ${notificacion.equipoSolicitante} aprobada`, 'aprobacion', 'inscripcion', notificacionId);
       toast.success(`Inscripción de ${notificacion.equipoSolicitante} aprobada`);
+      guardarInscripcionAprobada(notificacion.torneoId, notificacion.equipoId);
     }
 
     // Eliminar notificación del localStorage general
@@ -500,6 +501,8 @@ const Organizador = () => {
     const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
     notificacionesEquipo.push(notificacionEquipo);
     localStorage.setItem('notificacionesEquipo', JSON.stringify(notificacionesEquipo));
+    guardarInscripcionAprobada(notificacion.torneoId, notificacion.equipoId);
+
 
     addLog('Rechazar Inscripción', `Solicitud de ${notificacion.equipoSolicitante} rechazada`, 'rechazo', 'inscripcion', notificacionId);
     toast.error(`Solicitud de ${notificacion.equipoSolicitante} rechazada`);
@@ -1113,5 +1116,16 @@ const Organizador = () => {
     </div>
   );
 };
+
+const guardarInscripcionAprobada = (torneoId: string, equipoId: string) => {
+  const claveInscripcion = `inscripcion_${torneoId}_${equipoId}`;
+  localStorage.setItem(claveInscripcion, JSON.stringify({
+    estado: "aprobado",
+    equipoId,
+    torneoId,
+    fechaAprobacion: new Date().toISOString()
+  }));
+};
+
 
 export default Organizador;
