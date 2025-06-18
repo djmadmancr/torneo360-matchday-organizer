@@ -551,6 +551,15 @@ const Organizador = () => {
     toast.success("Todas las solicitudes han sido aprobadas");
   };
 
+  // NUEVO: guardar inscripción como aprobada
+    const claveInscripcion = `inscripcion_${notificacion.torneoId}_${notificacion.equipoId}`;
+    localStorage.setItem(claveInscripcion, JSON.stringify({
+      estado: "aprobado",
+      equipoId: notificacion.equipoId,
+      torneoId: notificacion.torneoId,
+      fechaAprobacion: new Date().toISOString()
+    }));
+
   const guardarPerfil = () => {
     if (organizadorPerfil) {
       updateUserProfile('organizador', {
