@@ -537,7 +537,14 @@ const Organizador = () => {
         const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
         notificacionesEquipo.push(notificacionEquipo);
         localStorage.setItem('notificacionesEquipo', JSON.stringify(notificacionesEquipo));
-      }
+
+        // ✅ NUEVO: guardar inscripción como aprobada
+        const claveInscripcion = `inscripcion_${notificacion.torneoId}_${notificacion.equipoId}`;
+        localStorage.setItem(claveInscripcion, JSON.stringify({
+          estado: "aprobado",
+          equipoId: notificacion.equipoId,
+          torneoId: notificacion.torneoId,
+          fechaAprobacion: new Date().toISOString()
     });
 
     // Eliminar todas las notificaciones pendientes
