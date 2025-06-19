@@ -193,6 +193,9 @@ const Equipo = () => {
       return;
     }
 
+    console.log("👀 perfil.jugadores:", perfil.jugadores);
+    console.log("👀 perfil.coaches:", perfil.coaches);
+
     // Validar que tenga jugadores y staff
     if (perfil.jugadores.length === 0) {
       toast.error('Debes agregar jugadores antes de inscribirte a un torneo');
