@@ -1,12 +1,13 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trophy, Users, Target, TrendingUp, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Trophy, Users, Target, TrendingUp, Calendar, Eye } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { useTorneoEstadisticas } from '../hooks/useTorneoEstadisticas';
+import DetalleEquipoModal from './DetalleEquipoModal';
 
 interface Torneo {
   id: string;
@@ -39,8 +40,19 @@ const TorneoEstadisticas: React.FC<TorneoEstadisticasProps> = ({
   esOrganizador = false
 }) => {
   const { equiposInscritos, estadisticasReales, loading, recargar } = useTorneoEstadisticas(torneo);
+  const [equipoSeleccionado, setEquipoSeleccionado] = useState(null);
+  const [modalDetalleAbierto, setModalDetalleAbierto] = useState(false);
 
-  // Datos para gráficos basados en estadísticas reales
+  const abrirDetalleEquipo = (equipo: any) => {
+    setEquipoSeleccionado(equipo);
+    setModalDetalleAbierto(true);
+  };
+
+  const cerrarDetalleEquipo = () => {
+    setEquipoSeleccionado(null);
+    setModalDetalleAbierto(false);
+  };
+
   const estadisticasGenerales = [
     { nombre: "Partidos Jugados", valor: estadisticasReales.partidosJugados, color: "#3b82f6" },
     { nombre: "Goles Totales", valor: estadisticasReales.golesTotales, color: "#22c55e" },
@@ -48,7 +60,6 @@ const TorneoEstadisticas: React.FC<TorneoEstadisticasProps> = ({
     { nombre: "Tarjetas Rojas", valor: estadisticasReales.tarjetasRojas, color: "#ef4444" }
   ];
 
-  // Generar datos de partidos por fecha basado en equipos inscritos
   const generarPartidosPorFecha = () => {
     const totalEquipos = equiposInscritos.length;
     if (totalEquipos < 2) return [];
@@ -97,10 +108,19 @@ const TorneoEstadisticas: React.FC<TorneoEstadisticasProps> = ({
           <TabsContent value="equipos">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Equipos Inscritos y Aprobados ({equiposInscritos.length})
-                  {loading && <span className="text-sm text-muted-foreground">(Cargando...)</span>}
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    Equipos Inscritos y Aprobados ({equiposInscritos.length})
+                  </div>
+                  <Button 
+                    onClick={recargar}
+                    variant="outline"
+                    size="sm"
+                    disabled={loading}
+                  >
+                    {loading ? "Cargando..." : "Actualizar"}
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -116,12 +136,6 @@ const TorneoEstadisticas: React.FC<TorneoEstadisticasProps> = ({
                     <p className="text-sm text-gray-500 mt-2">
                       Los equipos aparecerán aquí cuando sean aprobados
                     </p>
-                    <button 
-                      onClick={recargar}
-                      className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                    >
-                      Recargar
-                    </button>
                   </div>
                 ) : (
                   <Table>
@@ -130,8 +144,10 @@ const TorneoEstadisticas: React.FC<TorneoEstadisticasProps> = ({
                         <TableHead>Equipo</TableHead>
                         <TableHead>Categoría</TableHead>
                         <TableHead>Grupo</TableHead>
+                        <TableHead>Jugadores</TableHead>
                         <TableHead>Fecha Inscripción</TableHead>
                         <TableHead>Estado</TableHead>
+                        <TableHead>Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -152,10 +168,26 @@ const TorneoEstadisticas: React.FC<TorneoEstadisticasProps> = ({
                             <Badge variant="outline">{equipo.grupo}</Badge>
                           </TableCell>
                           <TableCell>
+                            <Badge variant="secondary">
+                              {equipo.jugadores?.length || 0} jugadores
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
                             {new Date(equipo.fechaInscripcion).toLocaleDateString('es-ES')}
                           </TableCell>
                           <TableCell>
                             <Badge className="bg-green-500">Inscrito</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => abrirDetalleEquipo(equipo)}
+                              className="flex items-center gap-1"
+                            >
+                              <Eye className="w-4 h-4" />
+                              Ver Detalles
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -231,7 +263,6 @@ const TorneoEstadisticas: React.FC<TorneoEstadisticasProps> = ({
             </Card>
           </div>
 
-          {/* Resumen de estadísticas */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
             <Card>
               <CardContent className="p-4 text-center">
@@ -288,6 +319,12 @@ const TorneoEstadisticas: React.FC<TorneoEstadisticasProps> = ({
           </Card>
         </TabsContent>
       </Tabs>
+
+      <DetalleEquipoModal
+        equipo={equipoSeleccionado}
+        open={modalDetalleAbierto}
+        onClose={cerrarDetalleEquipo}
+      />
     </div>
   );
 };
