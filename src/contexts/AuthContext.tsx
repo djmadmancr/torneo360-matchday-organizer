@@ -28,13 +28,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (supabaseUser) {
+      // Map Supabase role to legacy tipos array with proper type checking
+      const mapRoleToTipos = (role: string | null): ('organizador' | 'equipo' | 'fiscal')[] => {
+        switch (role) {
+          case 'organizer':
+            return ['organizador'];
+          case 'referee':
+            return ['fiscal'];
+          case 'team_admin':
+          default:
+            return ['equipo'];
+        }
+      };
+
       const legacyUser: User = {
         id: supabaseUser.id,
-        username: supabaseUser.email,
+        username: supabaseUser.email || '',
         password: '', // Not stored for security
-        tipos: [supabaseUser.role || 'equipo'],
-        nombre: supabaseUser.full_name || supabaseUser.email,
-        email: supabaseUser.email,
+        tipos: mapRoleToTipos(supabaseUser.role),
+        nombre: supabaseUser.full_name || supabaseUser.email || '',
+        email: supabaseUser.email || '',
         activo: true,
         fechaCreacion: supabaseUser.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
         perfiles: {
@@ -59,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             torneos: []
           },
           fiscal: supabaseUser.role === 'referee' ? {
-            nombre: supabaseUser.full_name || supabaseUser.email,
+            nombre: supabaseUser.full_name || supabaseUser.email || '',
             experiencia: 0,
             certificaciones: [],
             torneos: []
@@ -104,8 +117,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!supabaseUser) return;
 
     try {
+      const currentProfileData = supabaseUser.profile_data || {};
       const updatedProfileData = {
-        ...supabaseUser.profile_data,
+        ...currentProfileData,
         [tipo]: profileData
       };
 
