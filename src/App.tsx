@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
+import Auth from "./pages/Auth";
 import Organizador from "./pages/Organizador";
 import Equipo from "./pages/Equipo";
 import Fiscal from "./pages/Fiscal";
@@ -26,6 +27,7 @@ function App() {
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
               <Route path="/organizador" element={<Organizador />} />
               <Route path="/equipo" element={<Equipo />} />
               <Route path="/fiscal" element={<Fiscal />} />

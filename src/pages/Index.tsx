@@ -1,13 +1,28 @@
 
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { Users, Shield, UserCheck, LogOut } from "lucide-react";
+import { Users, Shield, UserCheck, LogOut, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import SuperAdminUserManager from "@/components/SuperAdminUserManager";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, currentProfile, setCurrentProfile, logout } = useAuth();
+  const { user, currentProfile, setCurrentProfile, logout, isAuthenticated } = useAuth();
+  const [showSuperAdmin, setShowSuperAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/auth');
+    }
+  }, [isAuthenticated, navigate]);
+
+  // Don't render anything while checking auth status
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const handleUserTypeNavigation = (tipo: 'organizador' | 'equipo' | 'fiscal') => {
     if (user?.tipos?.includes(tipo)) {
@@ -39,6 +54,15 @@ const Index = () => {
               )}
             </div>
             <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSuperAdmin(true)}
+                className="text-muted-foreground hover:text-primary"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Admin
+              </Button>
               {user && (
                 <Button
                   variant="outline"
@@ -122,6 +146,16 @@ const Index = () => {
           </Card>
         </div>
       </div>
+
+      {/* Super Admin Modal */}
+      <Dialog open={showSuperAdmin} onOpenChange={setShowSuperAdmin}>
+        <DialogContent className="w-[95vw] max-w-6xl mx-auto max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>🔐 Dashboard Super Administrador</DialogTitle>
+          </DialogHeader>
+          <SuperAdminUserManager />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
