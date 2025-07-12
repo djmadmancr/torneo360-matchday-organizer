@@ -1,98 +1,78 @@
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { User, AuthContextType } from '@/types/auth';
-import { migrarEquipoSiNoTieneId } from '@/utils/equipoMigration';
-
-const initialUsers: User[] = [
-  {
-    id: 'user-001',
-    username: 'admin@example.com', // Usando email como username
-    password: 'password',
-    tipos: ['organizador', 'equipo', 'fiscal'],
-    nombre: 'Admin User',
-    email: 'admin@example.com',
-    activo: true,
-    fechaCreacion: '2024-01-01',
-    perfiles: {
-      organizador: {
-        nombreOrganizacion: 'Admin Organization',
-        descripcion: '',
-        telefono: '',
-        direccion: '',
-        torneos: []
-      },
-      equipo: {
-        equipoId: 1, // Agregado el equipoId requerido
-        nombreEquipo: 'Admin Team',
-        colores: {
-          principal: '#1e40af',
-          secundario: '#ffffff'
-        },
-        categoria: 'Primera División',
-        entrenador: '',
-        jugadores: [],
-        coaches: [],
-        torneos: []
-      },
-      fiscal: {
-        nombre: 'Admin User',
-        experiencia: 0,
-        certificaciones: [],
-        torneos: []
-      }
-    }
-  }
-];
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [users, setUsers] = useState<User[]>(() => {
-    const savedUsers = localStorage.getItem('globalLinkSoccerUsers');
-    if (savedUsers) {
-      const parsedUsers = JSON.parse(savedUsers);
-      // Migrar usuarios existentes para asegurar que tengan equipoId
-      const usuariosMigrados = parsedUsers.map((user: User) => migrarEquipoSiNoTieneId(user));
-      return usuariosMigrados;
-    }
-    // Solo si no hay usuarios guardados, usamos los iniciales
-    return initialUsers;
-  });
-  
-  const [user, setUser] = useState<User | null>(() => {
-    const storedUser = localStorage.getItem('globalLinkSoccerUser');
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      // Migrar el usuario actual si es necesario
-      return migrarEquipoSiNoTieneId(parsedUser);
-    }
-    return null;
-  });
-  
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!user);
-  
+  const {
+    session,
+    user: supabaseUser,
+    isAuthenticated,
+    signIn: supabaseSignIn,
+    signOut: supabaseSignOut,
+    updateProfile: supabaseUpdateProfile,
+    isLoading
+  } = useSupabaseAuth();
+
   const [currentProfile, setCurrentProfile] = useState<'organizador' | 'equipo' | 'fiscal' | null>(() => {
     const storedProfile = localStorage.getItem('globalLinkSoccerCurrentProfile');
     return storedProfile ? (storedProfile as 'organizador' | 'equipo' | 'fiscal') : null;
   });
 
-  // Guardar usuarios en localStorage cada vez que cambien
-  useEffect(() => {
-    localStorage.setItem('globalLinkSoccerUsers', JSON.stringify(users));
-  }, [users]);
+  // Convert Supabase user to legacy User format for compatibility
+  const [user, setUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
 
-  // Guardar usuario actual en localStorage
   useEffect(() => {
-    if (user) {
-      localStorage.setItem('globalLinkSoccerUser', JSON.stringify(user));
-      setIsAuthenticated(true);
+    if (supabaseUser) {
+      const legacyUser: User = {
+        id: supabaseUser.id,
+        username: supabaseUser.email,
+        password: '', // Not stored for security
+        tipos: [supabaseUser.role || 'equipo'],
+        nombre: supabaseUser.full_name || supabaseUser.email,
+        email: supabaseUser.email,
+        activo: true,
+        fechaCreacion: supabaseUser.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+        perfiles: {
+          organizador: supabaseUser.role === 'organizer' ? {
+            nombreOrganizacion: supabaseUser.full_name || '',
+            descripcion: '',
+            telefono: '',
+            direccion: '',
+            torneos: []
+          } : undefined,
+          equipo: {
+            equipoId: 1,
+            nombreEquipo: supabaseUser.full_name || 'My Team',
+            colores: {
+              principal: '#1e40af',
+              secundario: '#ffffff'
+            },
+            categoria: 'Primera División',
+            entrenador: '',
+            jugadores: [],
+            coaches: [],
+            torneos: []
+          },
+          fiscal: supabaseUser.role === 'referee' ? {
+            nombre: supabaseUser.full_name || supabaseUser.email,
+            experiencia: 0,
+            certificaciones: [],
+            torneos: []
+          } : undefined
+        }
+      };
+      setUser(legacyUser);
     } else {
-      localStorage.removeItem('globalLinkSoccerUser');
-      setIsAuthenticated(false);
+      setUser(null);
     }
-  }, [user]);
+  }, [supabaseUser]);
 
-  // Guardar perfil actual en localStorage
+  // Save current profile in localStorage
   useEffect(() => {
     if (currentProfile) {
       localStorage.setItem('globalLinkSoccerCurrentProfile', currentProfile);
@@ -102,22 +82,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [currentProfile]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    const foundUser = users.find(u => u.email === email && u.password === password && u.activo);
-    if (foundUser) {
-      // Migrar el usuario al hacer login si es necesario
-      const userMigrado = migrarEquipoSiNoTieneId(foundUser);
-      setUser(userMigrado);
-      setIsAuthenticated(true);
+    try {
+      await supabaseSignIn({ email, password });
       return true;
-    } else {
-      setIsAuthenticated(false);
+    } catch (error) {
+      console.error('Login error:', error);
       return false;
     }
   };
 
   const logout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
+    supabaseSignOut();
     setCurrentProfile(null);
   };
 
@@ -125,37 +100,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCurrentProfile(tipo);
   };
 
-  const updateUserProfile = (tipo: 'organizador' | 'equipo' | 'fiscal', profileData: any) => {
-    if (!user) return;
+  const updateUserProfile = async (tipo: 'organizador' | 'equipo' | 'fiscal', profileData: any) => {
+    if (!supabaseUser) return;
 
-    const updatedUser = {
-      ...user,
-      perfiles: {
-        ...user.perfiles,
+    try {
+      const updatedProfileData = {
+        ...supabaseUser.profile_data,
         [tipo]: profileData
-      }
-    };
+      };
 
-    setUser(updatedUser);
-    
-    // Actualizar también en la lista de usuarios
-    setUsers(prevUsers => 
-      prevUsers.map(u => u.id === user.id ? updatedUser : u)
-    );
+      await supabaseUpdateProfile({
+        profile_data: updatedProfileData
+      });
+    } catch (error) {
+      console.error('Error updating profile:', error);
+    }
   };
 
   const updateUsers = (newUsers: User[]) => {
-    // Migrar usuarios antes de guardarlos
-    const usuariosMigrados = newUsers.map(user => migrarEquipoSiNoTieneId(user));
-    setUsers(usuariosMigrados);
-    
-    // Si el usuario actual fue modificado, actualizar también el estado del usuario actual
-    if (user) {
-      const updatedCurrentUser = usuariosMigrados.find(u => u.id === user.id);
-      if (updatedCurrentUser) {
-        setUser(updatedCurrentUser);
-      }
-    }
+    // This is kept for compatibility but doesn't do anything in Supabase mode
+    setUsers(newUsers);
   };
 
   const value: AuthContextType = {

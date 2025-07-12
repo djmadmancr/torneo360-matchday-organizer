@@ -1,55 +1,41 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { QueryProvider } from "@/providers/QueryProvider";
+import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Organizador from "./pages/Organizador";
 import Equipo from "./pages/Equipo";
 import Fiscal from "./pages/Fiscal";
 import NotFound from "./pages/NotFound";
-import LoginForm from "./components/LoginForm";
+import { useEffect } from "react";
+import { checkAndRunMigration } from "@/utils/dataMigration";
 
-const queryClient = new QueryClient();
-
-const AppRoutes = () => {
-  const { isAuthenticated, user, currentProfile } = useAuth();
-
-  if (!isAuthenticated) {
-    return <LoginForm />;
-  }
+function App() {
+  useEffect(() => {
+    // Run migration check on app start
+    checkAndRunMigration();
+  }, []);
 
   return (
-    <Routes>
-      <Route path="/" element={<Index />} />
-      {user?.tipos?.includes('organizador') && (
-        <Route path="/organizador" element={<Organizador />} />
-      )}
-      {user?.tipos?.includes('equipo') && (
-        <Route path="/equipo" element={<Equipo />} />
-      )}
-      {user?.tipos?.includes('fiscal') && (
-        <Route path="/fiscal" element={<Fiscal />} />
-      )}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
-};
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+    <QueryProvider>
       <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+        <TooltipProvider>
+          <Toaster />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/organizador" element={<Organizador />} />
+              <Route path="/equipo" element={<Equipo />} />
+              <Route path="/fiscal" element={<Fiscal />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
       </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+    </QueryProvider>
+  );
+}
 
 export default App;
