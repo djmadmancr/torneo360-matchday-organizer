@@ -117,7 +117,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!supabaseUser) return;
 
     try {
-      const currentProfileData = supabaseUser.profile_data || {};
+      // Safely handle profile_data which might be null or not an object
+      const currentProfileData = supabaseUser.profile_data && typeof supabaseUser.profile_data === 'object' 
+        ? supabaseUser.profile_data as Record<string, any>
+        : {};
+      
       const updatedProfileData = {
         ...currentProfileData,
         [tipo]: profileData
