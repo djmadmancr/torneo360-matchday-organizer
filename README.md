@@ -1,3 +1,4 @@
+
 # Welcome to your Lovable project
 
 ## Project info
@@ -59,6 +60,66 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
+- Supabase (Database & Authentication)
+
+## Environment Variables Setup
+
+### Required Environment Variables
+
+Create a `.env.local` file in the root directory with the following variables:
+
+```env
+# Supabase Configuration
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key_here
+
+# Super Admin Creation (for scripts only)
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+SUPER_ADMIN_EMAIL=admin@example.com
+SUPER_ADMIN_PASSWORD=your_secure_password_here
+```
+
+### Finding your Supabase Keys
+
+1. **Project URL & Anon Key**: Available in your Supabase project dashboard under Settings > API
+2. **Service Role Key**: Available in your Supabase project dashboard under Settings > API (⚠️ Keep this secret!)
+
+## Super Admin Setup
+
+### Creating a Super Admin User
+
+To create a super admin user that can access the admin panel:
+
+```sh
+# Make sure you have the required environment variables set in .env.local
+npm run seed:superadmin
+```
+
+This script will:
+- Create a user in Supabase Auth with the provided email and password
+- Insert the user into the `public.users` table with `role = 'admin'`
+- Skip the process if the user already exists (idempotent)
+
+### Required Environment Variables for Super Admin
+
+```env
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_from_supabase_dashboard
+SUPER_ADMIN_EMAIL=admin@yourdomain.com
+SUPER_ADMIN_PASSWORD=YourSecurePassword123!
+```
+
+⚠️ **Security Notes:**
+- Never commit your `.env.local` file to version control
+- Use a strong password for the super admin account
+- The service role key has full database access - keep it secure
+- Consider using environment-specific admin accounts
+
+### Accessing the Admin Panel
+
+1. Run the super admin creation script: `npm run seed:superadmin`
+2. Start the development server: `npm run dev`
+3. Login with your super admin credentials
+4. Click the "Admin" button in the main interface to access the admin panel
 
 ## How can I deploy this project?
 
