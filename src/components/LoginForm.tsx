@@ -200,15 +200,6 @@ const LoginForm = () => {
             </TabsContent>
           </Tabs>
 
-          <div className="mt-6 p-4 bg-muted rounded-lg">
-            <p className="text-sm font-medium mb-2">Usuarios de prueba:</p>
-            <div className="text-xs space-y-1">
-              <p><strong>Admin:</strong> admin@demo.com / admin123</p>
-              <p><strong>Organizador:</strong> organizer@demo.com / organizer123</p>
-              <p><strong>Fiscal:</strong> referee@demo.com / referee123</p>
-              <p><strong>Equipo:</strong> team@demo.com / team123</p>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>
