@@ -9,6 +9,7 @@ import { UsersTable } from '@/components/Admin/UsersTable';
 import { CreateEditUserModal } from '@/components/Admin/CreateEditUserModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
+import { canAccessAdminPanel } from '@/utils/roleUtils';
 
 const AdminUsers = () => {
   const { currentUser } = useAuth();
@@ -17,16 +18,17 @@ const AdminUsers = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // Redirect if not admin or organizer
-  if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'organizer')) {
+  if (!currentUser || !canAccessAdminPanel(currentUser)) {
     return <Navigate to="/no-access" replace />;
   }
 
   const { data: users, isLoading, error } = useUsers();
 
   const filteredUsers = users?.filter(user => {
+    const userRoles = user.roles || [user.role || 'team_admin'];
     const matchesSearch = user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+    const matchesRole = roleFilter === 'all' || userRoles.includes(roleFilter);
     return matchesSearch && matchesRole;
   }) || [];
 

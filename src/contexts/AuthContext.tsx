@@ -10,6 +10,7 @@ interface CurrentUser {
   id: string;
   email: string;
   role: UserRole;
+  roles?: string[]; // Add support for multiple roles
   full_name?: string;
 }
 
@@ -34,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, email, role, full_name')
+        .select('id, email, role, roles, full_name')
         .eq('auth_user_id', authUserId)
         .single();
 
@@ -47,6 +48,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: data.id,
         email: data.email,
         role: data.role as UserRole,
+        roles: Array.isArray(data.roles) ? data.roles : 
+               typeof data.roles === 'string' ? JSON.parse(data.roles) : 
+               [data.role || 'team_admin'],
         full_name: data.full_name
       };
     } catch (error) {

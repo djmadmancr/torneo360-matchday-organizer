@@ -289,6 +289,7 @@ export type Database = {
           id: string
           profile_data: Json | null
           role: string | null
+          roles: Json | null
           updated_at: string | null
         }
         Insert: {
@@ -299,6 +300,7 @@ export type Database = {
           id?: string
           profile_data?: Json | null
           role?: string | null
+          roles?: Json | null
           updated_at?: string | null
         }
         Update: {
@@ -309,6 +311,7 @@ export type Database = {
           id?: string
           profile_data?: Json | null
           role?: string | null
+          roles?: Json | null
           updated_at?: string | null
         }
         Relationships: []

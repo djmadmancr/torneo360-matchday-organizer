@@ -7,6 +7,7 @@ export interface AdminUser {
   email: string;
   full_name?: string;
   role?: string;
+  roles?: string[]; // New field for multiple roles
   created_at?: string;
   auth_user_id?: string;
 }
@@ -22,7 +23,14 @@ export const useUsers = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      
+      // Transform the data to ensure roles is an array
+      return (data || []).map(user => ({
+        ...user,
+        roles: Array.isArray(user.roles) ? user.roles : 
+               typeof user.roles === 'string' ? JSON.parse(user.roles) : 
+               [user.role || 'team_admin']
+      }));
     },
   });
 };
@@ -32,30 +40,24 @@ export const useCreateUser = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ email, password, full_name, role }: { 
+    mutationFn: async ({ email, password, full_name, roles }: { 
       email: string; 
       password: string; 
       full_name: string; 
-      role: string; 
+      roles: string[]; 
     }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const response = await fetch('/src/server/api/admin/createUser.ts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ email, password, full_name, role })
+      const { data, error } = await supabase.functions.invoke('admin-create-user', {
+        body: { email, password, full_name, roles }
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create user');
+      if (error) {
+        throw new Error(error.message || 'Failed to create user');
       }
 
-      return response.json();
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
@@ -68,29 +70,23 @@ export const useUpdateUser = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, full_name, role }: { 
+    mutationFn: async ({ id, full_name, roles }: { 
       id: string; 
       full_name: string; 
-      role: string; 
+      roles: string[]; 
     }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const response = await fetch('/src/server/api/admin/updateUser.ts', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ id, full_name, role })
+      const { data, error } = await supabase.functions.invoke('admin-update-user', {
+        body: { id, full_name, roles }
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to update user');
+      if (error) {
+        throw new Error(error.message || 'Failed to update user');
       }
 
-      return response.json();
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
@@ -136,21 +132,15 @@ export const useResetPassword = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const response = await fetch('/src/server/api/admin/resetPassword.ts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ email })
+      const { data, error } = await supabase.functions.invoke('admin-reset-password', {
+        body: { email }
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to reset password');
+      if (error) {
+        throw new Error(error.message || 'Failed to reset password');
       }
 
-      return response.json();
+      return data;
     }
   });
 };

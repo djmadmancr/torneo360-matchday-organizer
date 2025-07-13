@@ -9,7 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { AdminUser, useCreateUser, useUpdateUser } from '@/services/adminUsers';
 import { toast } from 'sonner';
 
@@ -28,7 +28,7 @@ export const CreateEditUserModal: React.FC<CreateEditUserModalProps> = ({
     email: '',
     password: '',
     full_name: '',
-    role: 'team_admin' as 'team_admin' | 'organizer' | 'referee' | 'admin'
+    roles: ['team_admin'] as string[]
   });
 
   const createUserMutation = useCreateUser();
@@ -42,14 +42,14 @@ export const CreateEditUserModal: React.FC<CreateEditUserModalProps> = ({
         email: user.email,
         password: '',
         full_name: user.full_name || '',
-        role: (user.role as 'team_admin' | 'organizer' | 'referee' | 'admin') || 'team_admin'
+        roles: user.roles || [user.role || 'team_admin']
       });
     } else {
       setFormData({
         email: '',
         password: '',
         full_name: '',
-        role: 'team_admin'
+        roles: ['team_admin']
       });
     }
   }, [user]);
@@ -62,7 +62,7 @@ export const CreateEditUserModal: React.FC<CreateEditUserModalProps> = ({
         await updateUserMutation.mutateAsync({
           id: user!.id,
           full_name: formData.full_name,
-          role: formData.role
+          roles: formData.roles
         });
         toast.success('Usuario actualizado exitosamente');
       } else {
@@ -81,6 +81,15 @@ export const CreateEditUserModal: React.FC<CreateEditUserModalProps> = ({
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleRoleChange = (roleValue: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      roles: checked 
+        ? [...prev.roles, roleValue]
+        : prev.roles.filter(r => r !== roleValue)
+    }));
   };
 
   return (
@@ -131,18 +140,55 @@ export const CreateEditUserModal: React.FC<CreateEditUserModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="role">Rol</Label>
-            <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar rol" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="team_admin">Admin de Equipo</SelectItem>
-                <SelectItem value="organizer">Organizador</SelectItem>
-                <SelectItem value="referee">Árbitro</SelectItem>
-                <SelectItem value="admin">Administrador</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label>Roles de Usuario</Label>
+            <div className="space-y-3 p-4 border rounded-md">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="admin"
+                  checked={formData.roles.includes('admin')}
+                  onCheckedChange={(checked) => handleRoleChange('admin', checked as boolean)}
+                />
+                <Label htmlFor="admin" className="text-sm font-medium">
+                  Administrador
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="organizer"
+                  checked={formData.roles.includes('organizer')}
+                  onCheckedChange={(checked) => handleRoleChange('organizer', checked as boolean)}
+                />
+                <Label htmlFor="organizer" className="text-sm font-medium">
+                  Organizador
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="referee"
+                  checked={formData.roles.includes('referee')}
+                  onCheckedChange={(checked) => handleRoleChange('referee', checked as boolean)}
+                />
+                <Label htmlFor="referee" className="text-sm font-medium">
+                  Árbitro/Fiscal
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="team_admin"
+                  checked={formData.roles.includes('team_admin')}
+                  onCheckedChange={(checked) => handleRoleChange('team_admin', checked as boolean)}
+                />
+                <Label htmlFor="team_admin" className="text-sm font-medium">
+                  Admin de Equipo
+                </Label>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Selecciona uno o más roles para el usuario
+            </p>
           </div>
 
           <div className="flex justify-end space-x-2 pt-4">
@@ -155,7 +201,7 @@ export const CreateEditUserModal: React.FC<CreateEditUserModalProps> = ({
             </Button>
             <Button
               type="submit"
-              disabled={createUserMutation.isPending || updateUserMutation.isPending}
+              disabled={createUserMutation.isPending || updateUserMutation.isPending || formData.roles.length === 0}
             >
               {isEditing ? 'Actualizar' : 'Crear'}
             </Button>

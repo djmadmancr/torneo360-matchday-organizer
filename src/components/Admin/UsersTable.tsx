@@ -54,6 +54,20 @@ export const UsersTable: React.FC<UsersTableProps> = ({ users }) => {
     }
   };
 
+  const formatRoles = (user: AdminUser) => {
+    const roles = user.roles || [user.role || 'team_admin'];
+    return roles.map(role => getRoleLabel(role)).join(', ');
+  };
+
+  const getRoleBadges = (user: AdminUser) => {
+    const roles = user.roles || [user.role || 'team_admin'];
+    return roles.map(role => (
+      <Badge key={role} className={`${getRoleBadgeColor(role)} mr-1 mb-1`}>
+        {getRoleLabel(role)}
+      </Badge>
+    ));
+  };
+
   const handleToggleActive = async (user: AdminUser, active: boolean) => {
     try {
       await toggleActiveMutation.mutateAsync({ userId: user.id, active });
@@ -80,7 +94,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({ users }) => {
             <TableRow>
               <TableHead>Email</TableHead>
               <TableHead>Nombre</TableHead>
-              <TableHead>Rol</TableHead>
+              <TableHead>Roles</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead>Fecha de Creación</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
@@ -92,9 +106,9 @@ export const UsersTable: React.FC<UsersTableProps> = ({ users }) => {
                 <TableCell className="font-medium">{user.email}</TableCell>
                 <TableCell>{user.full_name || '-'}</TableCell>
                 <TableCell>
-                  <Badge className={getRoleBadgeColor(user.role || 'team_admin')}>
-                    {getRoleLabel(user.role || 'team_admin')}
-                  </Badge>
+                  <div className="flex flex-wrap">
+                    {getRoleBadges(user)}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Badge variant={true ? 'default' : 'secondary'}>
