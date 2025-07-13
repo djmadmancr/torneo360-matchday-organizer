@@ -14,6 +14,9 @@ import EditarPerfilEquipo from '../components/EditarPerfilEquipo';
 import EstadisticasEquipoWrapper from '../components/EstadisticasEquipoWrapper';
 import NotificacionesEquipo from '../components/NotificacionesEquipo';
 import { useLegacyAuth } from '@/hooks/useLegacyAuth';
+import { CreateTeamModal } from '@/components/CreateTeamModal';
+import { useSupabaseTeams } from '@/hooks/useSupabaseTeams';
+import MisEquipos from '@/components/MisEquipos';
 
 interface Notificacion {
   id: string;
@@ -35,18 +38,23 @@ const Equipo = () => {
   const [activeTab, setActiveTab] = useState('torneos-inscritos');
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showCreateTeam, setShowCreateTeam] = useState(false);
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  
+  const { teams, isLoading: teamsLoading } = useSupabaseTeams();
 
   useEffect(() => {
-    cargarNotificaciones();
-    
-    const interval = setInterval(cargarNotificaciones, 30000);
-    return () => clearInterval(interval);
-  }, [user]);
+    if (user?.id) {
+      cargarNotificaciones();
+      
+      const interval = setInterval(cargarNotificaciones, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user?.id]);
 
-  const cargarNotificaciones = () => {
-    if (!user) return;
+  const cargarNotificaciones = React.useCallback(() => {
+    if (!user?.id) return;
 
     try {
       const notificacionesGuardadas = localStorage.getItem('notificacionesEquipo');
@@ -72,7 +80,7 @@ const Equipo = () => {
     } catch (error) {
       console.error('❌ Error al cargar notificaciones:', error);
     }
-  };
+  }, [user?.id]);
 
   const getEquipoStats = () => {
     if (!user?.perfiles?.equipo) return {
@@ -161,6 +169,14 @@ const Equipo = () => {
                 )}
               </Button>
               
+              <Button 
+                variant="outline"
+                onClick={() => setShowCreateTeam(true)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Crear Equipo
+              </Button>
+              
               <Button onClick={() => setShowEditProfile(true)}>
                 <Settings className="w-4 h-4 mr-2" />
                 Configurar Perfil
@@ -172,26 +188,26 @@ const Equipo = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card>
               <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-blue-600">{stats.jugadores}</div>
-                <div className="text-sm text-muted-foreground">Jugadores</div>
+                <div className="text-2xl font-bold text-blue-600">{teams?.length || 0}</div>
+                <div className="text-sm text-muted-foreground">Equipos Creados</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-green-600">{stats.coaches}</div>
-                <div className="text-sm text-muted-foreground">Coaches</div>
+                <div className="text-2xl font-bold text-green-600">{teams?.filter(t => t.enrollment_status === 'approved').length || 0}</div>
+                <div className="text-sm text-muted-foreground">Equipos Aprobados</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-purple-600">{stats.torneos}</div>
-                <div className="text-sm text-muted-foreground">Torneos</div>
+                <div className="text-2xl font-bold text-purple-600">{teams?.filter(t => t.tournament_id).length || 0}</div>
+                <div className="text-sm text-muted-foreground">En Torneos</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
-                <div className="text-sm font-bold text-orange-600">{stats.categoria}</div>
-                <div className="text-sm text-muted-foreground">Categoría</div>
+                <div className="text-2xl font-bold text-orange-600">{teams?.filter(t => t.enrollment_status === 'pending').length || 0}</div>
+                <div className="text-sm text-muted-foreground">Pendientes</div>
               </CardContent>
             </Card>
           </div>
@@ -207,7 +223,7 @@ const Equipo = () => {
           </TabsList>
 
           <TabsContent value="torneos-inscritos" className="mt-6">
-            <TorneosInscritos />
+            <MisEquipos />
           </TabsContent>
 
           <TabsContent value="torneos-publicos" className="mt-6">
@@ -252,14 +268,21 @@ const Equipo = () => {
                 coaches: [],
                 torneos: []
               }}
-              setPerfil={() => {}}
+              setPerfil={(newPerfil) => {
+                console.log('Profile updated:', newPerfil);
+              }}
               guardarPerfil={() => {
-                toast.success('Perfil guardado');
+                toast.success('Perfil guardado exitosamente');
                 setShowEditProfile(false);
               }}
             />
           </DialogContent>
         </Dialog>
+
+        <CreateTeamModal
+          open={showCreateTeam}
+          onOpenChange={setShowCreateTeam}
+        />
 
         <NotificacionesEquipo
           open={showNotifications}

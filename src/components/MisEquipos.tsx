@@ -1,0 +1,186 @@
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Trophy, Calendar, Users, MapPin, Target, Edit, Plus } from "lucide-react";
+import { useSupabaseTeams } from '@/hooks/useSupabaseTeams';
+
+const MisEquipos = () => {
+  const { teams, isLoading } = useSupabaseTeams();
+
+  if (isLoading) {
+    return (
+      <div className="text-center py-8">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+        <p className="text-muted-foreground">Cargando equipos...</p>
+      </div>
+    );
+  }
+
+  if (!teams || teams.length === 0) {
+    return (
+      <Card>
+        <CardContent className="text-center py-12">
+          <Trophy className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No tienes equipos creados</h3>
+          <p className="text-muted-foreground mb-6">
+            Crea tu primer equipo para empezar a participar en torneos
+          </p>
+          <Button className="w-auto">
+            <Plus className="w-4 h-4 mr-2" />
+            Crear primer equipo
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return <Badge className="bg-green-100 text-green-800">Aprobado</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-100 text-yellow-800">Pendiente</Badge>;
+      case 'rejected':
+        return <Badge className="bg-red-100 text-red-800">Rechazado</Badge>;
+      default:
+        return <Badge className="bg-gray-100 text-gray-800">Desconocido</Badge>;
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-900">Mis Equipos</h2>
+        <div className="text-sm text-gray-500">
+          {teams.length} {teams.length === 1 ? 'equipo creado' : 'equipos creados'}
+        </div>
+      </div>
+
+      <div className="grid gap-6">
+        {teams.map((team) => (
+          <Card key={team.id} className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Trophy className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl">{team.name}</CardTitle>
+                    <div className="flex items-center gap-2 mt-1">
+                      {getStatusBadge(team.enrollment_status)}
+                      {team.tournament_id && (
+                        <Badge variant="outline">En Torneo</Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm">
+                  <Edit className="w-4 h-4 mr-2" />
+                  Gestionar
+                </Button>
+              </div>
+            </CardHeader>
+
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Información del Equipo */}
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-gray-900">Información del Equipo</h4>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span className="text-gray-600">Creado:</span>
+                      <span className="font-medium">{new Date(team.created_at).toLocaleDateString('es-ES')}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 text-sm">
+                      <Users className="w-4 h-4 text-gray-500" />
+                      <span className="text-gray-600">Miembros:</span>
+                      <span className="font-medium">{(team as any).team_members?.length || 0}</span>
+                    </div>
+
+                    {team.colors && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <div className="flex gap-1">
+                          <div 
+                            className="w-4 h-4 rounded-full border"
+                            style={{ backgroundColor: (team.colors as any)?.principal || '#1e40af' }}
+                          />
+                          <div 
+                            className="w-4 h-4 rounded-full border"
+                            style={{ backgroundColor: (team.colors as any)?.secundario || '#3b82f6' }}
+                          />
+                        </div>
+                        <span className="text-gray-600">Colores del equipo</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Estado del Equipo */}
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-gray-900">Estado</h4>
+                  
+                  <div className="space-y-3">
+                    {team.enrollment_status === 'pending' && (
+                      <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Calendar className="w-4 h-4 text-yellow-600" />
+                          <span className="font-medium text-yellow-900">Pendiente de Aprobación</span>
+                        </div>
+                        <p className="text-sm text-yellow-700">
+                          Tu equipo está siendo revisado por los administradores
+                        </p>
+                      </div>
+                    )}
+
+                    {team.enrollment_status === 'approved' && (
+                      <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Trophy className="w-4 h-4 text-green-600" />
+                          <span className="font-medium text-green-900">Equipo Aprobado</span>
+                        </div>
+                        <p className="text-sm text-green-700">
+                          ¡Tu equipo está listo para competir!
+                        </p>
+                      </div>
+                    )}
+
+                    {team.enrollment_status === 'rejected' && (
+                      <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Target className="w-4 h-4 text-red-600" />
+                          <span className="font-medium text-red-900">Solicitud Rechazada</span>
+                        </div>
+                        <p className="text-sm text-red-700">
+                          Contacta con los administradores para más información
+                        </p>
+                      </div>
+                    )}
+
+                    {team.tournament && (
+                      <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Trophy className="w-4 h-4 text-blue-600" />
+                          <span className="font-medium text-blue-900">Torneo Actual</span>
+                        </div>
+                        <p className="text-sm text-blue-700 font-medium">
+                          {(team as any).tournament?.name}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default MisEquipos;
