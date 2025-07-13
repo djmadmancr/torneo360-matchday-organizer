@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +13,7 @@ import { Users, Plus, Trash2, Loader2 } from "lucide-react";
 const SupabaseUserManager = () => {
   const { users, isLoading, createUser, deleteUser, isCreating, isDeleting } = useSupabaseUsers();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isCreatingDemo, setIsCreatingDemo] = useState(false);
   const [newUser, setNewUser] = useState<CreateUserData>({
     email: '',
     password: '',
@@ -51,41 +51,34 @@ const SupabaseUserManager = () => {
   };
 
   const createDemoUsers = async () => {
-    const demoUsers: CreateUserData[] = [
-      {
-        email: 'admin@demo.com',
-        password: 'admin123',
-        full_name: 'Demo Admin',
-        role: 'admin'
-      },
-      {
-        email: 'organizer@demo.com',
-        password: 'organizer123',
-        full_name: 'Demo Organizer',
-        role: 'organizer'
-      },
-      {
-        email: 'referee@demo.com',
-        password: 'referee123',
-        full_name: 'Demo Referee',
-        role: 'referee'
-      },
-      {
-        email: 'team@demo.com',
-        password: 'team123',
-        full_name: 'Demo Team Admin',
-        role: 'team_admin'
-      }
-    ];
-
+    setIsCreatingDemo(true);
+    
     try {
-      for (const userData of demoUsers) {
-        await createUser(userData);
+      const response = await fetch('/functions/v1/create-demo-users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al crear usuarios de demo');
       }
-      toast.success('Todos los usuarios de demo han sido creados exitosamente');
+
+      const result = await response.json();
+      
+      if (result.success) {
+        toast.success('¡Usuarios de demo creados exitosamente!');
+        // Refresh the users list
+        window.location.reload();
+      } else {
+        throw new Error('Error en la respuesta del servidor');
+      }
     } catch (error: any) {
       console.error('Error creating demo users:', error);
       toast.error('Error al crear usuarios de demo: ' + error.message);
+    } finally {
+      setIsCreatingDemo(false);
     }
   };
 
@@ -166,16 +159,16 @@ const SupabaseUserManager = () => {
 
       {/* Actions */}
       <div className="flex gap-2">
-        <Button onClick={() => setShowCreateModal(true)} disabled={isCreating}>
+        <Button onClick={() => setShowCreateModal(true)} disabled={isCreating || isCreatingDemo}>
           <Plus className="w-4 h-4 mr-2" />
           Crear Usuario
         </Button>
         <Button 
           variant="outline" 
           onClick={createDemoUsers} 
-          disabled={isCreating}
+          disabled={isCreating || isCreatingDemo}
         >
-          {isCreating ? (
+          {isCreatingDemo ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
           ) : (
             <Users className="w-4 h-4 mr-2" />
@@ -199,8 +192,14 @@ const SupabaseUserManager = () => {
                 <div>
                   <h4 className="font-medium">{user.full_name}</h4>
                   <p className="text-sm text-muted-foreground">{user.email}</p>
-                  <Badge className={getRoleBadgeColor(user.role || 'team_admin')}>
-                    {getRoleLabel(user.role || 'team_admin')}
+                  <Badge className={`mt-1 ${user.role === 'admin' ? 'bg-red-100 text-red-800' : 
+                    user.role === 'organizer' ? 'bg-blue-100 text-blue-800' : 
+                    user.role === 'referee' ? 'bg-orange-100 text-orange-800' : 
+                    'bg-green-100 text-green-800'}`}>
+                    {user.role === 'admin' ? 'Administrador' :
+                     user.role === 'organizer' ? 'Organizador' :
+                     user.role === 'referee' ? 'Árbitro' :
+                     'Admin de Equipo'}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
