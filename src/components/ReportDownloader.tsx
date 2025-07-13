@@ -20,21 +20,11 @@ interface Torneo {
 }
 
 interface ReportDownloaderProps {
-  torneos: Torneo[];
-  organizadorNombre: string;
+  torneo: Torneo;
 }
 
-const ReportDownloader: React.FC<ReportDownloaderProps> = ({ torneos, organizadorNombre }) => {
+const ReportDownloader: React.FC<ReportDownloaderProps> = ({ torneo }) => {
   const generarReporte = () => {
-    const torneosActivos = torneos.filter(t => 
-      t.estado === "en_curso" || t.estado === "inscripciones_abiertas"
-    );
-    
-    if (torneosActivos.length === 0) {
-      toast.error("No hay torneos activos para generar reporte");
-      return;
-    }
-
     const fechaGeneracion = new Date().toLocaleDateString('es-ES', {
       year: 'numeric',
       month: 'long',
@@ -43,48 +33,21 @@ const ReportDownloader: React.FC<ReportDownloaderProps> = ({ torneos, organizado
       minute: '2-digit'
     });
 
-    const contenidoReporte = `REPORTE DE TORNEOS ACTIVOS - GLOBAL LINK SOCCER
-Organizador: ${organizadorNombre}
+    const contenidoReporte = `REPORTE DE TORNEO - GLOBAL LINK SOCCER
 Fecha de generación: ${fechaGeneracion}
 ==========================================
 
-${torneosActivos.map((torneo, index) => `
-${index + 1}. TORNEO: ${torneo.nombre}
-   - ID: ${torneo.id}
-   - Categoría: ${torneo.categoria}
-   - Tipo: ${torneo.tipo}
-   - Formato: ${torneo.formato}
-   - Estado: ${torneo.estado.replace('_', ' ').toUpperCase()}
-   - Equipos inscritos: ${torneo.equiposInscritos}/${torneo.maxEquipos}
-   - Fecha inicio: ${torneo.fechaInicio || 'Por definir'}
-   - Fecha fin: ${torneo.fechaFin || 'Por definir'}
-   ${torneo.ubicacion ? `- Ubicación: ${torneo.ubicacion}` : ''}
-   - Progreso: ${((torneo.equiposInscritos / torneo.maxEquipos) * 100).toFixed(1)}% ocupado
-------------------------------------------
-`).join('')}
-
-RESUMEN GENERAL:
-- Total de torneos activos: ${torneosActivos.length}
-- Total de equipos participantes: ${torneosActivos.reduce((acc, t) => acc + t.equiposInscritos, 0)}
-- Capacidad total disponible: ${torneosActivos.reduce((acc, t) => acc + t.maxEquipos, 0)}
-- Torneos con inscripciones abiertas: ${torneosActivos.filter(t => t.estado === "inscripciones_abiertas").length}
-- Torneos en curso: ${torneosActivos.filter(t => t.estado === "en_curso").length}
-
-ESTADÍSTICAS POR TIPO:
-${Object.entries(
-  torneosActivos.reduce((acc, t) => {
-    acc[t.tipo] = (acc[t.tipo] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>)
-).map(([tipo, cantidad]) => `- ${tipo}: ${cantidad} torneo(s)`).join('\n')}
-
-ESTADÍSTICAS POR CATEGORÍA:
-${Object.entries(
-  torneosActivos.reduce((acc, t) => {
-    acc[t.categoria] = (acc[t.categoria] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>)
-).map(([categoria, cantidad]) => `- ${categoria}: ${cantidad} torneo(s)`).join('\n')}
+INFORMACIÓN DEL TORNEO:
+- Nombre: ${torneo.nombre}
+- ID: ${torneo.id}
+- Categoría: ${torneo.categoria}
+- Tipo: ${torneo.tipo}
+- Estado: ${torneo.estado.replace('_', ' ').toUpperCase()}
+- Equipos inscritos: ${torneo.equiposInscritos}/${torneo.maxEquipos}
+- Fecha inicio: ${torneo.fechaInicio || 'Por definir'}
+- Fecha fin: ${torneo.fechaFin || 'Por definir'}
+${torneo.ubicacion ? `- Ubicación: ${torneo.ubicacion}` : ''}
+- Progreso: ${((torneo.equiposInscritos / torneo.maxEquipos) * 100).toFixed(1)}% ocupado
 
 ==========================================
 Reporte generado por Global Link Soccer
@@ -94,7 +57,7 @@ Reporte generado por Global Link Soccer
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `reporte-torneos-activos-${new Date().toISOString().split('T')[0]}.txt`;
+    a.download = `reporte-${torneo.nombre.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -104,14 +67,16 @@ Reporte generado por Global Link Soccer
   };
 
   return (
-    <Button 
-      variant="outline" 
-      className="w-full"
-      onClick={generarReporte}
-    >
-      <Download className="w-4 h-4 mr-2" />
-      Descargar Reportes
-    </Button>
+    <div className="p-4">
+      <h3 className="text-lg font-semibold mb-4">Generar Reporte</h3>
+      <Button 
+        onClick={generarReporte}
+        className="w-full"
+      >
+        <Download className="w-4 h-4 mr-2" />
+        Descargar Reporte del Torneo
+      </Button>
+    </div>
   );
 };
 

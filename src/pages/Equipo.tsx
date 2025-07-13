@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import TorneosInscritos from '../components/TorneosInscritos';
 import TorneosPublicos from '../components/TorneosPublicos';
 import EditarPerfilEquipo from '../components/EditarPerfilEquipo';
-import EstadisticasEquipo from '../components/EstadisticasEquipo';
+import EstadisticasEquipoWrapper from '../components/EstadisticasEquipoWrapper';
 import NotificacionesEquipo from '../components/NotificacionesEquipo';
 import { useLegacyAuth } from '@/hooks/useLegacyAuth';
 
@@ -29,7 +29,7 @@ interface Notificacion {
 }
 
 const Equipo = () => {
-  const { user, updateUserProfile } = useLegacyAuth();
+  const { user } = useLegacyAuth();
   const [activeTab, setActiveTab] = useState('torneos-inscritos');
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -73,7 +73,12 @@ const Equipo = () => {
   };
 
   const getEquipoStats = () => {
-    if (!user?.perfiles?.equipo) return null;
+    if (!user?.perfiles?.equipo) return {
+      jugadores: 0,
+      coaches: 0,
+      torneos: 0,
+      categoria: 'Sin categoría'
+    };
 
     const perfil = user.perfiles.equipo;
     return {
@@ -143,34 +148,32 @@ const Equipo = () => {
           </div>
 
           {/* Stats Cards */}
-          {stats && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-blue-600">{stats.jugadores}</div>
-                  <div className="text-sm text-muted-foreground">Jugadores</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-green-600">{stats.coaches}</div>
-                  <div className="text-sm text-muted-foreground">Coaches</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-purple-600">{stats.torneos}</div>
-                  <div className="text-sm text-muted-foreground">Torneos</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <div className="text-sm font-bold text-orange-600">{stats.categoria}</div>
-                  <div className="text-sm text-muted-foreground">Categoría</div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-blue-600">{stats.jugadores}</div>
+                <div className="text-sm text-muted-foreground">Jugadores</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-green-600">{stats.coaches}</div>
+                <div className="text-sm text-muted-foreground">Coaches</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-purple-600">{stats.torneos}</div>
+                <div className="text-sm text-muted-foreground">Torneos</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <div className="text-sm font-bold text-orange-600">{stats.categoria}</div>
+                <div className="text-sm text-muted-foreground">Categoría</div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Main Content */}
@@ -191,7 +194,7 @@ const Equipo = () => {
           </TabsContent>
 
           <TabsContent value="estadisticas" className="mt-6">
-            <EstadisticasEquipo />
+            <EstadisticasEquipoWrapper />
           </TabsContent>
 
           <TabsContent value="configuracion" className="mt-6">
@@ -216,13 +219,7 @@ const Equipo = () => {
               <DialogTitle>Editar Perfil del Equipo</DialogTitle>
             </DialogHeader>
             <EditarPerfilEquipo
-              perfil={user.perfiles?.equipo}
-              onSave={(nuevoPerfil) => {
-                updateUserProfile('equipo', nuevoPerfil);
-                setShowEditProfile(false);
-                toast.success('Perfil actualizado exitosamente');
-              }}
-              onCancel={() => setShowEditProfile(false)}
+              perfil={user.perfiles?.equipo || {}}
             />
           </DialogContent>
         </Dialog>

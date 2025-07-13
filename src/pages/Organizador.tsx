@@ -8,7 +8,7 @@ import { Trophy, Users, Calendar, Settings, Plus, Bell, CheckCircle, XCircle, Cl
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import OrganizadorDashboard from '../components/OrganizadorDashboard';
-import TorneoFormModal from '../components/TorneoFormModal';
+import TorneoFormModalWrapper from '../components/TorneoFormModalWrapper';
 import EditarPerfilEquipo from '../components/EditarPerfilEquipo';
 import { useLegacyAuth } from '@/hooks/useLegacyAuth';
 
@@ -25,7 +25,7 @@ interface SolicitudInscripcion {
 }
 
 const Organizador = () => {
-  const { user, updateUserProfile } = useLegacyAuth();
+  const { user } = useLegacyAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showCreateTorneo, setShowCreateTorneo] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
@@ -164,7 +164,11 @@ const Organizador = () => {
   };
 
   const getOrganizadorStats = () => {
-    if (!user?.perfiles?.organizador) return null;
+    if (!user?.perfiles?.organizador) return {
+      torneos: 0,
+      organizacion: user?.nombre || 'Sin nombre',
+      solicitudesPendientes: solicitudesPendientes
+    };
 
     const perfil = user.perfiles.organizador;
     return {
@@ -230,28 +234,26 @@ const Organizador = () => {
           </div>
 
           {/* Stats Cards */}
-          {stats && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-blue-600">{stats.torneos}</div>
-                  <div className="text-sm text-muted-foreground">Torneos Organizados</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-orange-600">{stats.solicitudesPendientes}</div>
-                  <div className="text-sm text-muted-foreground">Solicitudes Pendientes</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <div className="text-sm font-bold text-green-600">{stats.organizacion}</div>
-                  <div className="text-sm text-muted-foreground">Organización</div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-blue-600">{stats.torneos}</div>
+                <div className="text-sm text-muted-foreground">Torneos Organizados</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-orange-600">{stats.solicitudesPendientes}</div>
+                <div className="text-sm text-muted-foreground">Solicitudes Pendientes</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <div className="text-sm font-bold text-green-600">{stats.organizacion}</div>
+                <div className="text-sm text-muted-foreground">Organización</div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Main Content */}
@@ -378,7 +380,7 @@ const Organizador = () => {
         </Tabs>
 
         {/* Modales */}
-        <TorneoFormModal
+        <TorneoFormModalWrapper
           open={showCreateTorneo}
           onClose={() => setShowCreateTorneo(false)}
         />
@@ -389,13 +391,7 @@ const Organizador = () => {
               <DialogTitle>Editar Perfil de Organizador</DialogTitle>
             </DialogHeader>
             <EditarPerfilEquipo
-              perfil={user.perfiles?.organizador}
-              onSave={(nuevoPerfil) => {
-                updateUserProfile('organizador', nuevoPerfil);
-                setShowEditProfile(false);
-                toast.success('Perfil actualizado exitosamente');
-              }}
-              onCancel={() => setShowEditProfile(false)}
+              perfil={user.perfiles?.organizador || {}}
             />
           </DialogContent>
         </Dialog>

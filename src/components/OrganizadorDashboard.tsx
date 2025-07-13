@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
@@ -28,11 +27,21 @@ interface Torneo {
   fechaCreacion: string;
 }
 
-interface OrganizadorDashboardProps {
-  torneos: Torneo[];
-}
+const OrganizadorDashboard = () => {
+  const [torneos, setTorneos] = useState<Torneo[]>([]);
 
-const OrganizadorDashboard = ({ torneos }: OrganizadorDashboardProps) => {
+  useEffect(() => {
+    // Load tournaments from localStorage for backward compatibility
+    try {
+      const torneosGuardados = localStorage.getItem('torneos');
+      if (torneosGuardados) {
+        setTorneos(JSON.parse(torneosGuardados));
+      }
+    } catch (error) {
+      console.error('Error loading tournaments:', error);
+    }
+  }, []);
+
   // Datos para gráficos
   const estadisticasPorEstado = [
     { nombre: "Inscripciones Abiertas", valor: torneos.filter(t => t.estado === "inscripciones_abiertas").length, color: "#22c55e" },
@@ -189,34 +198,42 @@ const OrganizadorDashboard = ({ torneos }: OrganizadorDashboardProps) => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {torneos.map((torneo) => (
-              <div key={torneo.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-4">
-                  <img 
-                    src={torneo.logo} 
-                    alt={torneo.nombre}
-                    className="w-12 h-12 rounded-lg object-cover"
-                  />
-                  <div>
-                    <h4 className="font-medium">{torneo.nombre}</h4>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>{torneo.categoria}</span>
-                      <span>•</span>
-                      <span>{torneo.equiposInscritos}/{torneo.maxEquipos} equipos</span>
-                      <span>•</span>
-                      <span>Creado: {torneo.fechaCreacion}</span>
+            {torneos.length === 0 ? (
+              <div className="text-center py-8">
+                <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">No hay torneos</h3>
+                <p className="text-muted-foreground">Crea tu primer torneo para ver las estadísticas aquí</p>
+              </div>
+            ) : (
+              torneos.map((torneo) => (
+                <div key={torneo.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <img 
+                      src={torneo.logo || '/placeholder.svg'} 
+                      alt={torneo.nombre}
+                      className="w-12 h-12 rounded-lg object-cover"
+                    />
+                    <div>
+                      <h4 className="font-medium">{torneo.nombre}</h4>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span>{torneo.categoria}</span>
+                        <span>•</span>
+                        <span>{torneo.equiposInscritos}/{torneo.maxEquipos} equipos</span>
+                        <span>•</span>
+                        <span>Creado: {torneo.fechaCreacion}</span>
+                      </div>
                     </div>
                   </div>
+                  <Badge variant={
+                    torneo.estado === "en_curso" ? "default" :
+                    torneo.estado === "inscripciones_abiertas" ? "secondary" :
+                    torneo.estado === "finalizado" ? "outline" : "destructive"
+                  }>
+                    {torneo.estado.replace("_", " ")}
+                  </Badge>
                 </div>
-                <Badge variant={
-                  torneo.estado === "en_curso" ? "default" :
-                  torneo.estado === "inscripciones_abiertas" ? "secondary" :
-                  torneo.estado === "finalizado" ? "outline" : "destructive"
-                }>
-                  {torneo.estado.replace("_", " ")}
-                </Badge>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
