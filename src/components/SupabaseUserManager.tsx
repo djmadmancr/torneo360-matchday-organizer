@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,10 +55,11 @@ const SupabaseUserManager = () => {
     setIsCreatingDemo(true);
     
     try {
-      const response = await fetch('/functions/v1/create-demo-users', {
+      const response = await fetch('https://aiqexycpxikjmvatrsej.supabase.co/functions/v1/create-demo-users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcWV4eWNweGlram12YXRyc2VqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyODYyNDcsImV4cCI6MjA2Nzg2MjI0N30.8jmjPbc6DhMkpRlU-gDbL3Oydq6d0W4t_FxAo0oh8ZA`
         }
       });
 
