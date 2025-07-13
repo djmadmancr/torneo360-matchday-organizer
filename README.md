@@ -36,10 +36,10 @@ Este comando creará un usuario administrador con las credenciales especificadas
 ### 4. Crear Usuarios de Demostración
 
 ```bash
-npm run seed:demo
+npm run seed:demos
 ```
 
-Este comando creará usuarios de prueba para cada rol:
+Este comando creará usuarios de prueba para cada rol tanto en Auth como en la tabla public.users:
 
 **Demo Credentials:**
 - **Admin**: admin@demo.com / admin123
