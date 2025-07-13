@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { LogIn, Eye, EyeOff, Settings } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import SuperAdminUserManager from '@/components/SuperAdminUserManager';
+import SupabaseUserManager from '@/components/SupabaseUserManager';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
@@ -130,7 +130,7 @@ const LoginForm = () => {
           <DialogHeader>
             <DialogTitle>🔐 Dashboard Super Administrador</DialogTitle>
           </DialogHeader>
-          <SuperAdminUserManager />
+          <SupabaseUserManager />
         </DialogContent>
       </Dialog>
     </div>
