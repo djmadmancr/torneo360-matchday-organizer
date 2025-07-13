@@ -5,42 +5,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
-import { LogIn, Eye, EyeOff, Settings } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import SupabaseUserManager from '@/components/SupabaseUserManager';
+import { LogIn, Eye, EyeOff } from 'lucide-react';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [showSuperAdmin, setShowSuperAdmin] = useState(false);
-  const { login } = useAuth();
+  const { signIn, isLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password) {
-      toast.error('Por favor completa todos los campos');
       return;
     }
 
-    setLoading(true);
-    
-    try {
-      const success = await login(email, password);
-      
-      if (success) {
-        toast.success('¡Bienvenido a Global Link Soccer!');
-      } else {
-        toast.error('Credenciales incorrectas');
-      }
-    } catch (error) {
-      toast.error('Error al iniciar sesión');
-    } finally {
-      setLoading(false);
-    }
+    await signIn(email, password);
   };
 
   return (
@@ -54,15 +34,7 @@ const LoginForm = () => {
       }}
     >
       <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm">
-        <CardHeader className="text-center relative">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowSuperAdmin(true)}
-            className="absolute top-2 right-2 text-xs text-muted-foreground hover:text-primary opacity-30 hover:opacity-100"
-          >
-            <Settings className="w-3 h-3" />
-          </Button>
+        <CardHeader className="text-center">
           <div className="text-4xl font-bold text-primary mb-2">⚽ Global Link Soccer</div>
           <CardTitle>Iniciar Sesión</CardTitle>
         </CardHeader>
@@ -76,7 +48,7 @@ const LoginForm = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Ingresa tu correo electrónico"
-                disabled={loading}
+                disabled={isLoading}
               />
             </div>
             
@@ -89,7 +61,7 @@ const LoginForm = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Ingresa tu contraseña"
-                  disabled={loading}
+                  disabled={isLoading}
                 />
                 <Button
                   type="button"
@@ -110,9 +82,9 @@ const LoginForm = () => {
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={loading}
+              disabled={isLoading}
             >
-              {loading ? (
+              {isLoading ? (
                 'Iniciando sesión...'
               ) : (
                 <>
@@ -122,17 +94,18 @@ const LoginForm = () => {
               )}
             </Button>
           </form>
+
+          <div className="mt-6 p-4 bg-muted rounded-lg">
+            <p className="text-sm font-medium mb-2">Usuarios de prueba:</p>
+            <div className="text-xs space-y-1">
+              <p><strong>Admin:</strong> admin@demo.com / demo123</p>
+              <p><strong>Organizador:</strong> organizador@demo.com / demo123</p>
+              <p><strong>Fiscal:</strong> fiscal@demo.com / demo123</p>
+              <p><strong>Equipo:</strong> equipo@demo.com / demo123</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
-
-      <Dialog open={showSuperAdmin} onOpenChange={setShowSuperAdmin}>
-        <DialogContent className="w-[95vw] max-w-6xl mx-auto max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>🔐 Dashboard Super Administrador</DialogTitle>
-          </DialogHeader>
-          <SupabaseUserManager />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

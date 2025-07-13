@@ -1,7 +1,17 @@
 
+export type UserRole = 'admin' | 'organizer' | 'referee' | 'team_admin';
+
+export interface CurrentUser {
+  id: string;
+  email: string;
+  role: UserRole;
+  full_name?: string;
+}
+
+// Legacy types for backward compatibility
 export interface User {
   id: string;
-  username: string; // Ahora siempre será igual al email
+  username: string;
   password: string;
   tipos: ('organizador' | 'equipo' | 'fiscal')[];
   nombre: string;
@@ -25,7 +35,7 @@ export interface OrganizadorPerfil {
 }
 
 export interface EquipoPerfil {
-  equipoId: number; // Nuevo: ID numérico único para el equipo
+  equipoId: number;
   nombreEquipo: string;
   logo?: string;
   colores: {
@@ -60,10 +70,11 @@ export interface Coach {
   numeroIdentificacion: string;
 }
 
+// Legacy interface for backward compatibility
 export interface AuthContextType {
   user: User | null;
   currentProfile: 'organizador' | 'equipo' | 'fiscal' | null;
-  login: (email: string, password: string) => Promise<boolean>; // Cambiado de username a email
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   setCurrentProfile: (tipo: 'organizador' | 'equipo' | 'fiscal') => void;
   updateUserProfile: (tipo: 'organizador' | 'equipo' | 'fiscal', profileData: any) => void;

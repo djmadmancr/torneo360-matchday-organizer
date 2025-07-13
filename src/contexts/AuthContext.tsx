@@ -1,155 +1,152 @@
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { User, AuthContextType } from '@/types/auth';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+type UserRole = 'admin' | 'organizer' | 'referee' | 'team_admin';
+
+interface CurrentUser {
+  id: string;
+  email: string;
+  role: UserRole;
+  full_name?: string;
+}
+
+interface AuthContextType {
+  session: Session | null;
+  currentUser: CurrentUser | null;
+  isLoading: boolean;
+  signIn: (email: string, password: string) => Promise<boolean>;
+  signOut: () => Promise<void>;
+}
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const {
-    session,
-    user: supabaseUser,
-    isAuthenticated,
-    signIn: supabaseSignIn,
-    signOut: supabaseSignOut,
-    updateProfile: supabaseUpdateProfile,
-    isLoading
-  } = useSupabaseAuth();
+  const [session, setSession] = useState<Session | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [currentProfile, setCurrentProfile] = useState<'organizador' | 'equipo' | 'fiscal' | null>(() => {
-    const storedProfile = localStorage.getItem('globalLinkSoccerCurrentProfile');
-    return storedProfile ? (storedProfile as 'organizador' | 'equipo' | 'fiscal') : null;
-  });
-
-  // Convert Supabase user to legacy User format for compatibility
-  const [user, setUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
-
-  useEffect(() => {
-    if (supabaseUser) {
-      // Map Supabase role to legacy tipos array with proper type checking
-      const mapRoleToTipos = (role: string | null): ('organizador' | 'equipo' | 'fiscal')[] => {
-        switch (role) {
-          case 'organizer':
-            return ['organizador'];
-          case 'referee':
-            return ['fiscal'];
-          case 'team_admin':
-          default:
-            return ['equipo'];
-        }
-      };
-
-      const legacyUser: User = {
-        id: supabaseUser.id,
-        username: supabaseUser.email || '',
-        password: '', // Not stored for security
-        tipos: mapRoleToTipos(supabaseUser.role),
-        nombre: supabaseUser.full_name || supabaseUser.email || '',
-        email: supabaseUser.email || '',
-        activo: true,
-        fechaCreacion: supabaseUser.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
-        perfiles: {
-          organizador: supabaseUser.role === 'organizer' ? {
-            nombreOrganizacion: supabaseUser.full_name || '',
-            descripcion: '',
-            telefono: '',
-            direccion: '',
-            torneos: []
-          } : undefined,
-          equipo: {
-            equipoId: 1,
-            nombreEquipo: supabaseUser.full_name || 'My Team',
-            colores: {
-              principal: '#1e40af',
-              secundario: '#ffffff'
-            },
-            categoria: 'Primera División',
-            entrenador: '',
-            jugadores: [],
-            coaches: [],
-            torneos: []
-          },
-          fiscal: supabaseUser.role === 'referee' ? {
-            nombre: supabaseUser.full_name || supabaseUser.email || '',
-            experiencia: 0,
-            certificaciones: [],
-            torneos: []
-          } : undefined
-        }
-      };
-      setUser(legacyUser);
-    } else {
-      setUser(null);
-    }
-  }, [supabaseUser]);
-
-  // Save current profile in localStorage
-  useEffect(() => {
-    if (currentProfile) {
-      localStorage.setItem('globalLinkSoccerCurrentProfile', currentProfile);
-    } else {
-      localStorage.removeItem('globalLinkSoccerCurrentProfile');
-    }
-  }, [currentProfile]);
-
-  const login = async (email: string, password: string): Promise<boolean> => {
+  // Fetch user profile from public.users table
+  const fetchUserProfile = async (authUserId: string) => {
     try {
-      await supabaseSignIn({ email, password });
-      return true;
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, email, role, full_name')
+        .eq('auth_user_id', authUserId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        return null;
+      }
+
+      return {
+        id: data.id,
+        email: data.email,
+        role: data.role as UserRole,
+        full_name: data.full_name
+      };
     } catch (error) {
-      console.error('Login error:', error);
-      return false;
+      console.error('Error in fetchUserProfile:', error);
+      return null;
     }
   };
 
-  const logout = () => {
-    supabaseSignOut();
-    setCurrentProfile(null);
-  };
+  // Initialize auth state
+  useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        
+        if (session?.user) {
+          // Defer user profile fetching to avoid deadlocks
+          setTimeout(async () => {
+            const userProfile = await fetchUserProfile(session.user.id);
+            setCurrentUser(userProfile);
+            setIsLoading(false);
+          }, 0);
+        } else {
+          setCurrentUser(null);
+          setIsLoading(false);
+        }
+      }
+    );
 
-  const setCurrentProfileType = (tipo: 'organizador' | 'equipo' | 'fiscal') => {
-    setCurrentProfile(tipo);
-  };
-
-  const updateUserProfile = async (tipo: 'organizador' | 'equipo' | 'fiscal', profileData: any) => {
-    if (!supabaseUser) return;
-
-    try {
-      // Safely handle profile_data which might be null or not an object
-      const currentProfileData = supabaseUser.profile_data && typeof supabaseUser.profile_data === 'object' 
-        ? supabaseUser.profile_data as Record<string, any>
-        : {};
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
       
-      const updatedProfileData = {
-        ...currentProfileData,
-        [tipo]: profileData
-      };
+      if (session?.user) {
+        fetchUserProfile(session.user.id).then(userProfile => {
+          setCurrentUser(userProfile);
+          setIsLoading(false);
+        });
+      } else {
+        setIsLoading(false);
+      }
+    });
 
-      await supabaseUpdateProfile({
-        profile_data: updatedProfileData
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const signIn = async (email: string, password: string): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
+      
+      if (error) {
+        console.error('Sign in error:', error);
+        toast.error('Error al iniciar sesión: ' + error.message);
+        return false;
+      }
+
+      if (data.user) {
+        const userProfile = await fetchUserProfile(data.user.id);
+        setCurrentUser(userProfile);
+        toast.success('¡Bienvenido!');
+        return true;
+      }
+
+      return false;
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error('Sign in error:', error);
+      toast.error('Error al iniciar sesión');
+      return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const updateUsers = (newUsers: User[]) => {
-    // This is kept for compatibility but doesn't do anything in Supabase mode
-    setUsers(newUsers);
+  const signOut = async (): Promise<void> => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Sign out error:', error);
+        toast.error('Error al cerrar sesión');
+      } else {
+        setSession(null);
+        setCurrentUser(null);
+        toast.success('Sesión cerrada');
+      }
+    } catch (error) {
+      console.error('Sign out error:', error);
+      toast.error('Error al cerrar sesión');
+    }
   };
 
   const value: AuthContextType = {
-    user,
-    currentProfile,
-    login,
-    logout,
-    setCurrentProfile: setCurrentProfileType,
-    updateUserProfile,
-    isAuthenticated,
-    users,
-    updateUsers
+    session,
+    currentUser,
+    isLoading,
+    signIn,
+    signOut
   };
 
   return (
