@@ -1,142 +1,156 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/integrations/supabase/types';
 
-export type AdminUser = Tables<'users'>;
-
-export interface CreateUserData {
-  email: string;
-  password: string;
-  full_name: string;
-  role: 'team_admin' | 'organizer' | 'referee' | 'admin';
-}
-
-export interface UpdateUserData {
+export interface AdminUser {
   id: string;
+  email: string;
   full_name?: string;
-  role?: 'team_admin' | 'organizer' | 'referee' | 'admin';
+  role?: string;
+  created_at?: string;
+  auth_user_id?: string;
 }
 
-// Hook to fetch all users (admin/organizer only)
+// Fetch all users
 export const useUsers = () => {
   return useQuery({
     queryKey: ['admin-users'],
-    queryFn: async () => {
+    queryFn: async (): Promise<AdminUser[]> => {
       const { data, error } = await supabase
         .from('users')
         .select('*')
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
-      return data as AdminUser[];
+      return data || [];
     },
   });
 };
 
-// Hook to create a new user
+// Create user
 export const useCreateUser = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (userData: CreateUserData) => {
-      const response = await fetch('/api/admin/createUser', {
+    mutationFn: async ({ email, password, full_name, role }: { 
+      email: string; 
+      password: string; 
+      full_name: string; 
+      role: string; 
+    }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch('/src/server/api/admin/createUser.ts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          'Authorization': `Bearer ${session.access_token}`
         },
-        body: JSON.stringify(userData),
+        body: JSON.stringify({ email, password, full_name, role })
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to create user');
+        throw new Error(error.error || 'Failed to create user');
       }
-      
+
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-    },
+    }
   });
 };
 
-// Hook to update user data
+// Update user
 export const useUpdateUser = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (userData: UpdateUserData) => {
-      const response = await fetch('/api/admin/updateUser', {
+    mutationFn: async ({ id, full_name, role }: { 
+      id: string; 
+      full_name: string; 
+      role: string; 
+    }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch('/src/server/api/admin/updateUser.ts', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          'Authorization': `Bearer ${session.access_token}`
         },
-        body: JSON.stringify(userData),
+        body: JSON.stringify({ id, full_name, role })
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to update user');
+        throw new Error(error.error || 'Failed to update user');
       }
-      
+
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-    },
+    }
   });
 };
 
-// Hook to toggle user active status
+// Toggle user active status
 export const useToggleUserActive = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: async ({ userId, active }: { userId: string; active: boolean }) => {
-      const response = await fetch('/api/admin/toggleActive', {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch('/src/server/api/admin/toggleActive.ts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          'Authorization': `Bearer ${session.access_token}`
         },
-        body: JSON.stringify({ userId, active }),
+        body: JSON.stringify({ userId, active })
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to toggle user status');
+        throw new Error(error.error || 'Failed to toggle user status');
       }
-      
+
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-    },
+    }
   });
 };
 
-// Hook to reset user password
+// Reset user password
 export const useResetPassword = () => {
   return useMutation({
     mutationFn: async (email: string) => {
-      const response = await fetch('/api/admin/resetPassword', {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch('/src/server/api/admin/resetPassword.ts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          'Authorization': `Bearer ${session.access_token}`
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email })
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to reset password');
+        throw new Error(error.error || 'Failed to reset password');
       }
-      
+
       return response.json();
-    },
+    }
   });
 };
