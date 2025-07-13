@@ -1,11 +1,16 @@
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js';
+import { z } from 'zod';
 
-const supabaseUrl = 'https://aiqexycpxikjmvatrsej.supabase.co'
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const resetPasswordSchema = z.object({
+  email: z.string().email('Invalid email format'),
+});
+
+const supabaseUrl = 'https://aiqexycpxikjmvatrsej.supabase.co';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseServiceKey) {
-  throw new Error('SUPABASE_SERVICE_ROLE_KEY is required')
+  throw new Error('SUPABASE_SERVICE_ROLE_KEY is required');
 }
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
@@ -41,36 +46,65 @@ export default async function handler(req: Request) {
       .single()
 
     if (!adminUser || adminUser.role !== 'admin') {
-      return new Response('Forbidden', { status: 403 })
+      return new Response(JSON.stringify({ ok: false, error: 'Forbidden - Admin access required' }), { 
+        status: 403,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
-    const { email } = await req.json()
+    const requestBody = await req.json();
+    
+    // Validate request body
+    const validation = resetPasswordSchema.safeParse(requestBody);
+    if (!validation.success) {
+      return new Response(JSON.stringify({ 
+        ok: false, 
+        error: 'Validation failed', 
+        details: validation.error.issues 
+      }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    const { email } = validation.data;
 
     // Generate password reset link
     const { data, error } = await supabaseAdmin.auth.admin.generateLink({
       type: 'recovery',
       email: email
-    })
+    });
 
     if (error) {
-      return new Response(JSON.stringify({ error: error.message }), { 
+      return new Response(JSON.stringify({ 
+        ok: false, 
+        error: error.message 
+      }), { 
         status: 400,
         headers: { 'Content-Type': 'application/json' }
-      })
+      });
     }
 
     return new Response(JSON.stringify({ 
-      success: true, 
-      message: 'Password reset link generated',
-      link: data.properties?.action_link 
+      ok: true, 
+      data: { 
+        message: 'Password reset link generated',
+        reset_link: data.properties?.action_link,
+        email 
+      } 
     }), {
+      status: 200,
       headers: { 'Content-Type': 'application/json' }
-    })
+    });
 
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), { 
+    console.error('Reset password error:', error);
+    return new Response(JSON.stringify({ 
+      ok: false, 
+      error: error.message || 'Internal server error' 
+    }), { 
       status: 500,
       headers: { 'Content-Type': 'application/json' }
-    })
+    });
   }
 }

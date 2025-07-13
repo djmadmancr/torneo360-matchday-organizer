@@ -321,7 +321,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_test_data: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      test_admin_full_access: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          test_result: string
+          passed: boolean
+        }[]
+      }
+      test_anonymous_access: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          test_result: string
+          should_fail: boolean
+        }[]
+      }
+      test_team_admin_access: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          test_result: string
+          passed: boolean
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

@@ -174,8 +174,50 @@ npm run seed:superadmin
 # Crear usuarios demo
 npm run seed:demo
 
-# Tests
-npm test
+# Testing
+npm run lint              # ESLint
+npm run typecheck         # TypeScript checking
+npm test                  # Unit tests
+npm run test:watch        # Unit tests in watch mode
+npm run test:coverage     # Unit tests with coverage
+npm run cy:open           # Cypress E2E tests (UI)
+npm run cy:run            # Cypress E2E tests (headless)
+
+# Complete test pipeline
+npm run lint && npm run typecheck && npm test && npm run cy:run
+```
+
+## 🧪 Testing
+
+### Verificaciones Estáticas
+```bash
+pnpm lint && pnpm typecheck
+```
+
+### Tests Unitarios
+- Servicios de API con mocks de Supabase
+- Componentes principales con React Testing Library
+- Casos de uso y lógica de negocio
+
+```bash
+pnpm test                  # Ejecutar todos los tests
+pnpm test:watch            # Tests en modo watch
+pnpm test:coverage         # Tests con cobertura
+```
+
+### Tests End-to-End
+- Flujos completos del admin panel
+- Creación, edición y eliminación de usuarios
+- Validación de RLS y autenticación
+
+```bash
+pnpm cy:open               # Cypress UI
+pnpm cy:run                # Cypress headless
+```
+
+### Pipeline Completo
+```bash
+pnpm lint && pnpm typecheck && pnpm test && pnpm cy:run
 ```
 
 ## 📦 Tecnologías
@@ -185,3 +227,5 @@ npm test
 - **UI**: Tailwind CSS + shadcn/ui
 - **State Management**: React Query + Context API
 - **Routing**: React Router Dom
+- **Testing**: Jest + React Testing Library + Cypress
+- **CI/CD**: GitHub Actions
