@@ -35,7 +35,7 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
   notificaciones,
   setNotificaciones
 }) => {
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
 
   const eliminarNotificacion = (id: string) => {
     const nuevasNotificaciones = notificaciones.filter(n => n.id !== id);
@@ -67,11 +67,11 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
 
     // CRUCIAL: Si es una notificación de aprobación, crear MÚLTIPLES registros de inscripción
     const notificacion = allNotificaciones.find((n: any) => n.id === id);
-    if (notificacion && notificacion.tipo === 'aprobacion' && notificacion.torneoId && user) {
+    if (notificacion && notificacion.tipo === 'aprobacion' && notificacion.torneoId && currentUser) {
       console.log('🎯 Procesando notificación de aprobación:', notificacion);
       
       // Obtener equipoId numérico del usuario actual
-      const equipoIdNumerico = obtenerEquipoIdDeUsuario(user);
+      const equipoIdNumerico = obtenerEquipoIdDeUsuario(currentUser);
       
       if (equipoIdNumerico) {
         const timestamp = new Date().toISOString();
@@ -87,9 +87,9 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
         };
         
         // Método 2: Clave con userId (RESPALDO)
-        const inscripcionKey2 = `inscripcion_${notificacion.torneoId}_${user.id}`;
+        const inscripcionKey2 = `inscripcion_${notificacion.torneoId}_${currentUser.id}`;
         const inscripcionData2 = {
-          equipoId: user.id,
+          equipoId: currentUser.id,
           torneoId: notificacion.torneoId,
           fechaInscripcion: timestamp,
           estado: 'aprobado',
@@ -124,13 +124,13 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
         
         // Verificar si ya está en la lista
         const yaInscrito = equiposInscritos.some((e: any) => 
-          e.equipoId === equipoIdNumerico || e.equipoId === user.id
+          e.equipoId === equipoIdNumerico || e.equipoId === currentUser.id
         );
         
         if (!yaInscrito) {
           equiposInscritos.push({
             equipoId: equipoIdNumerico,
-            userId: user.id,
+            userId: currentUser.id,
             fechaInscripcion: timestamp,
             estado: 'aprobado'
           });
@@ -184,7 +184,7 @@ const NotificacionesEquipo: React.FC<NotificacionesEquipoProps> = ({
   };
 
   const getDetallesNotificacion = (notificacion: Notificacion) => {
-    if (notificacion.tipo === 'aprobacion' && notificacion.torneoId && user) {
+    if (notificacion.tipo === 'aprobacion' && notificacion.torneoId && currentUser) {
       const torneos = JSON.parse(localStorage.getItem('torneosPublicos') || '[]');
       const torneo = torneos.find((t: any) => t.id === notificacion.torneoId);
       

@@ -11,14 +11,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 
 const AdminUsers = () => {
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  // Redirect if not admin
-  if (!user || !user.tipos?.includes('organizador')) {
-    return <Navigate to="/" replace />;
+  // Redirect if not admin or organizer
+  if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'organizer')) {
+    return <Navigate to="/no-access" replace />;
   }
 
   const { data: users, isLoading, error } = useUsers();

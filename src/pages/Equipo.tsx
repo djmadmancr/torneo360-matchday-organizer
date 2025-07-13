@@ -1,48 +1,18 @@
-import React, { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Users, Trophy, Settings, Bell, Calendar, MapPin, Medal, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useNavigate } from "react-router-dom";
-import { 
-  User, ArrowLeft, Bell, FileText, Edit, Plus,
-  Trophy, Calendar, MapPin, Users, Clock, Star
-} from "lucide-react";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
-import { User as UserType, EquipoPerfil } from "@/types/auth";
-import TorneosPublicos from "@/components/TorneosPublicos";
-import TorneosInscritos from "@/components/TorneosInscritos";
-import EstadisticasEquipo from "@/components/EstadisticasEquipo";
-import EditarPerfilEquipo from "@/components/EditarPerfilEquipo";
-import NotificacionesEquipo from "@/components/NotificacionesEquipo";
-import SeleccionJugadoresModal from "@/components/SeleccionJugadoresModal";
-import { useLogs } from "@/hooks/useLogs";
-
-interface TorneoPublico {
-  id: string;
-  nombre: string;
-  categoria: string;
-  tipo: string;
-  formato: string;
-  fechaInicio: string;
-  fechaFin: string;
-  fechaCierre: string;
-  logo: string;
-  maxEquipos: number;
-  equiposInscritos: number;
-  estado: string;
-  organizadorNombre: string;
-  organizadorId: string;
-  esPublico: boolean;
-  edadMinima?: number;
-  edadMaxima?: number;
-  descripcion?: string;
-  ubicacion?: string;
-}
+import TorneosInscritos from '../components/TorneosInscritos';
+import TorneosPublicos from '../components/TorneosPublicos';
+import EditarPerfilEquipo from '../components/EditarPerfilEquipo';
+import EstadisticasEquipo from '../components/EstadisticasEquipo';
+import NotificacionesEquipo from '../components/NotificacionesEquipo';
+import { useLegacyAuth } from '@/hooks/useLegacyAuth';
 
 interface Notificacion {
   id: string;
@@ -59,364 +29,211 @@ interface Notificacion {
 }
 
 const Equipo = () => {
-  const navigate = useNavigate();
-  const { user, updateUserProfile } = useAuth();
-  const equipoPerfil = user?.perfiles?.equipo as EquipoPerfil;
-  const { logs, addLog } = useLogs(user?.id || '');
-
-  const [perfil, setPerfil] = React.useState<{
-    nombreEquipo: string;
-    logo: string;
-    colores: {
-      principal: string;
-      secundario: string;
-    };
-    categoria: string;
-    entrenador: string;
-    jugadores: { id: string; nombre: string; posicion: string; numeroIdentificacion: string; edad: number; }[];
-    coaches: { nombre: string; tipo: "entrenador" | "asistente"; numeroIdentificacion: string; }[];
-    torneos: string[];
-  }>({
-    nombreEquipo: equipoPerfil?.nombreEquipo || user?.nombre || "Equipo Sin Nombre",
-    logo: equipoPerfil?.logo || "https://images.unsplash.com/photo-1517620055442-e394f29128c3?w=50&h=50&fit=crop&crop=center",
-    colores: equipoPerfil?.colores || {
-      principal: "#2563eb",
-      secundario: "#ffffff"
-    },
-    categoria: equipoPerfil?.categoria || "Libre",
-    entrenador: equipoPerfil?.entrenador || "Sin Entrenador",
-    jugadores: equipoPerfil?.jugadores || [],
-    coaches: equipoPerfil?.coaches || [],
-    torneos: equipoPerfil?.torneos || []
-  });
-
-  const [mostrarEditarPerfil, setMostrarEditarPerfil] = useState(false);
-  const [mostrarNotificaciones, setMostrarNotificaciones] = useState(false);
-  const [notificaciones, setNotificaciones] = useState<Notificacion[]>(() => {
-    const savedNotificaciones = localStorage.getItem('notificacionesEquipo');
-    const allNotificaciones = savedNotificaciones ? JSON.parse(savedNotificaciones) : [];
-    return allNotificaciones.filter((n: any) => n.equipoId === user?.id);
-  });
-  const [mostrarSeleccionJugadores, setMostrarSeleccionJugadores] = useState(false);
-  const [torneoSeleccionado, setTorneoSeleccionado] = useState<any>(null);
-  const [solicitudesPendientes, setSolicitudesPendientes] = useState<string[]>([]);
-  const [torneosInscritos, setTorneosInscritos] = useState<string[]>([]);
+  const { user, updateUserProfile } = useLegacyAuth();
+  const [activeTab, setActiveTab] = useState('torneos-inscritos');
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    if (user?.id && equipoPerfil) {
-      setPerfil({
-        nombreEquipo: equipoPerfil?.nombreEquipo || user?.nombre || "Equipo Sin Nombre",
-        logo: equipoPerfil?.logo || "https://images.unsplash.com/photo-1517620055442-e394f29128c3?w=50&h=50&fit=crop&crop=center",
-        colores: equipoPerfil?.colores || {
-          principal: "#2563eb",
-          secundario: "#ffffff"
-        },
-        categoria: equipoPerfil?.categoria || "Libre",
-        entrenador: equipoPerfil?.entrenador || "Sin Entrenador",
-        jugadores: equipoPerfil?.jugadores || [],
-        coaches: equipoPerfil?.coaches || [],
-        torneos: equipoPerfil?.torneos || []
-      });
-    }
-  }, [user?.id, equipoPerfil]);
-
-  useEffect(() => {
-    const actualizarNotificaciones = () => {
-      const savedNotificaciones = localStorage.getItem('notificacionesEquipo');
-      const allNotificaciones = savedNotificaciones ? JSON.parse(savedNotificaciones) : [];
-      setNotificaciones(allNotificaciones.filter((n: any) => n.equipoId === user?.id));
-    };
-
-    actualizarNotificaciones();
-    const interval = setInterval(actualizarNotificaciones, 5000);
-
-    return () => clearInterval(interval);
-  }, [user?.id]);
-
-  useEffect(() => {
-    // Cargar solicitudes pendientes
-    const cargarSolicitudesPendientes = () => {
-      const solicitudes = JSON.parse(localStorage.getItem('notificaciones') || '[]');
-      const solicitudesEquipo = solicitudes.filter((s: any) => 
-        s.equipoId === user?.id && 
-        s.tipo === 'inscripcion' && 
-        s.accionRequerida === true
-      );
-      setSolicitudesPendientes(solicitudesEquipo.map((s: any) => s.torneoId));
-    };
-
-    cargarSolicitudesPendientes();
-    const interval = setInterval(cargarSolicitudesPendientes, 3000);
-    return () => clearInterval(interval);
-  }, [user?.id]);
-
-  useEffect(() => {
-    // Cargar torneos donde el equipo fue aceptado basado en notificaciones de aprobación
-    const cargarTorneosInscritos = () => {
-      const notificaciones = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
-      const solicitudesAceptadas = notificaciones.filter((n: any) => 
-        n.equipoId === user?.id && 
-        n.tipo === 'aprobacion'
-      );
-      const torneosIds = solicitudesAceptadas.map((s: any) => s.torneoId).filter(Boolean);
-      
-      console.log('🔄 Actualizando torneos inscritos en Equipo.tsx:', torneosIds);
-      setTorneosInscritos(torneosIds);
-    };
-
-    cargarTorneosInscritos();
-    const interval = setInterval(cargarTorneosInscritos, 3000);
-    return () => clearInterval(interval);
-  }, [user?.id]);
-
-  const guardarPerfil = () => {
-    if (equipoPerfil) {
-      updateUserProfile('equipo', {
-        ...equipoPerfil,
-        nombreEquipo: perfil.nombreEquipo,
-        logo: perfil.logo,
-        colores: perfil.colores,
-        categoria: perfil.categoria,
-        entrenador: perfil.entrenador,
-        jugadores: perfil.jugadores,
-        coaches: perfil.coaches
-      });
-      addLog('Actualizar Perfil', 'Perfil de equipo actualizado', 'edicion', 'perfil');
-      toast.success('Perfil actualizado exitosamente');
-    }
-  };
-
-  const inscribirseATorneo = (torneo: any) => {
-    // Validar categoría
-    if (torneo.categoria !== perfil.categoria && torneo.categoria !== 'Libre') {
-      toast.error(`Tu equipo no cumple con la categoría requerida: ${torneo.categoria}`);
-      return;
-    }
-
-    console.log("👀 perfil.jugadores:", perfil.jugadores);
-    console.log("👀 perfil.coaches:", perfil.coaches);
-
-    // Validar que tenga jugadores y staff
-    if (perfil.jugadores.length === 0) {
-      toast.error('Debes agregar jugadores antes de inscribirte a un torneo');
-      return;
-    }
-
-    if (perfil.coaches.length === 0) {
-      toast.error('Debes agregar al menos un entrenador antes de inscribirte');
-      return;
-    }
-
-    // Abrir modal de selección
-    setTorneoSeleccionado(torneo);
-    setMostrarSeleccionJugadores(true);
-  };
-
-  const confirmarInscripcion = (jugadoresSeleccionados: any[], staffSeleccionado: any[]) => {
-    if (!torneoSeleccionado) return;
-
-    // Crear solicitud de inscripción con jugadores y staff seleccionados
-    const solicitud = {
-      id: `SOL-${Date.now()}`,
-      tipo: 'inscripcion',
-      titulo: 'Nueva Solicitud de Inscripción',
-      mensaje: `${perfil.nombreEquipo} solicita inscribirse a ${torneoSeleccionado.nombre}`,
-      fecha: new Date().toISOString().split('T')[0],
-      equipoSolicitante: perfil.nombreEquipo,
-      equipoId: user?.id,
-      torneoId: torneoSeleccionado.id,
-      organizadorId: torneoSeleccionado.organizadorId,
-      accionRequerida: true,
-      mensajeEquipo: `Equipo: ${perfil.nombreEquipo}, Categoría: ${perfil.categoria}`,
-      jugadoresInscritos: jugadoresSeleccionados,
-      staffInscrito: staffSeleccionado,
-      detallesCompletos: {
-        equipo: {
-          nombre: perfil.nombreEquipo,
-          logo: perfil.logo,
-          categoria: perfil.categoria,
-          colores: perfil.colores
-        },
-        jugadores: jugadoresSeleccionados,
-        staff: staffSeleccionado,
-        fechaSolicitud: new Date().toISOString()
-      }
-    };
-
-    const notificaciones = JSON.parse(localStorage.getItem('notificaciones') || '[]');
-    notificaciones.push(solicitud);
-    localStorage.setItem('notificaciones', JSON.stringify(notificaciones));
-
-    addLog('Solicitar Inscripción', `Solicitud enviada para torneo "${torneoSeleccionado.nombre}" con ${jugadoresSeleccionados.length} jugadores y ${staffSeleccionado.length} staff`, 'inscripcion', 'torneo', torneoSeleccionado.id);
-    toast.success(`Solicitud de inscripción enviada para "${torneoSeleccionado.nombre}"`);
+    cargarNotificaciones();
     
-    setTorneoSeleccionado(null);
+    const interval = setInterval(cargarNotificaciones, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  const cargarNotificaciones = () => {
+    if (!user) return;
+
+    try {
+      const notificacionesGuardadas = localStorage.getItem('notificacionesEquipo');
+      if (notificacionesGuardadas) {
+        const todasNotificaciones: Notificacion[] = JSON.parse(notificacionesGuardadas);
+        
+        const notificacionesDelEquipo = todasNotificaciones.filter(n => 
+          n.equipoId === user.id || 
+          (!n.equipoId && (n.tipo === 'aprobacion' || n.tipo === 'rechazo'))
+        );
+        
+        setNotificaciones(notificacionesDelEquipo);
+        
+        const noLeidas = notificacionesDelEquipo.filter(n => n.accionRequerida).length;
+        setUnreadCount(noLeidas);
+        
+        console.log('📧 Notificaciones cargadas:', {
+          total: notificacionesDelEquipo.length,
+          noLeidas: noLeidas,
+          equipoId: user.id
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error al cargar notificaciones:', error);
+    }
   };
+
+  const getEquipoStats = () => {
+    if (!user?.perfiles?.equipo) return null;
+
+    const perfil = user.perfiles.equipo;
+    return {
+      jugadores: perfil.jugadores?.length || 0,
+      coaches: perfil.coaches?.length || 0,
+      torneos: perfil.torneos?.length || 0,
+      categoria: perfil.categoria || 'Sin categoría'
+    };
+  };
+
+  const stats = getEquipoStats();
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="text-center py-8">
+            <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Acceso requerido</h2>
+            <p className="text-muted-foreground">
+              Inicia sesión como equipo para acceder a esta sección
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
+      <div className="container mx-auto max-w-7xl">
+        {/* Header */}
+        <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
+          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate('/')}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Volver
-              </Button>
-              <div className="flex items-center gap-3">
-                <img 
-                  src={perfil.logo} 
-                  alt={perfil.nombreEquipo}
-                  className="w-8 h-8 rounded-full object-cover"
-                />
-                <div>
-                  <h1 className="text-xl md:text-2xl font-bold text-primary">{perfil.nombreEquipo}</h1>
-                  <p className="text-sm text-muted-foreground">Equipo de Fútbol</p>
-                </div>
+              <div className="p-3 bg-green-100 rounded-full">
+                <Users className="w-8 h-8 text-green-600" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Panel de Equipo</h1>
+                <p className="text-gray-600">
+                  {user.perfiles?.equipo?.nombreEquipo || user.nombre}
+                </p>
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Button
                 variant="outline"
-                size="sm"
-                onClick={() => setMostrarNotificaciones(true)}
+                onClick={() => setShowNotifications(true)}
                 className="relative"
               >
-                <Bell className="w-4 h-4" />
-                {notificaciones.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {notificaciones.length}
-                  </span>
+                <Bell className="w-4 h-4 mr-2" />
+                Notificaciones
+                {unreadCount > 0 && (
+                  <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 p-0 text-xs">
+                    {unreadCount}
+                  </Badge>
                 )}
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setMostrarEditarPerfil(true)}
-              >
-                <User className="w-4 h-4" />
-                Perfil
+              
+              <Button onClick={() => setShowEditProfile(true)}>
+                <Settings className="w-4 h-4 mr-2" />
+                Configurar Perfil
               </Button>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-4 md:py-8">
-        <Tabs defaultValue="torneos" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="torneos">Torneos</TabsTrigger>
-            <TabsTrigger value="mis-torneos">Mis Torneos</TabsTrigger>
-            <TabsTrigger value="mi-equipo">Mi Equipo</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="torneos">
-            <TorneosPublicos 
-              onInscribirse={inscribirseATorneo} 
-              equipoCategoria={perfil.categoria}
-              solicitudesPendientes={solicitudesPendientes}
-              torneosInscritos={torneosInscritos}
-            />
-          </TabsContent>
-
-          <TabsContent value="mis-torneos">
-            <TorneosInscritos 
-              equipoId={user?.id || ''} 
-              equipoNombre={perfil.nombreEquipo}
-            />
-          </TabsContent>
-
-          <TabsContent value="mi-equipo">
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold">Información de mi Equipo</h2>
-              
-              {/* Información básica del equipo */}
+          {/* Stats Cards */}
+          {stats && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card>
-                <CardHeader>
-                  <CardTitle>Detalles del Equipo</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <img 
-                      src={perfil.logo} 
-                      alt={perfil.nombreEquipo}
-                      className="w-16 h-16 rounded-lg object-cover"
-                    />
-                    <div>
-                      <h3 className="font-semibold">{perfil.nombreEquipo}</h3>
-                      <p className="text-sm text-muted-foreground">Categoría: {perfil.categoria}</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Entrenador</Label>
-                      <Input value={perfil.entrenador} readOnly />
-                    </div>
-                    <div>
-                      <Label>Jugadores</Label>
-                      <Input value={perfil.jugadores.length.toString()} readOnly />
-                    </div>
-                  </div>
-                  <Button onClick={() => setMostrarEditarPerfil(true)}>
-                    <Edit className="w-4 h-4 mr-2" />
-                    Editar Perfil
-                  </Button>
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-blue-600">{stats.jugadores}</div>
+                  <div className="text-sm text-muted-foreground">Jugadores</div>
                 </CardContent>
               </Card>
-
-              {/* Estadísticas del equipo */}
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Trophy className="w-5 h-5" />
-                    Estadísticas del Equipo
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <EstadisticasEquipo 
-                    equipoId={user?.id || ''} 
-                    equipoNombre={perfil.nombreEquipo}
-                  />
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-green-600">{stats.coaches}</div>
+                  <div className="text-sm text-muted-foreground">Coaches</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-purple-600">{stats.torneos}</div>
+                  <div className="text-sm text-muted-foreground">Torneos</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <div className="text-sm font-bold text-orange-600">{stats.categoria}</div>
+                  <div className="text-sm text-muted-foreground">Categoría</div>
                 </CardContent>
               </Card>
             </div>
+          )}
+        </div>
+
+        {/* Main Content */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="torneos-inscritos">Mis Torneos</TabsTrigger>
+            <TabsTrigger value="torneos-publicos">Buscar Torneos</TabsTrigger>
+            <TabsTrigger value="estadisticas">Estadísticas</TabsTrigger>
+            <TabsTrigger value="configuracion">Configuración</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="torneos-inscritos" className="mt-6">
+            <TorneosInscritos />
+          </TabsContent>
+
+          <TabsContent value="torneos-publicos" className="mt-6">
+            <TorneosPublicos />
+          </TabsContent>
+
+          <TabsContent value="estadisticas" className="mt-6">
+            <EstadisticasEquipo />
+          </TabsContent>
+
+          <TabsContent value="configuracion" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Configuración del Equipo</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={() => setShowEditProfile(true)}>
+                  <Settings className="w-4 h-4 mr-2" />
+                  Editar Perfil del Equipo
+                </Button>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Modales */}
+        <Dialog open={showEditProfile} onOpenChange={setShowEditProfile}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Editar Perfil del Equipo</DialogTitle>
+            </DialogHeader>
+            <EditarPerfilEquipo
+              perfil={user.perfiles?.equipo}
+              onSave={(nuevoPerfil) => {
+                updateUserProfile('equipo', nuevoPerfil);
+                setShowEditProfile(false);
+                toast.success('Perfil actualizado exitosamente');
+              }}
+              onCancel={() => setShowEditProfile(false)}
+            />
+          </DialogContent>
+        </Dialog>
+
+        <NotificacionesEquipo
+          open={showNotifications}
+          onClose={() => setShowNotifications(false)}
+          notificaciones={notificaciones}
+          setNotificaciones={setNotificaciones}
+        />
       </div>
-
-      {/* Modal Editar Perfil */}
-      <EditarPerfilEquipo
-        open={mostrarEditarPerfil}
-        onClose={() => setMostrarEditarPerfil(false)}
-        perfil={perfil}
-        setPerfil={setPerfil}
-        guardarPerfil={guardarPerfil}
-      />
-
-      {/* Modal Notificaciones */}
-      <NotificacionesEquipo
-        open={mostrarNotificaciones}
-        onClose={() => setMostrarNotificaciones(false)}
-        notificaciones={notificaciones}
-        setNotificaciones={setNotificaciones}
-      />
-
-      {/* Modal Selección de Jugadores */}
-      <SeleccionJugadoresModal
-        open={mostrarSeleccionJugadores}
-        onClose={() => setMostrarSeleccionJugadores(false)}
-        torneo={torneoSeleccionado}
-        jugadores={perfil.jugadores}
-        coaches={perfil.coaches}
-        onConfirmarInscripcion={confirmarInscripcion}
-      />
     </div>
   );
 };
