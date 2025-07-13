@@ -24,11 +24,14 @@ interface Torneo {
   fechaLimiteInscripcion: string;
   organizadorId: string;
   organizadorNombre: string;
-  estado: "inscripcion" | "en_curso" | "finalizado";
+  estado: "inscripciones_abiertas" | "inscripciones_cerradas" | "en_curso" | "finalizado";
   categoria: string;
   tipoTorneo: "eliminacion_directa" | "round_robin" | "mixto";
   equiposCalificados?: number;
   fixture?: any[];
+  tipo: string;
+  formato: string;
+  logo: string;
 }
 
 const TorneosInscritos = () => {
@@ -84,7 +87,7 @@ const TorneosInscritos = () => {
         if (estaInscrito) {
           console.log(`✅ Usuario inscrito en torneo: ${torneo.nombre} (ID: ${torneo.id})`);
           
-          if (torneo.estado === 'inscripcion') {
+          if (torneo.estado === 'inscripciones_abiertas' || torneo.estado === 'inscripciones_cerradas') {
             inscripciones.push(torneo);
           } else if (torneo.estado === 'en_curso') {
             enCurso.push(torneo);
@@ -177,11 +180,11 @@ const TorneosInscritos = () => {
             {torneo.nombre}
           </CardTitle>
           <Badge variant={
-            torneo.estado === 'inscripcion' ? 'secondary' :
+            torneo.estado === 'inscripciones_abiertas' || torneo.estado === 'inscripciones_cerradas' ? 'secondary' :
             torneo.estado === 'en_curso' ? 'default' : 
             'outline'
           }>
-            {torneo.estado === 'inscripcion' ? 'Inscripción' :
+            {torneo.estado === 'inscripciones_abiertas' || torneo.estado === 'inscripciones_cerradas' ? 'Inscripción' :
              torneo.estado === 'en_curso' ? 'En Curso' : 'Finalizado'}
           </Badge>
         </div>
@@ -339,7 +342,12 @@ const TorneosInscritos = () => {
               <DialogHeader>
                 <DialogTitle>Estadísticas - {selectedTorneo.nombre}</DialogTitle>
               </DialogHeader>
-              <TorneoEstadisticas torneoId={selectedTorneo.id} />
+              <TorneoEstadisticas 
+                torneo={selectedTorneo}
+                equiposTorneo={[]}
+                resultadosTorneo={[]}
+                goleadoresTorneo={[]}
+              />
             </DialogContent>
           </Dialog>
 
@@ -348,7 +356,7 @@ const TorneosInscritos = () => {
               <DialogHeader>
                 <DialogTitle>Estadísticas de Jugadores - {selectedTorneo.nombre}</DialogTitle>
               </DialogHeader>
-              <PlayerStatistics torneoId={selectedTorneo.id} />
+              <PlayerStatistics jugadores={[]} />
             </DialogContent>
           </Dialog>
         </>

@@ -22,6 +22,7 @@ export const useLegacyAuth = () => {
       equipo: currentUser.role === 'team_admin' ? {
         equipoId: parseInt(currentUser.id),
         nombreEquipo: currentUser.full_name || `Equipo ${currentUser.email.split('@')[0]}`,
+        logo: '/lovable-uploads/42e8c109-4456-4ead-811c-acae29f37a54.png',
         colores: { principal: '#1e40af', secundario: '#3b82f6' },
         categoria: 'Primera División',
         entrenador: 'Por definir',
@@ -30,11 +31,20 @@ export const useLegacyAuth = () => {
         torneos: []
       } : undefined,
       organizador: currentUser.role === 'organizer' ? {
+        organizadorId: parseInt(currentUser.id),
         nombreOrganizacion: currentUser.full_name || `Organización ${currentUser.email.split('@')[0]}`,
         descripcion: 'Organización deportiva',
         telefono: '000-000-0000',
         direccion: 'Por definir',
-        torneos: []
+        torneos: [],
+        // Campos adicionales para compatibilidad con PerfilEquipo
+        nombreEquipo: currentUser.full_name || `Organización ${currentUser.email.split('@')[0]}`,
+        logo: '/lovable-uploads/42e8c109-4456-4ead-811c-acae29f37a54.png',
+        colores: { principal: '#1e40af', secundario: '#3b82f6' },
+        categoria: 'Organizador',
+        entrenador: 'Staff Técnico',
+        jugadores: [],
+        coaches: []
       } : undefined,
       fiscal: currentUser.role === 'referee' ? {
         nombre: currentUser.full_name || currentUser.email,

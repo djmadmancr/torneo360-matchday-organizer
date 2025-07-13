@@ -391,7 +391,23 @@ const Organizador = () => {
               <DialogTitle>Editar Perfil de Organizador</DialogTitle>
             </DialogHeader>
             <EditarPerfilEquipo
-              perfil={user.perfiles?.organizador || {}}
+              open={showEditProfile}
+              onClose={() => setShowEditProfile(false)}
+              perfil={user.perfiles?.organizador || {
+                nombreEquipo: 'Mi Organización',
+                logo: '/lovable-uploads/42e8c109-4456-4ead-811c-acae29f37a54.png',
+                colores: { principal: '#1e40af', secundario: '#3b82f6' },
+                categoria: 'Organizador',
+                entrenador: 'Staff Técnico',
+                jugadores: [],
+                coaches: [],
+                torneos: []
+              }}
+              setPerfil={() => {}}
+              guardarPerfil={() => {
+                toast.success('Perfil guardado');
+                setShowEditProfile(false);
+              }}
             />
           </DialogContent>
         </Dialog>
