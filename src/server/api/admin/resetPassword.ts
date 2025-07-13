@@ -59,9 +59,13 @@ export default async function handler(req: Request) {
 
     const { email } = await req.json();
 
-    // Send password reset email
-    const { error } = await supabaseAdmin.auth.admin.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.SITE_URL || 'http://localhost:3000'}/auth/reset-password`
+    // Generate password reset link using admin API
+    const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'recovery',
+      email: email,
+      options: {
+        redirectTo: `${process.env.SITE_URL || 'http://localhost:3000'}/auth/reset-password`
+      }
     });
 
     if (error) {
@@ -71,7 +75,11 @@ export default async function handler(req: Request) {
       });
     }
 
-    return new Response(JSON.stringify({ success: true, message: 'Password reset email sent' }), {
+    return new Response(JSON.stringify({ 
+      success: true, 
+      message: 'Password reset link generated', 
+      link: data.properties?.action_link 
+    }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     });

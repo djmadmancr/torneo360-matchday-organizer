@@ -33,6 +33,20 @@ npm run seed:superadmin
 
 Este comando creará un usuario administrador con las credenciales especificadas en las variables de entorno.
 
+### 4. Crear Usuarios de Demostración
+
+```bash
+npm run seed:demo
+```
+
+Este comando creará usuarios de prueba para cada rol:
+
+**Demo Credentials:**
+- **Admin**: admin@demo.com / admin123
+- **Organizer**: organizer@demo.com / organizer123  
+- **Referee**: referee@demo.com / referee123
+- **Team Admin**: team@demo.com / team123
+
 ## 🛠 Desarrollo
 
 ```bash
@@ -56,7 +70,7 @@ npm run dev
    - Editar información de usuarios existentes
 
 2. **Acciones Administrativas**
-   - Resetear contraseña (envía email de reseteo)
+   - Resetear contraseña (genera link de reseteo)
    - Activar/Desactivar usuarios
    - Cambiar roles de usuario
 
@@ -65,6 +79,21 @@ npm run dev
    - `organizer`: Organizador de torneos
    - `referee`: Árbitro/Fiscal
    - `team_admin`: Administrador de equipo
+
+### Demo Users
+
+Para facilitar las pruebas, puedes usar estos usuarios de demostración:
+
+```bash
+# Crear usuarios demo
+npm run seed:demo
+```
+
+**Credenciales de Demo:**
+- **Administrador**: admin@demo.com / admin123
+- **Organizador**: organizer@demo.com / organizer123
+- **Árbitro**: referee@demo.com / referee123
+- **Admin de Equipo**: team@demo.com / team123
 
 ### Configuración en Producción
 
@@ -107,8 +136,8 @@ src/
 
 - `POST /api/admin/createUser` - Crear usuario
 - `PUT /api/admin/updateUser` - Actualizar usuario
-- `POST /api/admin/toggleActive` - Activar/Desactivar usuario
-- `POST /api/admin/resetPassword` - Resetear contraseña
+- `POST /api/admin/toggleActive` - Activar/Desactivar usuario  
+- `POST /api/admin/resetPassword` - Generar link de reseteo
 
 ## 🎯 Tipos de Usuario
 
@@ -141,6 +170,9 @@ npm run build
 
 # Crear super admin
 npm run seed:superadmin
+
+# Crear usuarios demo
+npm run seed:demo
 
 # Tests
 npm test
