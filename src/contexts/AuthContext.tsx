@@ -18,6 +18,7 @@ interface AuthContextType {
   currentUser: CurrentUser | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<boolean>;
+  signUp: (email: string, password: string, fullName: string) => Promise<boolean>;
   signOut: () => Promise<void>;
 }
 
@@ -124,6 +125,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const signUp = async (email: string, password: string, fullName: string): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth`,
+          data: {
+            full_name: fullName
+          }
+        }
+      });
+      
+      if (error) {
+        console.error('Sign up error:', error);
+        toast.error('Error al registrarse: ' + error.message);
+        return false;
+      }
+
+      if (data.user) {
+        toast.success('¡Registro exitoso! Revisa tu correo para verificar tu cuenta.');
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Sign up error:', error);
+      toast.error('Error al registrarse');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const signOut = async (): Promise<void> => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -146,6 +183,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     currentUser,
     isLoading,
     signIn,
+    signUp,
     signOut
   };
 
