@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Trophy, Settings, Bell, Calendar, MapPin, Medal, Plus } from "lucide-react";
+import { Users, Trophy, Settings, Bell, Calendar, MapPin, Medal, Plus, ArrowLeft } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import TorneosInscritos from '../components/TorneosInscritos';
 import TorneosPublicos from '../components/TorneosPublicos';
 import EditarPerfilEquipo from '../components/EditarPerfilEquipo';
@@ -29,6 +30,7 @@ interface Notificacion {
 }
 
 const Equipo = () => {
+  const navigate = useNavigate();
   const { user } = useLegacyAuth();
   const [activeTab, setActiveTab] = useState('torneos-inscritos');
   const [showEditProfile, setShowEditProfile] = useState(false);
@@ -108,9 +110,28 @@ const Equipo = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
-      <div className="container mx-auto max-w-7xl">
-        {/* Header */}
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
+      <div className="bg-white shadow-sm border-b">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Volver
+            </Button>
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold text-primary">🔵 Panel de Equipo</h1>
+              <p className="text-sm text-muted-foreground">Administra tu equipo y jugadores</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="p-6">
+        <div className="container mx-auto max-w-7xl">{/* Header */}
         <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
@@ -118,7 +139,7 @@ const Equipo = () => {
                 <Users className="w-8 h-8 text-green-600" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Panel de Equipo</h1>
+                <h2 className="text-2xl font-bold text-gray-900">Equipo Dashboard</h2>
                 <p className="text-gray-600">
                   {user.perfiles?.equipo?.nombreEquipo || user.nombre}
                 </p>
@@ -246,6 +267,7 @@ const Equipo = () => {
           notificaciones={notificaciones}
           setNotificaciones={setNotificaciones}
         />
+        </div>
       </div>
     </div>
   );
