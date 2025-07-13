@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import Organizador from "./pages/Organizador";
 import Equipo from "./pages/Equipo";
 import Fiscal from "./pages/Fiscal";
+import AdminUsers from "./pages/Admin/Users";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 import { checkAndRunMigration } from "@/utils/dataMigration";
@@ -31,6 +32,7 @@ function App() {
               <Route path="/organizador" element={<Organizador />} />
               <Route path="/equipo" element={<Equipo />} />
               <Route path="/fiscal" element={<Fiscal />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

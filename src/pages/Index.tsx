@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { Users, Shield, UserCheck, LogOut, Settings } from "lucide-react";
+import { Users, Shield, UserCheck, LogOut, Settings, UserCog } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import SuperAdminUserManager from "@/components/SuperAdminUserManager";
@@ -37,6 +37,9 @@ const Index = () => {
     logout();
   };
 
+  // Check if user has admin role
+  const isAdmin = user?.tipos?.includes('organizador'); // Temporary mapping for admin access
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
       {/* Header */}
@@ -54,6 +57,17 @@ const Index = () => {
               )}
             </div>
             <div className="flex gap-2">
+              {isAdmin && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/admin/users')}
+                  className="text-blue-600 hover:text-blue-700"
+                >
+                  <UserCog className="w-4 h-4 mr-2" />
+                  Administrar Usuarios
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"

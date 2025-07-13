@@ -1,134 +1,155 @@
 
-# Welcome to your Lovable project
+# Global Link Soccer ⚽
 
-## Project info
+Plataforma completa para la gestión de torneos de fútbol con roles diferenciados para organizadores, equipos y árbitros.
 
-**URL**: https://lovable.dev/projects/a0abefad-4e5d-40dc-9a28-14caf36e1c1d
+## 🚀 Configuración Inicial
 
-## How can I edit this code?
+### 1. Variables de Entorno
 
-There are several ways of editing your application.
+Crea un archivo `.env.local` en la raíz del proyecto con:
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/a0abefad-4e5d-40dc-9a28-14caf36e1c1d) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-- Supabase (Database & Authentication)
-
-## Environment Variables Setup
-
-### Required Environment Variables
-
-Create a `.env.local` file in the root directory with the following variables:
-
-```env
-# Supabase Configuration
-VITE_SUPABASE_URL=https://your-project-id.supabase.co
-VITE_SUPABASE_ANON_KEY=your_anon_key_here
-
-# Super Admin Creation (for scripts only)
+```bash
+# Supabase Admin Configuration
+SUPER_ADMIN_EMAIL=admin@globallinksoccer.com
+SUPER_ADMIN_PASSWORD=SuperSecurePassword123!
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
-SUPER_ADMIN_EMAIL=admin@example.com
-SUPER_ADMIN_PASSWORD=your_secure_password_here
+
+# Site URL for redirects
+SITE_URL=http://localhost:3000
 ```
 
-### Finding your Supabase Keys
+### 2. Instalación de Dependencias
 
-1. **Project URL & Anon Key**: Available in your Supabase project dashboard under Settings > API
-2. **Service Role Key**: Available in your Supabase project dashboard under Settings > API (⚠️ Keep this secret!)
+```bash
+npm install
+```
 
-## Super Admin Setup
+### 3. Crear Super Administrador
 
-### Creating a Super Admin User
-
-To create a super admin user that can access the admin panel:
-
-```sh
-# Make sure you have the required environment variables set in .env.local
+```bash
 npm run seed:superadmin
 ```
 
-This script will:
-- Create a user in Supabase Auth with the provided email and password
-- Insert the user into the `public.users` table with `role = 'admin'`
-- Skip the process if the user already exists (idempotent)
+Este comando creará un usuario administrador con las credenciales especificadas en las variables de entorno.
 
-### Required Environment Variables for Super Admin
+## 🛠 Desarrollo
 
-```env
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_from_supabase_dashboard
-SUPER_ADMIN_EMAIL=admin@yourdomain.com
-SUPER_ADMIN_PASSWORD=YourSecurePassword123!
+```bash
+npm run dev
 ```
 
-⚠️ **Security Notes:**
-- Never commit your `.env.local` file to version control
-- Use a strong password for the super admin account
-- The service role key has full database access - keep it secure
-- Consider using environment-specific admin accounts
+## 📋 User Administration
 
-### Accessing the Admin Panel
+### Admin Panel Access
 
-1. Run the super admin creation script: `npm run seed:superadmin`
-2. Start the development server: `npm run dev`
-3. Login with your super admin credentials
-4. Click the "Admin" button in the main interface to access the admin panel
+- Solo usuarios con rol `admin` pueden acceder al panel de administración
+- Acceso a través del botón "Administrar Usuarios" en la página principal
+- Ruta: `/admin/users`
 
-## How can I deploy this project?
+### Funcionalidades del Admin
 
-Simply open [Lovable](https://lovable.dev/projects/a0abefad-4e5d-40dc-9a28-14caf36e1c1d) and click on Share -> Publish.
+1. **Gestión de Usuarios**
+   - Ver lista completa de usuarios
+   - Filtrar por rol y buscar por email/nombre
+   - Crear nuevos usuarios con roles específicos
+   - Editar información de usuarios existentes
 
-## Can I connect a custom domain to my Lovable project?
+2. **Acciones Administrativas**
+   - Resetear contraseña (envía email de reseteo)
+   - Activar/Desactivar usuarios
+   - Cambiar roles de usuario
 
-Yes, you can!
+3. **Roles Disponibles**
+   - `admin`: Administrador completo del sistema
+   - `organizer`: Organizador de torneos
+   - `referee`: Árbitro/Fiscal
+   - `team_admin`: Administrador de equipo
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Configuración en Producción
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+1. **Variables de Entorno**
+   ```bash
+   SUPABASE_SERVICE_ROLE_KEY=your_production_service_role_key
+   SITE_URL=https://your-domain.com
+   ```
+
+2. **Políticas de Seguridad**
+   - Solo usuarios con rol `admin` pueden gestionar otros usuarios
+   - Los API endpoints están protegidos con verificación JWT
+   - Las políticas RLS de Supabase controlan el acceso a los datos
+
+3. **Creación del Primer Admin**
+   ```bash
+   # En producción, ejecuta una sola vez
+   npm run seed:superadmin
+   ```
+
+## 🔐 Seguridad
+
+- **Row Level Security (RLS)** habilitado en todas las tablas
+- **JWT Authentication** en todos los endpoints administrativos
+- **Role-based Access Control** para diferentes funcionalidades
+- **Service Role Key** para operaciones administrativas sensibles
+
+## 🏗 Arquitectura
+
+```
+src/
+├── pages/Admin/           # Páginas administrativas
+├── components/Admin/      # Componentes administrativos
+├── services/             # Hooks React Query
+├── server/api/admin/     # API routes administrativas
+└── contexts/             # Context providers
+```
+
+## 📝 API Endpoints
+
+- `POST /api/admin/createUser` - Crear usuario
+- `PUT /api/admin/updateUser` - Actualizar usuario
+- `POST /api/admin/toggleActive` - Activar/Desactivar usuario
+- `POST /api/admin/resetPassword` - Resetear contraseña
+
+## 🎯 Tipos de Usuario
+
+### Organizador
+- Crear y gestionar torneos
+- Configurar reglas y formato
+- Aprobar inscripciones de equipos
+- Generar fixture y resultados
+
+### Equipo
+- Registrar equipo y jugadores
+- Inscribirse en torneos
+- Ver estadísticas y resultados
+- Gestionar plantilla
+
+### Fiscal/Árbitro
+- Supervisar partidos
+- Registrar resultados
+- Validar alineaciones
+- Reportar incidencias
+
+## 🔧 Comandos Útiles
+
+```bash
+# Desarrollo
+npm run dev
+
+# Build
+npm run build
+
+# Crear super admin
+npm run seed:superadmin
+
+# Tests
+npm test
+```
+
+## 📦 Tecnologías
+
+- **Frontend**: React 18 + TypeScript + Vite
+- **Backend**: Supabase (PostgreSQL + Auth + RLS)
+- **UI**: Tailwind CSS + shadcn/ui
+- **State Management**: React Query + Context API
+- **Routing**: React Router Dom
