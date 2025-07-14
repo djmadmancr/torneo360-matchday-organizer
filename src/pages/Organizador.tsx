@@ -12,6 +12,7 @@ import OrganizadorDashboard from '../components/OrganizadorDashboard';
 import TorneoFormModalWrapper from '../components/TorneoFormModalWrapper';
 import EditarPerfilEquipo from '../components/EditarPerfilEquipo';
 import { useLegacyAuth } from '@/hooks/useLegacyAuth';
+import { EditUserProfile } from '@/components/EditUserProfile';
 
 interface SolicitudInscripcion {
   id: string;
@@ -407,28 +408,16 @@ const Organizador = () => {
         />
 
         <Dialog open={showEditProfile} onOpenChange={setShowEditProfile}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Editar Perfil de Organizador</DialogTitle>
             </DialogHeader>
-            <EditarPerfilEquipo
-              open={showEditProfile}
-              onClose={() => setShowEditProfile(false)}
-              perfil={user.perfiles?.organizador || {
-                nombreEquipo: 'Mi Organización',
-                logo: '/lovable-uploads/42e8c109-4456-4ead-811c-acae29f37a54.png',
-                colores: { principal: '#1e40af', secundario: '#3b82f6' },
-                categoria: 'Organizador',
-                entrenador: 'Staff Técnico',
-                jugadores: [],
-                coaches: [],
-                torneos: []
+            <EditUserProfile
+              initialData={{
+                full_name: user?.nombre || '',
+                logo_url: user?.perfiles?.organizador?.logo || ''
               }}
-              setPerfil={() => {}}
-              guardarPerfil={() => {
-                toast.success('Perfil guardado');
-                setShowEditProfile(false);
-              }}
+              onSuccess={() => setShowEditProfile(false)}
             />
           </DialogContent>
         </Dialog>

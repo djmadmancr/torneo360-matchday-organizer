@@ -17,6 +17,7 @@ import { useLegacyAuth } from '@/hooks/useLegacyAuth';
 import { CreateTeamModal } from '@/components/CreateTeamModal';
 import { useSupabaseTeams } from '@/hooks/useSupabaseTeams';
 import MisEquipos from '@/components/MisEquipos';
+import { EditUserProfile } from '@/components/EditUserProfile';
 
 interface Notificacion {
   id: string;
@@ -251,30 +252,16 @@ const Equipo = () => {
 
         {/* Modales */}
         <Dialog open={showEditProfile} onOpenChange={setShowEditProfile}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Editar Perfil del Equipo</DialogTitle>
+              <DialogTitle>Editar Perfil</DialogTitle>
             </DialogHeader>
-            <EditarPerfilEquipo
-              open={showEditProfile}
-              onClose={() => setShowEditProfile(false)}
-              perfil={user.perfiles?.equipo || {
-                nombreEquipo: 'Mi Equipo',
-                logo: '/lovable-uploads/42e8c109-4456-4ead-811c-acae29f37a54.png',
-                colores: { principal: '#1e40af', secundario: '#3b82f6' },
-                categoria: 'Primera División',
-                entrenador: 'Por definir',
-                jugadores: [],
-                coaches: [],
-                torneos: []
+            <EditUserProfile
+              initialData={{
+                full_name: user?.nombre || '',
+                logo_url: user?.perfiles?.equipo?.logo || ''
               }}
-              setPerfil={(newPerfil) => {
-                console.log('Profile updated:', newPerfil);
-              }}
-              guardarPerfil={() => {
-                toast.success('Perfil guardado exitosamente');
-                setShowEditProfile(false);
-              }}
+              onSuccess={() => setShowEditProfile(false)}
             />
           </DialogContent>
         </Dialog>

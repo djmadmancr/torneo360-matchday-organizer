@@ -47,6 +47,46 @@ Este comando creará usuarios de prueba para cada rol tanto en Auth como en la t
 - **Referee**: referee@demo.com / referee123
 - **Team Admin**: team@demo.com / team123
 
+## ✏️ Editar tu Perfil
+
+Los usuarios pueden editar su información personal desde su panel correspondiente:
+
+### Para Organizadores:
+1. Accede a tu dashboard de organizador
+2. Haz clic en el botón de "Configuración" (Settings)
+3. Selecciona "Editar Perfil"
+4. Actualiza tu nombre completo y URL del logo
+5. Guarda los cambios
+
+### Para Team Admins:
+1. Accede a tu dashboard de equipo  
+2. Haz clic en el botón de "Configuración" (Settings)
+3. Selecciona "Editar Perfil"
+4. Actualiza tu nombre completo y URL del logo
+5. Guarda los cambios
+
+### API para actualizar perfil (cURL):
+```bash
+# Obtener token de autorización
+curl -X POST 'https://aiqexycpxikjmvatrsej.supabase.co/auth/v1/token?grant_type=password' \
+-H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcWV4eWNweGlram12YXRyc2VqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyODYyNDcsImV4cCI6MjA2Nzg2MjI0N30.8jmjPbc6DhMkpRlU-gDbL3Oydq6d0W4t_FxAo0oh8ZA' \
+-H 'Content-Type: application/json' \
+-d '{
+  "email": "organizer@demo.com",
+  "password": "organizer123"
+}'
+
+# Actualizar perfil
+curl -X PATCH 'https://aiqexycpxikjmvatrsej.supabase.co/rest/v1/users?auth_user_id=eq.<USER_ID>' \
+-H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcWV4eWNweGlram12YXRyc2VqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyODYyNDcsImV4cCI6MjA2Nzg2MjI0N30.8jmjPbc6DhMkpRlU-gDbL3Oydq6d0W4t_FxAo0oh8ZA' \
+-H 'Authorization: Bearer <ACCESS_TOKEN>' \
+-H 'Content-Type: application/json' \
+-d '{
+  "full_name": "Nuevo Nombre",
+  "logo_url": "https://example.com/nuevo-logo.png"
+}'
+```
+
 ## 🛠 Desarrollo
 
 ```bash
