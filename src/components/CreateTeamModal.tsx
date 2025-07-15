@@ -34,8 +34,11 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
     tournament_id: '',
   });
 
-  const { createTeam, isCreating } = useSupabaseTeams();
+  const { createTeam, isCreating, teams } = useSupabaseTeams();
   const { tournaments } = useTournaments();
+
+  // Check if user already has a team
+  const hasTeam = teams.length > 0;
 
   // Filter tournaments that are open for enrollment
   const availableTournaments = tournaments.filter(
@@ -182,15 +185,15 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
           </div>
 
           {/* Info Box */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="font-medium text-blue-900 mb-2">📋 Información importante</h4>
-            <ul className="text-sm text-blue-800 space-y-1">
-              <li>• El equipo será creado con estado "Pendiente" hasta ser aprobado</li>
-              <li>• Podrás agregar jugadores y staff después de la creación</li>
-              <li>• El logo por defecto puede cambiarse desde el perfil del equipo</li>
-              <li>• Puedes inscribirte a múltiples torneos una vez creado el equipo</li>
-            </ul>
-          </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-medium text-blue-900 mb-2">📋 Información importante</h4>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• El equipo será creado y aprobado inmediatamente</li>
+                <li>• Podrás agregar jugadores y staff después de la creación</li>
+                <li>• El logo por defecto puede cambiarse desde el perfil del equipo</li>
+                <li>• Por ahora solo puedes crear un equipo (primer equipo gratuito)</li>
+              </ul>
+            </div>
 
           <div className="flex justify-end space-x-2 pt-4">
             <Button
@@ -203,9 +206,9 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
             </Button>
             <Button
               type="submit"
-              disabled={isCreating || !formData.name.trim()}
+              disabled={isCreating || !formData.name.trim() || hasTeam}
             >
-              {isCreating ? 'Creando...' : 'Crear Equipo'}
+              {hasTeam ? 'Ya tienes un equipo' : isCreating ? 'Creando...' : 'Crear Equipo'}
             </Button>
           </div>
         </form>

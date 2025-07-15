@@ -66,7 +66,7 @@ export const useSupabaseTeams = () => {
         .insert({
           ...teamData,
           admin_user_id: currentUser.id,
-          enrollment_status: 'pending'
+          enrollment_status: 'approved'
         })
         .select()
         .single();

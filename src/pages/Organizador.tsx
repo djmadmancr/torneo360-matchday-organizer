@@ -392,10 +392,9 @@ const Organizador = () => {
                 <CardTitle>Configuración del Organizador</CardTitle>
               </CardHeader>
               <CardContent>
-                <Button onClick={() => setShowEditProfile(true)}>
-                  <Settings className="w-4 h-4 mr-2" />
-                  Editar Perfil de Organizador
-                </Button>
+                <p className="text-muted-foreground mb-4">
+                  Usa el botón "Configurar Perfil" en la parte superior para editar tu información.
+                </p>
               </CardContent>
             </Card>
           </TabsContent>
