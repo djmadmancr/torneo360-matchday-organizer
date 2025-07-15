@@ -7,20 +7,27 @@ export type Tournament = Tables<'tournaments'>;
 export type TournamentInsert = TablesInsert<'tournaments'>;
 export type TournamentUpdate = TablesUpdate<'tournaments'>;
 
-export const useTournaments = () => {
+export const useTournaments = (organizerId?: string) => {
   const queryClient = useQueryClient();
 
   const { data: tournaments = [], isLoading } = useQuery({
-    queryKey: ['tournaments'],
+    queryKey: organizerId ? ['tournaments', 'organizer', organizerId] : ['tournaments'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('tournaments')
         .select(`
           *,
           organizer:organizer_id(id, full_name, email),
           teams(id, name, enrollment_status)
-        `)
-        .order('created_at', { ascending: false });
+        `);
+      
+      if (organizerId) {
+        query = query.eq('organizer_id', organizerId);
+      }
+      
+      query = query.order('created_at', { ascending: false });
+      
+      const { data, error } = await query;
       
       if (error) throw error;
       return data;

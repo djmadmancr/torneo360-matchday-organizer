@@ -10,12 +10,11 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import OrganizadorDashboard from '../components/OrganizadorDashboard';
 import TorneoFormModalWrapper from '../components/TorneoFormModalWrapper';
-import EditarPerfilEquipo from '../components/EditarPerfilEquipo';
-import { useLegacyAuth } from '@/hooks/useLegacyAuth';
+import TournamentCard from '../components/TournamentCard';
+import { useAuth } from '@/contexts/AuthContext';
 import { EditUserProfile } from '@/components/EditUserProfile';
 import { UserMenu } from '@/components/UserMenu';
-import { useTournaments } from '@/hooks/useTournaments';
-import { Card as TournamentCard } from '@/components/ui/card';
+import { useTournaments, Tournament } from '@/hooks/useTournaments';
 
 interface SolicitudInscripcion {
   id: string;
@@ -31,28 +30,28 @@ interface SolicitudInscripcion {
 
 const Organizador = () => {
   const navigate = useNavigate();
-  const { user } = useLegacyAuth();
+  const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showCreateTorneo, setShowCreateTorneo] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
-  const { tournaments, isLoading: torneosLoading } = useTournaments();
+  const { tournaments: organizerTournaments, isLoading: torneosLoading } = useTournaments(currentUser?.id);
   const [solicitudes, setSolicitudes] = useState<SolicitudInscripcion[]>([]);
   const [solicitudesPendientes, setSolicitudesPendientes] = useState(0);
 
   useEffect(() => {
-    if (user) {
+    if (currentUser) {
       cargarSolicitudes();
       
       const interval = setInterval(cargarSolicitudes, 30000);
       return () => clearInterval(interval);
     }
-  }, [user]);
+  }, [currentUser]);
 
   const cargarSolicitudes = () => {
-    if (!user) return;
+    if (!currentUser) return;
 
     try {
-      const solicitudesKey = `solicitudes_inscripcion_${user.id}`;
+      const solicitudesKey = `solicitudes_inscripcion_${currentUser.id}`;
       const solicitudesGuardadas = localStorage.getItem(solicitudesKey);
       
       if (solicitudesGuardadas) {
@@ -65,7 +64,7 @@ const Organizador = () => {
         console.log('📋 Solicitudes cargadas:', {
           total: solicitudesData.length,
           pendientes: pendientes,
-          organizadorId: user.id
+          organizadorId: currentUser.id
         });
       }
     } catch (error) {
@@ -74,7 +73,7 @@ const Organizador = () => {
   };
 
   const procesarSolicitud = (solicitudId: string, accion: 'aprobar' | 'rechazar') => {
-    if (!user) return;
+    if (!currentUser) return;
 
     try {
       const solicitud = solicitudes.find(s => s.id === solicitudId);
@@ -89,7 +88,7 @@ const Organizador = () => {
       
       setSolicitudes(solicitudesActualizadas);
       
-      const solicitudesKey = `solicitudes_inscripcion_${user.id}`;
+      const solicitudesKey = `solicitudes_inscripcion_${currentUser.id}`;
       localStorage.setItem(solicitudesKey, JSON.stringify(solicitudesActualizadas));
 
       if (accion === 'aprobar') {
@@ -171,23 +170,16 @@ const Organizador = () => {
   };
 
   const getOrganizadorStats = () => {
-    if (!user?.perfiles?.organizador) return {
-      torneos: 0,
-      organizacion: user?.nombre || 'Sin nombre',
-      solicitudesPendientes: solicitudesPendientes
-    };
-
-    const perfil = user.perfiles.organizador;
     return {
-      torneos: perfil.torneos?.length || 0,
-      organizacion: perfil.nombreOrganizacion || 'Sin nombre',
+      torneos: organizerTournaments?.length || 0,
+      organizacion: currentUser?.full_name || 'Sin nombre',
       solicitudesPendientes: solicitudesPendientes
     };
   };
 
   const stats = getOrganizadorStats();
 
-  if (!user) {
+  if (!currentUser) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
         <Card className="w-full max-w-md">
@@ -238,7 +230,7 @@ const Organizador = () => {
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">Organizador Dashboard</h2>
                 <p className="text-gray-600">
-                  {stats?.organizacion || user.nombre}
+                  {stats?.organizacion || currentUser.full_name}
                 </p>
               </div>
             </div>
@@ -386,77 +378,65 @@ const Organizador = () => {
           </TabsContent>
 
           <TabsContent value="torneos" className="mt-6">
-            <TournamentCard>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Trophy className="w-5 h-5" />
-                  Mis Torneos
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {torneosLoading ? (
-                  <div className="text-center py-8">
-                    <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p>Cargando torneos...</p>
-                  </div>
-                ) : tournaments?.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No hay torneos</h3>
-                    <p className="text-muted-foreground">
-                      Crea tu primer torneo para empezar
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {tournaments?.map((tournament) => (
-                      <TournamentCard key={tournament.id} className="border hover:shadow-md transition-shadow">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-lg">{tournament.name}</CardTitle>
-                          <p className="text-sm text-muted-foreground">{tournament.description}</p>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          <div className="space-y-2 mb-4">
-                            <div className="flex justify-between text-sm">
-                              <span>Estado:</span>
-                              <Badge variant={tournament.status === 'active' ? 'default' : 'secondary'}>
-                                {tournament.status}
-                              </Badge>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span>Equipos:</span>
-                              <span>{tournament.teams?.length || 0}/{tournament.max_teams}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span>Inicio:</span>
-                              <span>{tournament.start_date ? new Date(tournament.start_date).toLocaleDateString() : 'N/A'}</span>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <Button size="sm" variant="outline">
-                              <Settings className="w-3 h-3 mr-1" />
-                              Config
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              <Calendar className="w-3 h-3 mr-1" />
-                              Fixture
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              <Users className="w-3 h-3 mr-1" />
-                              Fiscales
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              <Trophy className="w-3 h-3 mr-1" />
-                              Stats
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </TournamentCard>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </TournamentCard>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-primary">Mis Torneos</h2>
+              <Button 
+                onClick={() => setShowCreateTorneo(true)}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Crear Torneo
+              </Button>
+            </div>
+
+            {torneosLoading ? (
+              <div className="text-center py-8">
+                <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p>Cargando torneos...</p>
+              </div>
+            ) : organizerTournaments && organizerTournaments.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {organizerTournaments.map((tournament) => (
+                  <TournamentCard
+                    key={tournament.id}
+                    tournament={tournament}
+                    onEdit={(tournament) => {
+                      // TODO: Implementar edición de torneo
+                      console.log('Editar torneo:', tournament);
+                    }}
+                    onViewFixtures={(tournament) => {
+                      // TODO: Implementar vista de fixtures
+                      console.log('Ver fixtures:', tournament);
+                    }}
+                    onViewStats={(tournament) => {
+                      // TODO: Implementar vista de estadísticas
+                      console.log('Ver estadísticas:', tournament);
+                    }}
+                    onManageReferees={(tournament) => {
+                      // TODO: Implementar gestión de árbitros
+                      console.log('Gestionar árbitros:', tournament);
+                    }}
+                  />
+                ))}
+              </div>
+            ) : (
+              <Card className="text-center py-12">
+                <CardContent>
+                  <Trophy className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No tienes torneos creados</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Crea tu primer torneo para comenzar a gestionar equipos y partidos.
+                  </p>
+                  <Button 
+                    onClick={() => setShowCreateTorneo(true)}
+                    className="bg-primary hover:bg-primary/90"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Crear Primer Torneo
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
         </Tabs>
@@ -474,7 +454,7 @@ const Organizador = () => {
             </DialogHeader>
             <EditUserProfile
               initialData={{
-                full_name: user?.nombre || '',
+                full_name: currentUser?.full_name || '',
               }}
               onSuccess={() => setShowEditProfile(false)}
             />
