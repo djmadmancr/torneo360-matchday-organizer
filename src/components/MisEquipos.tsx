@@ -69,16 +69,23 @@ const MisEquipos = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-100 rounded-lg">
-                    <Trophy className="w-6 h-6 text-blue-600" />
+                    {team.logo_url ? (
+                      <img 
+                        src={team.logo_url} 
+                        alt={`Logo de ${team.name}`}
+                        className="w-6 h-6 object-cover rounded"
+                      />
+                    ) : (
+                      <Trophy className="w-6 h-6 text-blue-600" />
+                    )}
                   </div>
                   <div>
                     <CardTitle className="text-xl">{team.name}</CardTitle>
-                    <div className="flex items-center gap-2 mt-1">
-                      {getStatusBadge(team.enrollment_status)}
-                      {team.tournament_id && (
+                    {team.tournament_id && (
+                      <div className="flex items-center gap-2 mt-1">
                         <Badge variant="outline">En Torneo</Badge>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <Button 
@@ -129,60 +136,21 @@ const MisEquipos = () => {
                   </div>
                 </div>
 
-                {/* Estado del Equipo */}
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-gray-900">Estado</h4>
-                  
-                  <div className="space-y-3">
-                    {team.enrollment_status === 'pending' && (
-                      <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Calendar className="w-4 h-4 text-yellow-600" />
-                          <span className="font-medium text-yellow-900">Pendiente de Aprobación</span>
-                        </div>
-                        <p className="text-sm text-yellow-700">
-                          Tu equipo está siendo revisado por los administradores
-                        </p>
+                {/* Torneo Actual */}
+                {team.tournament && (
+                  <div className="space-y-4">
+                    <h4 className="font-semibold text-gray-900">Torneo Actual</h4>
+                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Trophy className="w-4 h-4 text-blue-600" />
+                        <span className="font-medium text-blue-900">Torneo Actual</span>
                       </div>
-                    )}
-
-                    {team.enrollment_status === 'approved' && (
-                      <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Trophy className="w-4 h-4 text-green-600" />
-                          <span className="font-medium text-green-900">Equipo Aprobado</span>
-                        </div>
-                        <p className="text-sm text-green-700">
-                          ¡Tu equipo está listo para competir!
-                        </p>
-                      </div>
-                    )}
-
-                    {team.enrollment_status === 'rejected' && (
-                      <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Target className="w-4 h-4 text-red-600" />
-                          <span className="font-medium text-red-900">Solicitud Rechazada</span>
-                        </div>
-                        <p className="text-sm text-red-700">
-                          Contacta con los administradores para más información
-                        </p>
-                      </div>
-                    )}
-
-                    {team.tournament && (
-                      <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Trophy className="w-4 h-4 text-blue-600" />
-                          <span className="font-medium text-blue-900">Torneo Actual</span>
-                        </div>
-                        <p className="text-sm text-blue-700 font-medium">
-                          {(team as any).tournament?.name}
-                        </p>
-                      </div>
-                    )}
+                      <p className="text-sm text-blue-700 font-medium">
+                        {(team as any).tournament?.name}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>

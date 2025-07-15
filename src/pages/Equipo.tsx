@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Trophy, Settings, Bell, Calendar, MapPin, Medal, Plus, ArrowLeft } from "lucide-react";
+import { UserMenu } from '@/components/UserMenu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -131,10 +132,11 @@ const Equipo = () => {
               <ArrowLeft className="w-4 h-4" />
               Volver
             </Button>
-            <div>
+            <div className="flex-1">
               <h1 className="text-xl md:text-2xl font-bold text-primary">🔵 Panel de Equipo</h1>
               <p className="text-sm text-muted-foreground">Administra tu equipo y jugadores</p>
             </div>
+            <UserMenu onEditProfile={() => setShowEditProfile(true)} />
           </div>
         </div>
       </div>
@@ -177,11 +179,6 @@ const Equipo = () => {
                 <Plus className="w-4 h-4 mr-2" />
                 Crear Equipo
               </Button>
-              
-              <Button onClick={() => setShowEditProfile(true)}>
-                <Settings className="w-4 h-4 mr-2" />
-                Editar Mi Perfil
-              </Button>
             </div>
           </div>
 
@@ -216,11 +213,10 @@ const Equipo = () => {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="torneos-inscritos">Mis Torneos</TabsTrigger>
             <TabsTrigger value="torneos-publicos">Buscar Torneos</TabsTrigger>
             <TabsTrigger value="estadisticas">Estadísticas</TabsTrigger>
-            <TabsTrigger value="configuracion">Configuración</TabsTrigger>
           </TabsList>
 
           <TabsContent value="torneos-inscritos" className="mt-6">
@@ -233,48 +229,6 @@ const Equipo = () => {
 
           <TabsContent value="estadisticas" className="mt-6">
             <EstadisticasEquipoWrapper />
-          </TabsContent>
-
-          <TabsContent value="configuracion" className="mt-6">
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Configuración del Usuario</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Administra tu información personal y cuenta
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <Button onClick={() => setShowEditProfile(true)}>
-                    <Settings className="w-4 h-4 mr-2" />
-                    Editar Mi Perfil Personal
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Gestión de Equipos</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Los equipos se gestionan desde la pestaña "Mis Equipos" donde puedes editar cada equipo individualmente
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-3">
-                    <Button onClick={() => setShowCreateTeam(true)}>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Crear Nuevo Equipo
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setActiveTab('torneos-inscritos')}
-                    >
-                      Ver Mis Equipos
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
           </TabsContent>
         </Tabs>
 

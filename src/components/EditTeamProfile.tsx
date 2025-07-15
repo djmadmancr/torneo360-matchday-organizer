@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useTeam } from "@/hooks/useTeams";
@@ -31,6 +32,7 @@ const TeamProfileSchema = z.object({
     id: z.string(),
     name: z.string(),
     lastName: z.string(),
+    idNumber: z.string(),
     position: z.string()
   })).optional()
 });
@@ -51,7 +53,7 @@ interface EditTeamProfileProps {
       address?: string;
       country?: string;
       players?: Array<{id: string, name: string, lastName: string, idNumber: string}>;
-      technicalStaff?: Array<{id: string, name: string, lastName: string, position: string}>;
+      technicalStaff?: Array<{id: string, name: string, lastName: string, idNumber: string, position: string}>;
     };
   };
   onSuccess?: () => void;
@@ -155,6 +157,7 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
       id: Date.now().toString(),
       name: '',
       lastName: '',
+      idNumber: '',
       position: ''
     };
     setValue("technicalStaff", [...technicalStaff, newStaff]);
@@ -308,7 +311,7 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
         </div>
         <div className="space-y-3 max-h-40 overflow-y-auto">
           {technicalStaff.map((staff) => (
-            <div key={staff.id} className="grid grid-cols-4 gap-2 p-3 border rounded-lg">
+            <div key={staff.id} className="grid grid-cols-5 gap-2 p-3 border rounded-lg">
               <Input
                 placeholder="Nombre"
                 value={staff.name}
@@ -320,10 +323,27 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
                 onChange={(e) => updateStaff(staff.id, 'lastName', e.target.value)}
               />
               <Input
-                placeholder="Cargo"
-                value={staff.position}
-                onChange={(e) => updateStaff(staff.id, 'position', e.target.value)}
+                placeholder="ID/Cédula"
+                value={staff.idNumber}
+                onChange={(e) => updateStaff(staff.id, 'idNumber', e.target.value)}
               />
+              <Select 
+                value={staff.position} 
+                onValueChange={(value) => updateStaff(staff.id, 'position', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Cargo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Director Técnico">Director Técnico</SelectItem>
+                  <SelectItem value="Asistente Técnico">Asistente Técnico</SelectItem>
+                  <SelectItem value="Asistencia de Salud">Asistencia de Salud</SelectItem>
+                  <SelectItem value="Preparador Físico">Preparador Físico</SelectItem>
+                  <SelectItem value="Fisioterapeuta">Fisioterapeuta</SelectItem>
+                  <SelectItem value="Médico">Médico</SelectItem>
+                  <SelectItem value="Psicólogo Deportivo">Psicólogo Deportivo</SelectItem>
+                </SelectContent>
+              </Select>
               <Button type="button" variant="destructive" size="sm" onClick={() => removeStaff(staff.id)}>
                 ×
               </Button>
