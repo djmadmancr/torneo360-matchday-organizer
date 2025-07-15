@@ -13,6 +13,8 @@ const MisEquipos = () => {
   const [editingTeam, setEditingTeam] = useState<string | null>(null);
   const [showCreateTeam, setShowCreateTeam] = useState(false);
 
+  console.log('MisEquipos render - showCreateTeam:', showCreateTeam, 'teams:', teams?.length);
+
   if (isLoading) {
     return (
       <div className="text-center py-8">
@@ -31,7 +33,13 @@ const MisEquipos = () => {
           <p className="text-muted-foreground mb-6">
             Crea tu primer equipo para empezar a participar en torneos
           </p>
-          <Button className="w-auto" onClick={() => setShowCreateTeam(true)}>
+          <Button 
+            className="w-auto" 
+            onClick={() => {
+              console.log('Botón "Crear primer equipo" clickeado');
+              setShowCreateTeam(true);
+            }}
+          >
             <Plus className="w-4 h-4 mr-2" />
             Crear primer equipo
           </Button>
@@ -160,7 +168,10 @@ const MisEquipos = () => {
       {/* Modals */}
       <CreateTeamModal
         open={showCreateTeam}
-        onOpenChange={setShowCreateTeam}
+        onOpenChange={(open) => {
+          console.log('Modal estado cambiando a:', open);
+          setShowCreateTeam(open);
+        }}
       />
 
       {editingTeam && (
