@@ -103,21 +103,15 @@ export const useToggleUserActive = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const response = await fetch('/src/server/api/admin/toggleActive.ts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ userId, active })
+      const { data, error } = await supabase.functions.invoke('admin-toggle-active', {
+        body: { userId, active }
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to toggle user status');
+      if (error) {
+        throw new Error(error.message || 'Failed to toggle user status');
       }
 
-      return response.json();
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
