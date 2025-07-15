@@ -1,12 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Trophy, Calendar, Users, MapPin, Target, Edit, Plus } from "lucide-react";
 import { useSupabaseTeams } from '@/hooks/useSupabaseTeams';
+import { EditTeamProfile } from './EditTeamProfile';
+import { CreateTeamModal } from './CreateTeamModal';
 
 const MisEquipos = () => {
   const { teams, isLoading } = useSupabaseTeams();
+  const [editingTeam, setEditingTeam] = useState<string | null>(null);
+  const [showCreateTeam, setShowCreateTeam] = useState(false);
 
   if (isLoading) {
     return (
@@ -26,7 +31,7 @@ const MisEquipos = () => {
           <p className="text-muted-foreground mb-6">
             Crea tu primer equipo para empezar a participar en torneos
           </p>
-          <Button className="w-auto">
+          <Button className="w-auto" onClick={() => setShowCreateTeam(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Crear primer equipo
           </Button>
@@ -76,7 +81,11 @@ const MisEquipos = () => {
                     </div>
                   </div>
                 </div>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setEditingTeam(team.id)}
+                >
                   <Edit className="w-4 h-4 mr-2" />
                   Gestionar
                 </Button>
@@ -179,6 +188,34 @@ const MisEquipos = () => {
           </Card>
         ))}
       </div>
+
+      {/* Modals */}
+      <CreateTeamModal
+        open={showCreateTeam}
+        onOpenChange={setShowCreateTeam}
+      />
+
+      {editingTeam && (
+        <Dialog open={!!editingTeam} onOpenChange={() => setEditingTeam(null)}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Gestionar Equipo</DialogTitle>
+            </DialogHeader>
+            <EditTeamProfile
+              teamId={editingTeam}
+              initialData={{
+                name: teams?.find(t => t.id === editingTeam)?.name || '',
+                logo_url: teams?.find(t => t.id === editingTeam)?.logo_url || '',
+                colors: teams?.find(t => t.id === editingTeam)?.colors as any || {
+                  principal: "#1e40af",
+                  secundario: "#3b82f6"
+                }
+              }}
+              onSuccess={() => setEditingTeam(null)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

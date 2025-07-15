@@ -55,7 +55,7 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
         name: formData.name.trim(),
         logo_url: formData.logo_url,
         colors: formData.colors,
-        tournament_id: formData.tournament_id || undefined,
+        tournament_id: formData.tournament_id === 'none' ? undefined : formData.tournament_id || undefined,
         team_data: {
           description: `Equipo ${formData.name}`,
           category: 'Primera División',
@@ -126,7 +126,7 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
                   <SelectValue placeholder="Seleccionar torneo para inscribirse" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sin torneo específico</SelectItem>
+                  <SelectItem value="none">Sin torneo específico</SelectItem>
                   {availableTournaments.map((tournament) => (
                     <SelectItem key={tournament.id} value={tournament.id}>
                       <div className="flex items-center gap-2">

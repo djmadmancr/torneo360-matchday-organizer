@@ -4,7 +4,7 @@ import { z } from "zod";
 
 export const ProfileSchema = z.object({
   full_name: z.string().min(1, "El nombre es requerido"),
-  logo_url: z.string().url("URL inválida").optional().or(z.literal("")),
+  logo_url: z.string().optional(),
 });
 
 export type ProfileInput = z.infer<typeof ProfileSchema>;

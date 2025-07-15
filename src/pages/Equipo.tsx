@@ -180,7 +180,7 @@ const Equipo = () => {
               
               <Button onClick={() => setShowEditProfile(true)}>
                 <Settings className="w-4 h-4 mr-2" />
-                Configurar Perfil
+                Editar Mi Perfil
               </Button>
             </div>
           </div>
@@ -236,17 +236,45 @@ const Equipo = () => {
           </TabsContent>
 
           <TabsContent value="configuracion" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Configuración del Equipo</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Button onClick={() => setShowEditProfile(true)}>
-                  <Settings className="w-4 h-4 mr-2" />
-                  Editar Perfil del Equipo
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Configuración del Usuario</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Administra tu información personal y cuenta
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <Button onClick={() => setShowEditProfile(true)}>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Editar Mi Perfil Personal
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Gestión de Equipos</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Los equipos se gestionan desde la pestaña "Mis Equipos" donde puedes editar cada equipo individualmente
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-3">
+                    <Button onClick={() => setShowCreateTeam(true)}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Crear Nuevo Equipo
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setActiveTab('torneos-inscritos')}
+                    >
+                      Ver Mis Equipos
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
 
@@ -254,7 +282,10 @@ const Equipo = () => {
         <Dialog open={showEditProfile} onOpenChange={setShowEditProfile}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Editar Perfil</DialogTitle>
+              <DialogTitle>Editar Perfil de Usuario</DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Este es tu perfil personal. Los equipos se gestionan por separado.
+              </p>
             </DialogHeader>
             <EditUserProfile
               initialData={{
