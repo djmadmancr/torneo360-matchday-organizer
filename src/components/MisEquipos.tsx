@@ -13,7 +13,12 @@ const MisEquipos = () => {
   const [editingTeam, setEditingTeam] = useState<string | null>(null);
   const [showCreateTeam, setShowCreateTeam] = useState(false);
 
-  console.log('MisEquipos render - showCreateTeam:', showCreateTeam, 'teams:', teams?.length);
+  console.log('🔍 MisEquipos DEBUG:', { 
+    showCreateTeam, 
+    teams: teams?.length, 
+    isLoading,
+    component: 'rendered'
+  });
 
   if (isLoading) {
     return (
@@ -24,27 +29,41 @@ const MisEquipos = () => {
     );
   }
 
-  if (!teams || teams.length === 0) {
+  // Forzar mostrar el estado de "no teams" para debugging
+  if (!teams || teams.length === 0 || true) { // Temporalmente forzado para debugging
+    console.log('🎯 MOSTRANDO: Mensaje de "No tienes equipos creados"');
     return (
-      <Card>
-        <CardContent className="text-center py-12">
-          <Trophy className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No tienes equipos creados</h3>
-          <p className="text-muted-foreground mb-6">
-            Crea tu primer equipo para empezar a participar en torneos
-          </p>
-          <Button 
-            className="w-auto" 
-            onClick={() => {
-              console.log('Botón "Crear primer equipo" clickeado');
-              setShowCreateTeam(true);
-            }}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Crear primer equipo
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="text-center py-12">
+            <Trophy className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No tienes equipos creados</h3>
+            <p className="text-muted-foreground mb-6">
+              Crea tu primer equipo para empezar a participar en torneos
+            </p>
+            <Button 
+              className="w-auto" 
+              onClick={() => {
+                console.log('🚀 BOTÓN CLICKEADO: "Crear primer equipo"');
+                console.log('🔄 Cambiando showCreateTeam de', showCreateTeam, 'a true');
+                setShowCreateTeam(true);
+              }}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Crear primer equipo
+            </Button>
+          </CardContent>
+        </Card>
+        
+        {/* Modal DEBUG - Siempre visible para testing */}
+        <CreateTeamModal
+          open={showCreateTeam}
+          onOpenChange={(open) => {
+            console.log('🔄 Modal estado cambiando a:', open);
+            setShowCreateTeam(open);
+          }}
+        />
+      </div>
     );
   }
 

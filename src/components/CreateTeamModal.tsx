@@ -21,6 +21,7 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
   open,
   onOpenChange,
 }) => {
+  console.log('🎭 CreateTeamModal render:', { open });
   const [formData, setFormData] = useState({
     name: '',
     logo_url: '',
@@ -158,7 +159,7 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto z-50">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             🏆 Crear Nuevo Equipo

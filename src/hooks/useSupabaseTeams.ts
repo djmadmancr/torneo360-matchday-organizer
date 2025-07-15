@@ -27,12 +27,18 @@ export interface TeamCreate {
 export const useSupabaseTeams = () => {
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
+  
+  console.log('🔑 useSupabaseTeams hook - currentUser:', currentUser?.id, currentUser?.email);
 
   // Get teams for current user
   const { data: teams = [], isLoading, error } = useQuery({
     queryKey: ['supabase-teams', currentUser?.id],
     queryFn: async () => {
-      if (!currentUser) return [];
+      console.log('🏢 useSupabaseTeams query ejecutándose para usuario:', currentUser?.id);
+      if (!currentUser) {
+        console.log('❌ No hay currentUser, devolviendo array vacío');
+        return [];
+      }
       
       const { data, error } = await supabase
         .from('teams')
@@ -45,10 +51,11 @@ export const useSupabaseTeams = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching teams:', error);
+        console.error('❌ Error fetching teams:', error);
         throw error;
       }
 
+      console.log('✅ Teams obtenidos:', data?.length || 0, 'equipos');
       return data;
     },
     enabled: !!currentUser,
