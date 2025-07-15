@@ -17,18 +17,22 @@ describe('Admin Users Management E2E', () => {
     cy.get('[data-testid="create-user-button"]').click();
     
     // Fill out the form
-    cy.get('[data-testid="user-email-input"]').type('testuser@demo.com');
-    cy.get('[data-testid="user-password-input"]').type('test1234');
-    cy.get('[data-testid="user-name-input"]').type('Test User');
+    cy.get('[data-testid="user-email-input"]').type('qauser@demo.com');
+    cy.get('[data-testid="user-password-input"]').type('qa123456');
+    cy.get('[data-testid="user-name-input"]').type('QA Test User');
     cy.get('[data-testid="user-role-select"]').click();
-    cy.get('[data-value="team_admin"]').click();
+    cy.get('[data-value="referee"]').click();
     
     // Submit the form
     cy.get('[data-testid="submit-user-button"]').click();
     
-    // Verify user was created
-    cy.get('[data-testid="users-table"]').should('contain', 'testuser@demo.com');
-    cy.get('[data-testid="users-table"]').should('contain', 'Test User');
+    // Wait for success toast
+    cy.get('[data-testid="toast-success"]', { timeout: 10000 }).should('be.visible');
+    
+    // Verify user was created in the table
+    cy.get('[data-testid="users-table"]').should('contain', 'qauser@demo.com');
+    cy.get('[data-testid="users-table"]').should('contain', 'QA Test User');
+    cy.get('[data-testid="users-table"]').should('contain', 'referee');
   });
 
   it('should update user role', () => {

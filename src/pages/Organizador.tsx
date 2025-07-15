@@ -401,7 +401,6 @@ const Organizador = () => {
             <EditUserProfile
               initialData={{
                 full_name: user?.nombre || '',
-                logo_url: user?.perfiles?.organizador?.logo || ''
               }}
               onSuccess={() => setShowEditProfile(false)}
             />

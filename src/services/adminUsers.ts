@@ -49,12 +49,20 @@ export const useCreateUser = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
+      console.log('Calling admin-create-user with:', { email, full_name, roles });
+      
       const { data, error } = await supabase.functions.invoke('admin-create-user', {
         body: { email, password, full_name, roles }
       });
 
       if (error) {
+        console.error('Supabase function error:', error);
         throw new Error(error.message || 'Failed to create user');
+      }
+
+      if (!data || !data.success) {
+        console.error('Function returned error:', data);
+        throw new Error(data?.error || 'Failed to create user');
       }
 
       return data;

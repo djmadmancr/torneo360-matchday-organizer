@@ -290,7 +290,6 @@ const Equipo = () => {
             <EditUserProfile
               initialData={{
                 full_name: user?.nombre || '',
-                logo_url: user?.perfiles?.equipo?.logo || ''
               }}
               onSuccess={() => setShowEditProfile(false)}
             />

@@ -6,12 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useUpdateMyProfile, ProfileSchema, ProfileInput } from "@/services/profile";
-import { ImageUpload } from "@/components/ImageUpload";
 
 interface EditUserProfileProps {
   initialData: {
     full_name?: string;
-    logo_url?: string;
   };
   onSuccess?: () => void;
 }
@@ -25,18 +23,13 @@ export const EditUserProfile: React.FC<EditUserProfileProps> = ({
   const {
     register,
     handleSubmit,
-    setValue,
-    watch,
     formState: { errors },
   } = useForm<ProfileInput>({
     resolver: zodResolver(ProfileSchema),
     defaultValues: {
       full_name: initialData.full_name || "",
-      logo_url: initialData.logo_url || "",
     },
   });
-
-  const logoUrl = watch("logo_url");
 
   const onSubmit = async (data: ProfileInput) => {
     try {
@@ -50,7 +43,7 @@ export const EditUserProfile: React.FC<EditUserProfileProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="space-y-2">
         <Label htmlFor="full_name">Nombre Completo</Label>
         <Input
@@ -63,18 +56,12 @@ export const EditUserProfile: React.FC<EditUserProfileProps> = ({
         )}
       </div>
 
-      <ImageUpload
-        label="Logo/Avatar (opcional)"
-        value={logoUrl}
-        onChange={(url) => setValue("logo_url", url)}
-      />
-
       <Button
         type="submit"
         disabled={updateProfile.isPending}
         className="w-full"
       >
-        {updateProfile.isPending ? "Guardando..." : "Guardar Cambios"}
+        {updateProfile.isPending ? "Actualizando..." : "Guardar Cambios"}
       </Button>
     </form>
   );
