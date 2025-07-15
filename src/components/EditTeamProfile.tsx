@@ -7,7 +7,9 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useTeam } from "@/hooks/useTeams";
-import { Upload, X } from "lucide-react";
+import { ImageUpload } from "@/components/ImageUpload";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Trash2 } from "lucide-react";
 
 const TeamProfileSchema = z.object({
   name: z.string().min(1, "El nombre del equipo es requerido"),
@@ -15,7 +17,22 @@ const TeamProfileSchema = z.object({
   colors: z.object({
     principal: z.string(),
     secundario: z.string()
-  }).optional()
+  }).optional(),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  country: z.string().optional(),
+  players: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    lastName: z.string(),
+    idNumber: z.string()
+  })).optional(),
+  technicalStaff: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    lastName: z.string(),
+    position: z.string()
+  })).optional()
 });
 
 type TeamProfileInput = z.infer<typeof TeamProfileSchema>;
@@ -29,17 +46,25 @@ interface EditTeamProfileProps {
       principal: string;
       secundario: string;
     };
+    team_data?: {
+      phone?: string;
+      address?: string;
+      country?: string;
+      players?: Array<{id: string, name: string, lastName: string, idNumber: string}>;
+      technicalStaff?: Array<{id: string, name: string, lastName: string, position: string}>;
+    };
   };
   onSuccess?: () => void;
+  onDelete?: () => void;
 }
 
 export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
   teamId,
   initialData,
   onSuccess,
+  onDelete,
 }) => {
-  const { updateTeam } = useTeam(teamId);
-  const [uploadingImage, setUploadingImage] = useState(false);
+  const { updateTeam, deleteTeam } = useTeam(teamId);
 
   const {
     register,
@@ -55,43 +80,19 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
       colors: initialData.colors || {
         principal: "#1e40af",
         secundario: "#3b82f6"
-      }
+      },
+      phone: initialData.team_data?.phone || "",
+      address: initialData.team_data?.address || "",
+      country: initialData.team_data?.country || "",
+      players: initialData.team_data?.players || [],
+      technicalStaff: initialData.team_data?.technicalStaff || []
     },
   });
 
+  const players = watch("players") || [];
+  const technicalStaff = watch("technicalStaff") || [];
+
   const logoUrl = watch("logo_url");
-
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Validar que sea una imagen
-    if (!file.type.startsWith('image/')) {
-      toast.error('Por favor selecciona un archivo de imagen válido');
-      return;
-    }
-
-    // Validar tamaño (máximo 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('La imagen debe ser menor a 5MB');
-      return;
-    }
-
-    setUploadingImage(true);
-    
-    try {
-      // Por ahora, crear una URL temporal para la vista previa
-      // TODO: Implementar upload a Supabase Storage cuando esté configurado
-      const objectUrl = URL.createObjectURL(file);
-      setValue("logo_url", objectUrl);
-      toast.success('Imagen cargada correctamente');
-    } catch (error) {
-      toast.error('Error al cargar la imagen');
-      console.error(error);
-    } finally {
-      setUploadingImage(false);
-    }
-  };
 
   const onSubmit = async (data: TeamProfileInput) => {
     try {
@@ -99,7 +100,14 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
         id: teamId,
         name: data.name,
         logo_url: data.logo_url,
-        colors: data.colors
+        colors: data.colors,
+        team_data: {
+          phone: data.phone,
+          address: data.address,
+          country: data.country,
+          players: data.players,
+          technicalStaff: data.technicalStaff
+        }
       });
       toast.success("Equipo actualizado correctamente");
       onSuccess?.();
@@ -107,6 +115,61 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
       toast.error("Error al actualizar el equipo");
       console.error(error);
     }
+  };
+
+  const handleDeleteTeam = async () => {
+    try {
+      await deleteTeam(teamId);
+      toast.success("Equipo eliminado correctamente");
+      onDelete?.();
+    } catch (error) {
+      toast.error("Error al eliminar el equipo");
+      console.error(error);
+    }
+  };
+
+  const addPlayer = () => {
+    const newPlayer = {
+      id: Date.now().toString(),
+      name: '',
+      lastName: '',
+      idNumber: ''
+    };
+    setValue("players", [...players, newPlayer]);
+  };
+
+  const updatePlayer = (id: string, field: string, value: string) => {
+    const updatedPlayers = players.map(player =>
+      player.id === id ? { ...player, [field]: value } : player
+    );
+    setValue("players", updatedPlayers);
+  };
+
+  const removePlayer = (id: string) => {
+    const updatedPlayers = players.filter(player => player.id !== id);
+    setValue("players", updatedPlayers);
+  };
+
+  const addStaff = () => {
+    const newStaff = {
+      id: Date.now().toString(),
+      name: '',
+      lastName: '',
+      position: ''
+    };
+    setValue("technicalStaff", [...technicalStaff, newStaff]);
+  };
+
+  const updateStaff = (id: string, field: string, value: string) => {
+    const updatedStaff = technicalStaff.map(staff =>
+      staff.id === id ? { ...staff, [field]: value } : staff
+    );
+    setValue("technicalStaff", updatedStaff);
+  };
+
+  const removeStaff = (id: string) => {
+    const updatedStaff = technicalStaff.filter(staff => staff.id !== id);
+    setValue("technicalStaff", updatedStaff);
   };
 
   return (
@@ -125,47 +188,42 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
 
       <div className="space-y-2">
         <Label>Logo del Equipo</Label>
-        <div className="flex items-start gap-4">
-          {logoUrl && (
-            <div className="relative">
-              <img 
-                src={logoUrl} 
-                alt="Logo del equipo" 
-                className="w-20 h-20 object-cover rounded-lg border"
-              />
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                className="absolute -top-2 -right-2 h-6 w-6 p-0"
-                onClick={() => setValue("logo_url", "")}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </div>
-          )}
-          
-          <div className="flex-1">
-            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
-              <div className="text-center">
-                <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground mb-2">
-                  Arrastra una imagen aquí o haz clic para seleccionar
-                </p>
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  disabled={uploadingImage}
-                  className="max-w-xs"
-                />
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Formatos soportados: JPG, PNG, GIF. Máximo 5MB.
-            </p>
-          </div>
+        <ImageUpload
+          value={logoUrl}
+          onChange={(url) => setValue("logo_url", url)}
+          maxSize={5 * 1024 * 1024}
+          accept="image/jpeg,image/png"
+          placeholder="Sube el logo de tu equipo (JPG o PNG)"
+        />
+      </div>
+
+      {/* Contact Information */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="phone">Teléfono</Label>
+          <Input
+            id="phone"
+            {...register("phone")}
+            placeholder="Ej: +1 234 567 8900"
+          />
         </div>
+        <div className="space-y-2">
+          <Label htmlFor="country">País</Label>
+          <Input
+            id="country"
+            {...register("country")}
+            placeholder="Ej: España"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="address">Dirección</Label>
+        <Input
+          id="address"
+          {...register("address")}
+          placeholder="Ej: Av. Principal 123, Ciudad"
+        />
       </div>
 
       <div className="space-y-4">
@@ -206,13 +264,106 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
         </div>
       </div>
 
-      <Button
-        type="submit"
-        disabled={uploadingImage}
-        className="w-full"
-      >
-        {uploadingImage ? "Subiendo imagen..." : "Guardar Cambios"}
-      </Button>
+      {/* Players Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Label>Jugadores</Label>
+          <Button type="button" variant="outline" size="sm" onClick={addPlayer}>
+            + Agregar Jugador
+          </Button>
+        </div>
+        <div className="space-y-3 max-h-40 overflow-y-auto">
+          {players.map((player) => (
+            <div key={player.id} className="grid grid-cols-4 gap-2 p-3 border rounded-lg">
+              <Input
+                placeholder="Nombre"
+                value={player.name}
+                onChange={(e) => updatePlayer(player.id, 'name', e.target.value)}
+              />
+              <Input
+                placeholder="Apellido"
+                value={player.lastName}
+                onChange={(e) => updatePlayer(player.id, 'lastName', e.target.value)}
+              />
+              <Input
+                placeholder="ID/Cédula"
+                value={player.idNumber}
+                onChange={(e) => updatePlayer(player.id, 'idNumber', e.target.value)}
+              />
+              <Button type="button" variant="destructive" size="sm" onClick={() => removePlayer(player.id)}>
+                ×
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Technical Staff Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Label>Cuerpo Técnico</Label>
+          <Button type="button" variant="outline" size="sm" onClick={addStaff}>
+            + Agregar Personal
+          </Button>
+        </div>
+        <div className="space-y-3 max-h-40 overflow-y-auto">
+          {technicalStaff.map((staff) => (
+            <div key={staff.id} className="grid grid-cols-4 gap-2 p-3 border rounded-lg">
+              <Input
+                placeholder="Nombre"
+                value={staff.name}
+                onChange={(e) => updateStaff(staff.id, 'name', e.target.value)}
+              />
+              <Input
+                placeholder="Apellido"
+                value={staff.lastName}
+                onChange={(e) => updateStaff(staff.id, 'lastName', e.target.value)}
+              />
+              <Input
+                placeholder="Cargo"
+                value={staff.position}
+                onChange={(e) => updateStaff(staff.id, 'position', e.target.value)}
+              />
+              <Button type="button" variant="destructive" size="sm" onClick={() => removeStaff(staff.id)}>
+                ×
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex gap-4">
+        <Button
+          type="submit"
+          className="flex-1"
+        >
+          Guardar Cambios
+        </Button>
+        
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" type="button">
+              <Trash2 className="w-4 h-4 mr-2" />
+              Eliminar Equipo
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta acción no se puede deshacer. Se eliminará permanentemente el equipo
+                y todos sus datos asociados incluyendo jugadores y cuerpo técnico.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteTeam} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Eliminar Equipo
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </form>
   );
 };

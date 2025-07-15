@@ -141,11 +141,27 @@ export const useTeam = (id: string) => {
     },
   });
 
+  const deleteTeamMutation = useMutation({
+    mutationFn: async (teamId: string) => {
+      const { error } = await supabase
+        .from('teams')
+        .delete()
+        .eq('id', teamId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['team', id] });
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
+    },
+  });
+
   return {
     team,
     isLoading,
     createTeam: createTeamMutation.mutateAsync,
     updateTeam: updateTeamMutation.mutateAsync,
+    deleteTeam: deleteTeamMutation.mutateAsync,
     addTeamMember: addTeamMemberMutation.mutateAsync,
     updateTeamMember: updateTeamMemberMutation.mutateAsync,
     removeTeamMember: removeTeamMemberMutation.mutateAsync,

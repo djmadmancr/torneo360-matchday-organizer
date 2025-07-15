@@ -209,9 +209,11 @@ const MisEquipos = () => {
                 colors: teams?.find(t => t.id === editingTeam)?.colors as any || {
                   principal: "#1e40af",
                   secundario: "#3b82f6"
-                }
+                },
+                team_data: teams?.find(t => t.id === editingTeam)?.team_data as any
               }}
               onSuccess={() => setEditingTeam(null)}
+              onDelete={() => setEditingTeam(null)}
             />
           </DialogContent>
         </Dialog>
