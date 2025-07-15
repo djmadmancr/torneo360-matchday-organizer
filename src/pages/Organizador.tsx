@@ -207,19 +207,22 @@ const Organizador = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
       <div className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              onClick={() => navigate('/')}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Volver
-            </Button>
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold text-primary">🟢 Panel de Organizador</h1>
-              <p className="text-sm text-muted-foreground">Administra torneos y equipos</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="ghost" 
+                onClick={() => navigate('/')}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Volver
+              </Button>
+              <div>
+                <h1 className="text-xl md:text-2xl font-bold text-primary">🟢 Panel de Organizador</h1>
+                <p className="text-sm text-muted-foreground">Administra torneos y equipos</p>
+              </div>
             </div>
+            <UserMenu onEditProfile={() => setShowEditProfile(true)} />
           </div>
         </div>
       </div>
@@ -248,8 +251,6 @@ const Organizador = () => {
                 <Plus className="w-4 h-4 mr-2" />
                 Crear Torneo
               </Button>
-              
-              <UserMenu onEditProfile={() => setShowEditProfile(true)} />
             </div>
           </div>
 
