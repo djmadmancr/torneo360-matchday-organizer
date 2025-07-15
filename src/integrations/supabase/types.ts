@@ -173,6 +173,54 @@ export type Database = {
           },
         ]
       }
+      team_registrations: {
+        Row: {
+          approved_at: string | null
+          created_at: string | null
+          id: string
+          requested_at: string | null
+          status: Database["public"]["Enums"]["registration_status"] | null
+          team_id: string
+          tournament_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          created_at?: string | null
+          id?: string
+          requested_at?: string | null
+          status?: Database["public"]["Enums"]["registration_status"] | null
+          team_id: string
+          tournament_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          created_at?: string | null
+          id?: string
+          requested_at?: string | null
+          status?: Database["public"]["Enums"]["registration_status"] | null
+          team_id?: string
+          tournament_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_registrations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_registrations_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teams: {
         Row: {
           admin_user_id: string | null
@@ -180,6 +228,7 @@ export type Database = {
           created_at: string | null
           enrollment_status: string | null
           id: string
+          invite_code: string | null
           logo_url: string | null
           name: string
           team_data: Json | null
@@ -192,6 +241,7 @@ export type Database = {
           created_at?: string | null
           enrollment_status?: string | null
           id?: string
+          invite_code?: string | null
           logo_url?: string | null
           name: string
           team_data?: Json | null
@@ -204,6 +254,7 @@ export type Database = {
           created_at?: string | null
           enrollment_status?: string | null
           id?: string
+          invite_code?: string | null
           logo_url?: string | null
           name?: string
           team_data?: Json | null
@@ -234,6 +285,7 @@ export type Database = {
           end_date: string | null
           enrollment_deadline: string | null
           id: string
+          invite_codes: string[] | null
           max_teams: number | null
           name: string
           organizer_id: string | null
@@ -241,6 +293,7 @@ export type Database = {
           status: string | null
           tournament_data: Json | null
           updated_at: string | null
+          visibility: string | null
         }
         Insert: {
           created_at?: string | null
@@ -248,6 +301,7 @@ export type Database = {
           end_date?: string | null
           enrollment_deadline?: string | null
           id?: string
+          invite_codes?: string[] | null
           max_teams?: number | null
           name: string
           organizer_id?: string | null
@@ -255,6 +309,7 @@ export type Database = {
           status?: string | null
           tournament_data?: Json | null
           updated_at?: string | null
+          visibility?: string | null
         }
         Update: {
           created_at?: string | null
@@ -262,6 +317,7 @@ export type Database = {
           end_date?: string | null
           enrollment_deadline?: string | null
           id?: string
+          invite_codes?: string[] | null
           max_teams?: number | null
           name?: string
           organizer_id?: string | null
@@ -269,6 +325,7 @@ export type Database = {
           status?: string | null
           tournament_data?: Json | null
           updated_at?: string | null
+          visibility?: string | null
         }
         Relationships: [
           {
@@ -348,7 +405,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      registration_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -475,6 +532,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      registration_status: ["pending", "approved", "rejected"],
+    },
   },
 } as const

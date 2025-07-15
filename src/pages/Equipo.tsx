@@ -224,7 +224,16 @@ const Equipo = () => {
           </TabsContent>
 
           <TabsContent value="torneos-publicos" className="mt-6">
-            <TorneosPublicos />
+            <div className="space-y-4">
+              <Button 
+                onClick={() => navigate('/torneos')}
+                className="w-full"
+              >
+                <Trophy className="w-4 h-4 mr-2" />
+                Ver Todos los Torneos Disponibles
+              </Button>
+              <TorneosPublicos />
+            </div>
           </TabsContent>
 
           <TabsContent value="estadisticas" className="mt-6">
