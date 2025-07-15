@@ -48,8 +48,14 @@ serve(async (req) => {
     const body = await req.json();
     console.log('Request body received:', { ...body, password: '[REDACTED]' });
     
+    // Validate that roles is not empty
+    if (!body.roles || !Array.isArray(body.roles) || body.roles.length === 0) {
+      console.error('Invalid roles:', body.roles);
+      throw new Error('At least one role must be specified');
+    }
+    
     const { email, password, full_name, roles } = CreateUserSchema.parse(body);
-    console.log('Validation successful');
+    console.log('Validation successful for:', { email, full_name, roles });
 
     // Create user in auth
     console.log('Creating user in auth:', email);

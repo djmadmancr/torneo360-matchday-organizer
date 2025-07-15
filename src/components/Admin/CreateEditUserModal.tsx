@@ -70,6 +70,14 @@ export const CreateEditUserModal: React.FC<CreateEditUserModalProps> = ({
           toast.error('La contraseña es requerida para nuevos usuarios');
           return;
         }
+        if (formData.password.length < 8) {
+          toast.error('La contraseña debe tener al menos 8 caracteres');
+          return;
+        }
+        if (formData.roles.length === 0) {
+          toast.error('Debe seleccionar al menos un rol');
+          return;
+        }
         await createUserMutation.mutateAsync(formData);
         toast.success('Usuario creado exitosamente');
       }
@@ -123,7 +131,7 @@ export const CreateEditUserModal: React.FC<CreateEditUserModalProps> = ({
                 value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
                 required
-                minLength={6}
+                minLength={8}
               />
             </div>
           )}

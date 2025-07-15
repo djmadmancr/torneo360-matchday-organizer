@@ -69,6 +69,7 @@ const AdminUsers = () => {
             <Button
               onClick={() => setIsCreateModalOpen(true)}
               className="bg-blue-600 hover:bg-blue-700 text-white"
+              data-testid="create-user-button"
             >
               <UserPlus className="w-4 h-4 mr-2" />
               Crear Usuario

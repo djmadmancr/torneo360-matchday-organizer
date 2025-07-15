@@ -57,12 +57,19 @@ export const useCreateUser = () => {
 
       if (error) {
         console.error('Supabase function error:', error);
-        throw new Error(error.message || 'Failed to create user');
+        // Try to extract more meaningful error from the response
+        const errorMessage = error.message || error.details || 'Failed to create user';
+        throw new Error(errorMessage);
       }
 
-      if (!data || !data.success) {
+      if (!data) {
+        throw new Error('No response from server');
+      }
+
+      if (!data.success) {
         console.error('Function returned error:', data);
-        throw new Error(data?.error || 'Failed to create user');
+        const errorMessage = data.error || 'Failed to create user';
+        throw new Error(errorMessage);
       }
 
       return data;

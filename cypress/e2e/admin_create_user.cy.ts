@@ -1,63 +1,63 @@
-describe('Admin Create User E2E Test', () => {
+describe('Admin Create User', () => {
   beforeEach(() => {
     // Login as admin
     cy.visit('/auth');
-    cy.get('[data-testid="email-input"]').type('admin@demo.com');
-    cy.get('[data-testid="password-input"]').type('demo123');
-    cy.get('[data-testid="login-button"]').click();
+    cy.get('input[type="email"]').type('admin@demo.com');
+    cy.get('input[type="password"]').type('demo123');
+    cy.get('button[type="submit"]').click();
     
-    // Wait for login and navigate to admin users
-    cy.url().should('eq', Cypress.config().baseUrl + '/');
-    cy.get('[data-testid="admin-panel-button"]').click();
-    cy.url().should('include', '/admin/users');
+    // Navigate to admin users page
+    cy.url().should('not.include', '/auth');
+    cy.visit('/admin/users');
   });
 
-  it('should successfully create a referee user', () => {
+  it('should successfully create a new referee user', () => {
     // Click create user button
     cy.get('[data-testid="create-user-button"]').click();
     
-    // Fill out the form with specified data
-    cy.get('[data-testid="user-email-input"]').type('qauser@demo.com');
-    cy.get('[data-testid="user-password-input"]').type('qa123456');
-    cy.get('[data-testid="user-name-input"]').type('QA Test User');
-    cy.get('[data-testid="user-role-select"]').click();
-    cy.get('[data-value="referee"]').click();
+    // Fill out the form
+    cy.get('#email').type('qauser@demo.com');
+    cy.get('#password').type('qa123456789'); // 8+ characters
+    cy.get('#full_name').type('QA Test User');
     
-    // Submit the form
-    cy.get('[data-testid="submit-user-button"]').click();
+    // Select referee role
+    cy.get('#referee').check();
+    
+    // Submit form
+    cy.get('button[type="submit"]').click();
     
     // Wait for success toast
-    cy.get('[data-testid="toast-success"]', { timeout: 10000 }).should('be.visible');
-    cy.get('[data-testid="toast-success"]').should('contain', 'Usuario creado exitosamente');
+    cy.contains('Usuario creado exitosamente').should('be.visible');
     
-    // Verify user appears in the table
-    cy.get('[data-testid="users-table"]').should('contain', 'qauser@demo.com');
-    cy.get('[data-testid="users-table"]').should('contain', 'QA Test User');
-    cy.get('[data-testid="users-table"]').should('contain', 'referee');
+    // Verify user appears in table
+    cy.contains('qauser@demo.com').should('be.visible');
+    cy.contains('QA Test User').should('be.visible');
   });
 
-  it('should handle edge function errors gracefully', () => {
-    // Intercept the admin-create-user function to simulate server error
+  it('should handle server errors gracefully', () => {
+    // Intercept the admin-create-user function call to simulate error
     cy.intercept('POST', '**/functions/v1/admin-create-user', {
       statusCode: 400,
-      body: { error: 'Email is required' }
+      body: { error: 'Email already exists' }
     }).as('createUserError');
     
-    // Try to create a user
+    // Click create user button
     cy.get('[data-testid="create-user-button"]').click();
-    cy.get('[data-testid="user-email-input"]').type('error@demo.com');
-    cy.get('[data-testid="user-password-input"]').type('test1234');
-    cy.get('[data-testid="user-name-input"]').type('Error User');
-    cy.get('[data-testid="user-role-select"]').click();
-    cy.get('[data-value="team_admin"]').click();
-    cy.get('[data-testid="submit-user-button"]').click();
     
-    // Wait for the API call
+    // Fill out the form
+    cy.get('#email').type('error@demo.com');
+    cy.get('#password').type('password123');
+    cy.get('#full_name').type('Error User');
+    cy.get('#referee').check();
+    
+    // Submit form
+    cy.get('button[type="submit"]').click();
+    
+    // Wait for the request
     cy.wait('@createUserError');
     
-    // Verify error message is displayed
-    cy.get('[data-testid="error-message"]', { timeout: 5000 }).should('be.visible');
-    cy.get('[data-testid="error-message"]').should('contain', 'Email is required');
+    // Check that error message is displayed
+    cy.contains('Email already exists').should('be.visible');
   });
 
   it('should validate required fields', () => {
@@ -65,44 +65,33 @@ describe('Admin Create User E2E Test', () => {
     cy.get('[data-testid="create-user-button"]').click();
     
     // Try to submit without filling required fields
-    cy.get('[data-testid="submit-user-button"]').click();
+    cy.get('button[type="submit"]').click();
     
-    // Verify validation errors appear
-    cy.get('[data-testid="email-error"]').should('be.visible');
-    cy.get('[data-testid="password-error"]').should('be.visible');
-    cy.get('[data-testid="name-error"]').should('be.visible');
+    // Check validation messages appear
+    cy.get('#email:invalid').should('exist');
+    cy.get('#password:invalid').should('exist');
+    cy.get('#full_name:invalid').should('exist');
   });
 
-  it('should verify user data in auth.users and public.users tables', () => {
-    // This test would require database access which isn't available in E2E tests
-    // Instead, we verify the UI shows the created user correctly
-    
-    // Create a user first
+  it('should verify created user data in users table', () => {
+    // Create user first
     cy.get('[data-testid="create-user-button"]').click();
-    cy.get('[data-testid="user-email-input"]').type('verify@demo.com');
-    cy.get('[data-testid="user-password-input"]').type('verify123');
-    cy.get('[data-testid="user-name-input"]').type('Verify User');
-    cy.get('[data-testid="user-role-select"]').click();
-    cy.get('[data-value="referee"]').click();
-    cy.get('[data-testid="submit-user-button"]').click();
+    cy.get('#email').type('verify@demo.com');
+    cy.get('#password').type('verify123456');
+    cy.get('#full_name').type('Verify User');
+    cy.get('#organizer').check();
+    cy.get('button[type="submit"]').click();
     
     // Wait for success
-    cy.get('[data-testid="toast-success"]', { timeout: 10000 }).should('be.visible');
+    cy.contains('Usuario creado exitosamente').should('be.visible');
     
-    // Verify the user appears in the table with correct data
-    cy.get('[data-testid="users-table"]')
-      .contains('verify@demo.com')
-      .parent()
-      .within(() => {
-        cy.should('contain', 'Verify User');
-        cy.should('contain', 'referee');
-        cy.should('contain', 'Activo'); // Status should be active
+    // Verify user appears in table with correct data
+    cy.get('table').within(() => {
+      cy.contains('tr', 'verify@demo.com').within(() => {
+        cy.contains('Verify User').should('be.visible');
+        cy.contains('organizer').should('be.visible');
+        cy.contains('Activo').should('be.visible');
       });
-  });
-
-  afterEach(() => {
-    // Clean up test data
-    // In a real scenario, you might want to delete the test user
-    // For this test, we'll leave it as the cleanup should be handled by the backend
+    });
   });
 });
