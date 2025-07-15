@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Users, Calendar, Settings, Plus, Bell, CheckCircle, XCircle, Clock, ArrowLeft } from "lucide-react";
+import { Trophy, Users, Calendar, Settings, Plus, Bell, CheckCircle, XCircle, Clock, ArrowLeft, User } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +13,9 @@ import TorneoFormModalWrapper from '../components/TorneoFormModalWrapper';
 import EditarPerfilEquipo from '../components/EditarPerfilEquipo';
 import { useLegacyAuth } from '@/hooks/useLegacyAuth';
 import { EditUserProfile } from '@/components/EditUserProfile';
+import { UserMenu } from '@/components/UserMenu';
+import { useTournaments } from '@/hooks/useTournaments';
+import { Card as TournamentCard } from '@/components/ui/card';
 
 interface SolicitudInscripcion {
   id: string;
@@ -32,6 +35,7 @@ const Organizador = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showCreateTorneo, setShowCreateTorneo] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const { tournaments, isLoading: torneosLoading } = useTournaments();
   const [solicitudes, setSolicitudes] = useState<SolicitudInscripcion[]>([]);
   const [solicitudesPendientes, setSolicitudesPendientes] = useState(0);
 
@@ -245,13 +249,7 @@ const Organizador = () => {
                 Crear Torneo
               </Button>
               
-              <Button
-                variant="outline"
-                onClick={() => setShowEditProfile(true)}
-              >
-                <Settings className="w-4 h-4 mr-2" />
-                Configurar Perfil
-              </Button>
+              <UserMenu onEditProfile={() => setShowEditProfile(true)} />
             </div>
           </div>
 
@@ -280,7 +278,7 @@ const Organizador = () => {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="solicitudes" className="relative">
               Solicitudes
@@ -290,6 +288,7 @@ const Organizador = () => {
                 </Badge>
               )}
             </TabsTrigger>
+            <TabsTrigger value="torneos">Torneos</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="mt-6">
@@ -383,6 +382,80 @@ const Organizador = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="torneos" className="mt-6">
+            <TournamentCard>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="w-5 h-5" />
+                  Mis Torneos
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {torneosLoading ? (
+                  <div className="text-center py-8">
+                    <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p>Cargando torneos...</p>
+                  </div>
+                ) : tournaments?.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No hay torneos</h3>
+                    <p className="text-muted-foreground">
+                      Crea tu primer torneo para empezar
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {tournaments?.map((tournament) => (
+                      <TournamentCard key={tournament.id} className="border hover:shadow-md transition-shadow">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-lg">{tournament.name}</CardTitle>
+                          <p className="text-sm text-muted-foreground">{tournament.description}</p>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <div className="space-y-2 mb-4">
+                            <div className="flex justify-between text-sm">
+                              <span>Estado:</span>
+                              <Badge variant={tournament.status === 'active' ? 'default' : 'secondary'}>
+                                {tournament.status}
+                              </Badge>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span>Equipos:</span>
+                              <span>{tournament.teams?.length || 0}/{tournament.max_teams}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span>Inicio:</span>
+                              <span>{tournament.start_date ? new Date(tournament.start_date).toLocaleDateString() : 'N/A'}</span>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button size="sm" variant="outline">
+                              <Settings className="w-3 h-3 mr-1" />
+                              Config
+                            </Button>
+                            <Button size="sm" variant="outline">
+                              <Calendar className="w-3 h-3 mr-1" />
+                              Fixture
+                            </Button>
+                            <Button size="sm" variant="outline">
+                              <Users className="w-3 h-3 mr-1" />
+                              Fiscales
+                            </Button>
+                            <Button size="sm" variant="outline">
+                              <Trophy className="w-3 h-3 mr-1" />
+                              Stats
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </TournamentCard>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </TournamentCard>
           </TabsContent>
 
         </Tabs>

@@ -4,15 +4,16 @@ import { useUsers } from '@/services/adminUsers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { UserPlus, Search, Filter } from 'lucide-react';
+import { UserPlus, Search, Filter, ArrowLeft } from 'lucide-react';
 import { UsersTable } from '@/components/Admin/UsersTable';
 import { CreateEditUserModal } from '@/components/Admin/CreateEditUserModal';
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { canAccessAdminPanel } from '@/utils/roleUtils';
 
 const AdminUsers = () => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -61,20 +62,30 @@ const AdminUsers = () => {
       <div className="container mx-auto max-w-7xl">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4 mb-6">
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Volver
+            </Button>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Gestión de Usuarios</h1>
               <p className="text-gray-600 mt-1">Administra usuarios del sistema</p>
             </div>
-            <Button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-              data-testid="create-user-button"
-            >
-              <UserPlus className="w-4 h-4 mr-2" />
-              Crear Usuario
-            </Button>
           </div>
+          <div className="flex items-center justify-end mb-6">
+              <Button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                data-testid="create-user-button"
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Crear Usuario
+              </Button>
+            </div>
 
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-4">
