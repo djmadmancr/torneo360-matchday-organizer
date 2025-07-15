@@ -6,7 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload } from "lucide-react";
+import { Upload, X } from "lucide-react";
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Badge } from "@/components/ui/badge";
 
 interface TorneoFormData {
   torneoId: string;
@@ -32,6 +35,7 @@ interface TorneoFormData {
   edadMaxima?: number;
   descripcion?: string;
   ubicacion?: string;
+  equiposInvitados?: string[];
 }
 
 interface TorneoFormModalProps {
@@ -72,12 +76,35 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
     edadMinima: undefined,
     edadMaxima: undefined,
     descripcion: '',
-    ubicacion: ''
+    ubicacion: '',
+    equiposInvitados: []
   });
 
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [isInitialized, setIsInitialized] = useState(false);
+  const [searchTeams, setSearchTeams] = useState('');
+
+  // Fetch available teams for invitation
+  const { data: availableTeams = [] } = useQuery({
+    queryKey: ['available-teams', searchTeams],
+    queryFn: async () => {
+      let query = supabase
+        .from('teams')
+        .select('id, name, logo_url, invite_code')
+        .eq('enrollment_status', 'approved')
+        .order('name');
+
+      if (searchTeams.trim()) {
+        query = query.ilike('name', `%${searchTeams.trim()}%`);
+      }
+
+      const { data, error } = await query.limit(10);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !formData.esPublico
+  });
 
   // Solo inicializar cuando se abre el modal por primera vez
   useEffect(() => {
@@ -108,7 +135,8 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
           edadMinima: torneoEditando.edadMinima,
           edadMaxima: torneoEditando.edadMaxima,
           descripcion: torneoEditando.descripcion || '',
-          ubicacion: torneoEditando.ubicacion || ''
+          ubicacion: torneoEditando.ubicacion || '',
+          equiposInvitados: torneoEditando.equiposInvitados || []
         };
         setFormData(editData);
         if (torneoEditando.logo) {
@@ -139,7 +167,8 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
           edadMinima: undefined,
           edadMaxima: undefined,
           descripcion: '',
-          ubicacion: ''
+          ubicacion: '',
+          equiposInvitados: []
         });
         setLogoFile(null);
         setLogoPreview('');
@@ -175,6 +204,23 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
       diasSemana: checked 
         ? [...prev.diasSemana, dia]
         : prev.diasSemana.filter(d => d !== dia)
+    }));
+  };
+
+  const addInvitedTeam = (teamId: string) => {
+    if (!formData.equiposInvitados?.includes(teamId)) {
+      setFormData(prev => ({
+        ...prev,
+        equiposInvitados: [...(prev.equiposInvitados || []), teamId]
+      }));
+    }
+    setSearchTeams('');
+  };
+
+  const removeInvitedTeam = (teamId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      equiposInvitados: prev.equiposInvitados?.filter(id => id !== teamId) || []
     }));
   };
 
@@ -363,14 +409,80 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
             />
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="esPublico"
-              checked={formData.esPublico}
-              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, esPublico: !!checked }))}
-            />
-            <Label htmlFor="esPublico">Torneo Público (visible para todos los equipos)</Label>
+          <div className="space-y-4">
+            <Label className="text-base font-semibold">Visibilidad del Torneo</Label>
+            <Select value={formData.esPublico ? 'public' : 'invite'} onValueChange={(value) => setFormData(prev => ({ ...prev, esPublico: value === 'public' }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona visibilidad" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="public">Público (visible para todos los equipos)</SelectItem>
+                <SelectItem value="invite">Invitacional (solo equipos seleccionados)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+
+          {/* Selector de equipos invitados */}
+          {!formData.esPublico && (
+            <div className="space-y-4">
+              <Label className="text-base font-semibold">Equipos Invitados</Label>
+              <div className="space-y-3">
+                <div className="relative">
+                  <Input
+                    placeholder="Buscar equipos por nombre..."
+                    value={searchTeams}
+                    onChange={(e) => setSearchTeams(e.target.value)}
+                  />
+                  {searchTeams && availableTeams.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-40 overflow-auto">
+                      {availableTeams
+                        .filter(team => !formData.equiposInvitados?.includes(team.id))
+                        .map((team) => (
+                        <button
+                          key={team.id}
+                          type="button"
+                          className="w-full px-3 py-2 text-left hover:bg-gray-100 flex items-center gap-2"
+                          onClick={() => addInvitedTeam(team.id)}
+                        >
+                          {team.logo_url && (
+                            <img src={team.logo_url} alt="" className="w-6 h-6 rounded" />
+                          )}
+                          <span>{team.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Equipos seleccionados */}
+                {formData.equiposInvitados && formData.equiposInvitados.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm">Equipos seleccionados:</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {formData.equiposInvitados.map((teamId) => {
+                        const team = availableTeams.find(t => t.id === teamId);
+                        if (!team) return null;
+                        return (
+                          <Badge key={teamId} variant="secondary" className="flex items-center gap-1">
+                            {team.name}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-auto p-0 w-4 h-4"
+                              onClick={() => removeInvitedTeam(teamId)}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="fechaCierre">Fecha Cierre Inscripciones *</Label>

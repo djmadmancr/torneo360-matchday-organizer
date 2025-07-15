@@ -3,6 +3,7 @@ import React from 'react';
 import TorneoFormModal from './TorneoFormModal';
 import { useTournaments } from '@/hooks/useTournaments';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAddTeamsToTournament } from '@/hooks/useAddTeamsToTournament';
 import { toast } from 'sonner';
 
 interface TorneoFormModalWrapperProps {
@@ -13,6 +14,7 @@ interface TorneoFormModalWrapperProps {
 const TorneoFormModalWrapper: React.FC<TorneoFormModalWrapperProps> = ({ open, onClose }) => {
   const { createTournament } = useTournaments();
   const { currentUser } = useAuth();
+  const addTeamsToTournament = useAddTeamsToTournament();
 
   const handleSubmit = async (torneoData: any) => {
     console.log('Enviando formulario:', torneoData);
@@ -30,7 +32,7 @@ const TorneoFormModalWrapper: React.FC<TorneoFormModalWrapperProps> = ({ open, o
         organizer_id: currentUser.id,
         max_teams: torneoData.maxEquipos || 16,
         enrollment_deadline: torneoData.fechaCierre || null,
-        visibility: torneoData.esPublico ? 'public' : 'private',
+        visibility: torneoData.esPublico ? 'public' : 'invite',
         status: 'enrolling',
         tournament_data: {
           categoria: torneoData.categoria,
@@ -52,7 +54,16 @@ const TorneoFormModalWrapper: React.FC<TorneoFormModalWrapperProps> = ({ open, o
 
       console.log('Datos del torneo a crear:', tournamentData);
       
-      await createTournament(tournamentData);
+      const createdTournament = await createTournament(tournamentData);
+      
+      // Si hay equipos invitados, agregarlos al torneo
+      if (torneoData.equiposInvitados && torneoData.equiposInvitados.length > 0) {
+        await addTeamsToTournament.mutateAsync({
+          tournamentId: createdTournament.id,
+          teamIds: torneoData.equiposInvitados
+        });
+      }
+      
       toast.success('¡Torneo creado exitosamente!');
       onClose();
     } catch (error) {
