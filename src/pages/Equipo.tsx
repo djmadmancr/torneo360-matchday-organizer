@@ -15,7 +15,7 @@ import EditarPerfilEquipo from '../components/EditarPerfilEquipo';
 import EstadisticasEquipoWrapper from '../components/EstadisticasEquipoWrapper';
 import NotificacionesEquipo from '../components/NotificacionesEquipo';
 import { useLegacyAuth } from '@/hooks/useLegacyAuth';
-import { CreateTeamModal } from '@/components/CreateTeamModal';
+
 import { useSupabaseTeams } from '@/hooks/useSupabaseTeams';
 import MisEquipos from '@/components/MisEquipos';
 import { EditUserProfile } from '@/components/EditUserProfile';
@@ -40,7 +40,7 @@ const Equipo = () => {
   const [activeTab, setActiveTab] = useState('torneos-inscritos');
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showCreateTeam, setShowCreateTeam] = useState(false);
+  
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   
@@ -157,29 +157,19 @@ const Equipo = () => {
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setShowNotifications(true)}
-                className="relative"
-              >
-                <Bell className="w-4 h-4 mr-2" />
-                Notificaciones
-                {unreadCount > 0 && (
-                  <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 p-0 text-xs">
-                    {unreadCount}
-                  </Badge>
-                )}
-              </Button>
-              
-              <Button 
-                variant="outline"
-                onClick={() => setShowCreateTeam(true)}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Crear Equipo
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              onClick={() => setShowNotifications(true)}
+              className="relative"
+            >
+              <Bell className="w-4 h-4 mr-2" />
+              Notificaciones
+              {unreadCount > 0 && (
+                <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 p-0 text-xs">
+                  {unreadCount}
+                </Badge>
+              )}
+            </Button>
           </div>
 
           {/* Stats Cards */}
@@ -259,10 +249,6 @@ const Equipo = () => {
           </DialogContent>
         </Dialog>
 
-        <CreateTeamModal
-          open={showCreateTeam}
-          onOpenChange={setShowCreateTeam}
-        />
 
         <NotificacionesEquipo
           open={showNotifications}
