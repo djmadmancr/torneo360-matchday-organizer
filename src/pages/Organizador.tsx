@@ -280,7 +280,7 @@ const Organizador = () => {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="solicitudes" className="relative">
               Solicitudes
@@ -290,7 +290,6 @@ const Organizador = () => {
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="configuracion">Configuración</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="mt-6">
@@ -386,18 +385,6 @@ const Organizador = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="configuracion" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Configuración del Organizador</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-4">
-                  Usa el botón "Configurar Perfil" en la parte superior para editar tu información.
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
 
         {/* Modales */}
