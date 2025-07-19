@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AdminUser, useCreateUser, useUpdateUser } from '@/services/adminUsers';
 import { toast } from 'sonner';
 
@@ -108,6 +109,14 @@ export const CreateEditUserModal: React.FC<CreateEditUserModalProps> = ({
             {isEditing ? 'Editar Usuario' : 'Crear Nuevo Usuario'}
           </DialogTitle>
         </DialogHeader>
+
+        {(createUserMutation.error || updateUserMutation.error) && (
+          <Alert variant="destructive">
+            <AlertDescription>
+              {createUserMutation.error?.message || updateUserMutation.error?.message}
+            </AlertDescription>
+          </Alert>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">

@@ -99,43 +99,46 @@ serve(async (req) => {
     console.log('User created successfully in database');
 
     return new Response(
-      JSON.stringify({ ok: true, success: true, user: authUser.user }),
+      JSON.stringify({ ok: true, id: authUser.user.id }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+        status: 201,
       }
     );
-  } catch (error) {
-    console.error('Error creating user:', error);
+  } catch (err) {
+    console.error('admin-create-user error', err);
     
-    // Return different status codes based on error type
-    const isValidationError = error instanceof z.ZodError;
-    const statusCode = isValidationError ? 400 : 500;
+    const msg = err instanceof Error ? err.message : 'unknown error';
     
-    let errorMessage = 'Internal server error';
+    // Determine appropriate status code based on error type
+    let code = 400; // default
+    if (msg.includes('duplicate')) {
+      code = 409; // Conflict
+    } else if (msg.includes('role') || msg.includes('validation')) {
+      code = 422; // Unprocessable Entity
+    } else if (err instanceof z.ZodError) {
+      code = 422;
+    }
     
-    if (isValidationError) {
-      errorMessage = `Validation error: ${error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`;
-    } else if (error.message) {
-      // Handle common database errors with user-friendly messages
-      if (error.message.includes('duplicate key value violates unique constraint')) {
-        if (error.message.includes('users_email_key')) {
-          errorMessage = 'Este correo electrónico ya está registrado';
-        } else {
-          errorMessage = 'Ya existe un registro con estos datos';
-        }
-      } else if (error.message.includes('violates not-null constraint')) {
-        errorMessage = 'Faltan datos requeridos';
+    // User-friendly error messages
+    let userMessage = msg;
+    if (msg.includes('duplicate key value violates unique constraint')) {
+      if (msg.includes('users_email_key')) {
+        userMessage = 'Este correo electrónico ya está registrado';
       } else {
-        errorMessage = error.message;
+        userMessage = 'Ya existe un registro con estos datos';
       }
+    } else if (msg.includes('violates not-null constraint')) {
+      userMessage = 'Faltan datos requeridos';
+    } else if (err instanceof z.ZodError) {
+      userMessage = `Validation error: ${err.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`;
     }
     
     return new Response(
-      JSON.stringify({ ok: false, error: errorMessage, message: errorMessage }),
+      JSON.stringify({ ok: false, message: userMessage }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: statusCode,
+        status: code,
       }
     );
   }
