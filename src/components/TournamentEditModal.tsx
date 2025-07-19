@@ -96,7 +96,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="tournament-edit-modal">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Settings className="w-5 h-5" />
@@ -183,6 +183,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
+                  data-testid="description-input"
                 />
               </div>
 
@@ -216,6 +217,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                     max="64"
                     value={formData.max_teams}
                     onChange={(e) => setFormData({ ...formData, max_teams: parseInt(e.target.value) })}
+                    data-testid="max-teams-input"
                   />
                 </div>
               </div>
@@ -259,7 +261,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={updateMutation.isPending}>
+                <Button type="submit" disabled={updateMutation.isPending} data-testid="save-tournament-button">
                   {updateMutation.isPending ? 'Guardando...' : 'Guardar Cambios'}
                 </Button>
               </div>

@@ -3,7 +3,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tournament } from '@/hooks/useTournaments';
-import { Settings, Trophy, Users, BarChart3, Calendar } from 'lucide-react';
+import { useStartTournament } from '@/hooks/useTournamentManagement';
+import { Settings, Trophy, Users, BarChart3, Calendar, Play } from 'lucide-react';
 
 interface TournamentCardProps {
   tournament: Tournament;
@@ -20,6 +21,8 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
   onViewStats,
   onManageReferees
 }) => {
+  const startTournament = useStartTournament();
+  
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'enrolling':
@@ -50,7 +53,7 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
   const maxTeams = tournament.max_teams || 16;
 
   return (
-    <Card className="h-full flex flex-col hover:shadow-lg transition-shadow">
+    <Card className="h-full flex flex-col hover:shadow-lg transition-shadow" data-testid="tournament-card">
       <CardHeader>
         <div className="flex justify-between items-start">
           <CardTitle className="text-lg font-semibold text-primary">
@@ -71,7 +74,7 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
         <div className="space-y-3">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Equipos:</span>
-            <span className="font-medium">{teamCount}/{maxTeams}</span>
+            <span className="font-medium" data-testid="team-count">{teamCount}/{maxTeams}</span>
           </div>
           
           {tournament.enrollment_deadline && (
@@ -110,46 +113,63 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
       </CardContent>
 
       <CardFooter>
-        <div className="grid grid-cols-2 gap-2 w-full">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => onEdit(tournament)}
-            className="flex items-center gap-1"
-          >
-            <Settings className="w-3 h-3" />
-            Configurar
-          </Button>
+        <div className="space-y-2 w-full">
+          {/* Start Tournament Button - Only show if enrolling status and has teams */}
+          {tournament.status === 'enrolling' && teamCount >= 2 && (
+            <Button 
+              variant="default" 
+              size="sm" 
+              onClick={() => startTournament.mutate(tournament.id)}
+              disabled={startTournament.isPending}
+              className="w-full flex items-center gap-2 bg-green-600 hover:bg-green-700"
+              data-testid="start-tournament-button"
+            >
+              <Play className="w-4 h-4" />
+              {startTournament.isPending ? 'Iniciando...' : 'Iniciar Torneo'}
+            </Button>
+          )}
           
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => onViewFixtures(tournament)}
-            className="flex items-center gap-1"
-          >
-            <Calendar className="w-3 h-3" />
-            Fixture
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => onManageReferees(tournament)}
-            className="flex items-center gap-1"
-          >
-            <Users className="w-3 h-3" />
-            Árbitros
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => onViewStats(tournament)}
-            className="flex items-center gap-1"
-          >
-            <BarChart3 className="w-3 h-3" />
-            Estadísticas
-          </Button>
+          <div className="grid grid-cols-2 gap-2 w-full">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => onEdit(tournament)}
+              className="flex items-center gap-1"
+            >
+              <Settings className="w-3 h-3" />
+              Configurar
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => onViewFixtures(tournament)}
+              className="flex items-center gap-1"
+            >
+              <Calendar className="w-3 h-3" />
+              Fixture
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => onManageReferees(tournament)}
+              className="flex items-center gap-1"
+            >
+              <Users className="w-3 h-3" />
+              Árbitros
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => onViewStats(tournament)}
+              className="flex items-center gap-1"
+            >
+              <BarChart3 className="w-3 h-3" />
+              Estadísticas
+            </Button>
+          </div>
         </div>
       </CardFooter>
     </Card>
