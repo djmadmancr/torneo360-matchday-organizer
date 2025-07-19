@@ -25,6 +25,7 @@ export type Database = {
           kickoff: string | null
           match_data: Json | null
           match_day: number | null
+          referee_id: string | null
           status: string | null
           tournament_id: string | null
           updated_at: string | null
@@ -40,6 +41,7 @@ export type Database = {
           kickoff?: string | null
           match_data?: Json | null
           match_day?: number | null
+          referee_id?: string | null
           status?: string | null
           tournament_id?: string | null
           updated_at?: string | null
@@ -55,6 +57,7 @@ export type Database = {
           kickoff?: string | null
           match_data?: Json | null
           match_day?: number | null
+          referee_id?: string | null
           status?: string | null
           tournament_id?: string | null
           updated_at?: string | null
@@ -76,10 +79,52 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fixtures_referee_id_fkey"
+            columns: ["referee_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fixtures_tournament_id_fkey"
             columns: ["tournament_id"]
             isOneToOne: false
             referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      home_fields: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          id: string
+          name: string
+          team_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          team_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          team_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "home_fields_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
@@ -224,6 +269,7 @@ export type Database = {
       teams: {
         Row: {
           admin_user_id: string | null
+          city: string | null
           colors: Json | null
           created_at: string | null
           enrollment_status: string | null
@@ -231,12 +277,14 @@ export type Database = {
           invite_code: string | null
           logo_url: string | null
           name: string
+          team_code: string | null
           team_data: Json | null
           tournament_id: string | null
           updated_at: string | null
         }
         Insert: {
           admin_user_id?: string | null
+          city?: string | null
           colors?: Json | null
           created_at?: string | null
           enrollment_status?: string | null
@@ -244,12 +292,14 @@ export type Database = {
           invite_code?: string | null
           logo_url?: string | null
           name: string
+          team_code?: string | null
           team_data?: Json | null
           tournament_id?: string | null
           updated_at?: string | null
         }
         Update: {
           admin_user_id?: string | null
+          city?: string | null
           colors?: Json | null
           created_at?: string | null
           enrollment_status?: string | null
@@ -257,6 +307,7 @@ export type Database = {
           invite_code?: string | null
           logo_url?: string | null
           name?: string
+          team_code?: string | null
           team_data?: Json | null
           tournament_id?: string | null
           updated_at?: string | null
@@ -280,6 +331,7 @@ export type Database = {
       }
       tournaments: {
         Row: {
+          coverage: Database["public"]["Enums"]["coverage_type"] | null
           created_at: string | null
           description: string | null
           end_date: string | null
@@ -296,6 +348,7 @@ export type Database = {
           visibility: string | null
         }
         Insert: {
+          coverage?: Database["public"]["Enums"]["coverage_type"] | null
           created_at?: string | null
           description?: string | null
           end_date?: string | null
@@ -312,6 +365,7 @@ export type Database = {
           visibility?: string | null
         }
         Update: {
+          coverage?: Database["public"]["Enums"]["coverage_type"] | null
           created_at?: string | null
           description?: string | null
           end_date?: string | null
@@ -409,6 +463,12 @@ export type Database = {
       }
     }
     Enums: {
+      coverage_type:
+        | "international"
+        | "regional"
+        | "national"
+        | "state"
+        | "local"
       registration_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
@@ -537,6 +597,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      coverage_type: [
+        "international",
+        "regional",
+        "national",
+        "state",
+        "local",
+      ],
       registration_status: ["pending", "approved", "rejected"],
     },
   },

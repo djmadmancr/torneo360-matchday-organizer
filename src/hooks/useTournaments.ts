@@ -7,11 +7,11 @@ export type Tournament = Tables<'tournaments'>;
 export type TournamentInsert = TablesInsert<'tournaments'>;
 export type TournamentUpdate = TablesUpdate<'tournaments'>;
 
-export const useTournaments = (organizerId?: string) => {
+export const useTournaments = (organizerId?: string, userCity?: string) => {
   const queryClient = useQueryClient();
 
   const { data: tournaments = [], isLoading } = useQuery({
-    queryKey: organizerId ? ['tournaments', 'organizer', organizerId] : ['tournaments'],
+    queryKey: organizerId ? ['tournaments', 'organizer', organizerId] : ['tournaments', userCity],
     queryFn: async () => {
       let query = supabase
         .from('tournaments')
@@ -23,6 +23,10 @@ export const useTournaments = (organizerId?: string) => {
       
       if (organizerId) {
         query = query.eq('organizer_id', organizerId);
+      } else if (userCity) {
+        // Filter by coverage based on user's city
+        // This is a simplified filter - you might want more complex logic
+        query = query.in('coverage', ['local', 'state', 'national', 'regional', 'international']);
       }
       
       query = query.order('created_at', { ascending: false });

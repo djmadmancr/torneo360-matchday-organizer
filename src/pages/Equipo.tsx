@@ -17,7 +17,7 @@ import NotificacionesEquipo from '../components/NotificacionesEquipo';
 import { useLegacyAuth } from '@/hooks/useLegacyAuth';
 
 import { useSupabaseTeams } from '@/hooks/useSupabaseTeams';
-import MisEquipos from '@/components/MisEquipos';
+import TeamCards from '@/components/TeamCards';
 import { EditUserProfile } from '@/components/EditUserProfile';
 
 interface Notificacion {
@@ -37,7 +37,7 @@ interface Notificacion {
 const Equipo = () => {
   const navigate = useNavigate();
   const { user } = useLegacyAuth();
-  const [activeTab, setActiveTab] = useState('torneos-inscritos');
+  const [activeTab, setActiveTab] = useState('mis-equipos');
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   
@@ -136,81 +136,40 @@ const Equipo = () => {
               <h1 className="text-xl md:text-2xl font-bold text-primary">🔵 Panel de Equipo</h1>
               <p className="text-sm text-muted-foreground">Administra tu equipo y jugadores</p>
             </div>
-            <UserMenu onEditProfile={() => setShowEditProfile(true)} />
+            
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowNotifications(true)}
+                className="relative"
+              >
+                <Bell className="w-4 h-4 mr-2" />
+                Notificaciones
+                {unreadCount > 0 && (
+                  <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 p-0 text-xs">
+                    {unreadCount}
+                  </Badge>
+                )}
+              </Button>
+              <UserMenu onEditProfile={() => setShowEditProfile(true)} />
+            </div>
           </div>
         </div>
       </div>
       
       <div className="p-6">
-        <div className="container mx-auto max-w-7xl">{/* Header */}
-        <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-green-100 rounded-full">
-                <Users className="w-8 h-8 text-green-600" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">Equipo Dashboard</h2>
-                <p className="text-gray-600">
-                  {user.perfiles?.equipo?.nombreEquipo || user.nombre}
-                </p>
-              </div>
-            </div>
-            
-            <Button
-              variant="outline"
-              onClick={() => setShowNotifications(true)}
-              className="relative"
-            >
-              <Bell className="w-4 h-4 mr-2" />
-              Notificaciones
-              {unreadCount > 0 && (
-                <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 p-0 text-xs">
-                  {unreadCount}
-                </Badge>
-              )}
-            </Button>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-blue-600">{teams?.length || 0}</div>
-                <div className="text-sm text-muted-foreground">Equipos Creados</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-green-600">{teams?.filter(t => t.enrollment_status === 'approved').length || 0}</div>
-                <div className="text-sm text-muted-foreground">Equipos Aprobados</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-purple-600">{teams?.filter(t => t.tournament_id).length || 0}</div>
-                <div className="text-sm text-muted-foreground">En Torneos</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-orange-600">{teams?.filter(t => t.enrollment_status === 'pending').length || 0}</div>
-                <div className="text-sm text-muted-foreground">Pendientes</div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+        <div className="container mx-auto max-w-7xl">
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="torneos-inscritos">Mis Torneos</TabsTrigger>
+            <TabsTrigger value="mis-equipos">Mis Equipos</TabsTrigger>
             <TabsTrigger value="torneos-publicos">Buscar Torneos</TabsTrigger>
             <TabsTrigger value="estadisticas">Estadísticas</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="torneos-inscritos" className="mt-6">
-            <MisEquipos />
+          <TabsContent value="mis-equipos" className="mt-6">
+            <TeamCards />
           </TabsContent>
 
           <TabsContent value="torneos-publicos" className="mt-6">
