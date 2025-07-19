@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import OrganizadorDashboard from '../components/OrganizadorDashboard';
 import TorneoFormModalWrapper from '../components/TorneoFormModalWrapper';
 import TournamentCard from '../components/TournamentCard';
+import { TournamentEditModal } from '../components/TournamentEditModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { EditUserProfile } from '@/components/EditUserProfile';
 import { UserMenu } from '@/components/UserMenu';
@@ -34,6 +35,8 @@ const Organizador = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showCreateTorneo, setShowCreateTorneo] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showEditTournament, setShowEditTournament] = useState(false);
+  const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const { tournaments: organizerTournaments, isLoading: torneosLoading } = useTournaments(currentUser?.id);
   const [solicitudes, setSolicitudes] = useState<SolicitudInscripcion[]>([]);
   const [solicitudesPendientes, setSolicitudesPendientes] = useState(0);
@@ -401,8 +404,8 @@ const Organizador = () => {
                     key={tournament.id}
                     tournament={tournament}
                     onEdit={(tournament) => {
-                      // TODO: Implementar edición de torneo
-                      console.log('Editar torneo:', tournament);
+                      setSelectedTournament(tournament);
+                      setShowEditTournament(true);
                     }}
                     onViewFixtures={(tournament) => {
                       // TODO: Implementar vista de fixtures
@@ -460,6 +463,17 @@ const Organizador = () => {
             />
           </DialogContent>
         </Dialog>
+
+        {selectedTournament && (
+          <TournamentEditModal
+            tournament={selectedTournament}
+            open={showEditTournament}
+            onOpenChange={(open) => {
+              setShowEditTournament(open);
+              if (!open) setSelectedTournament(null);
+            }}
+          />
+        )}
         </div>
       </div>
     </div>
