@@ -51,26 +51,27 @@ export const useCreateUser = () => {
 
       console.log('Calling admin-create-user with:', { email, full_name, roles });
       
-      const { data, error } = await supabase.functions.invoke('admin-create-user', {
-        body: { email, password, full_name, roles }
+      const res = await fetch('/functions/v1/admin-create-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ email, password, full_name, roles })
       });
 
-      if (error) {
-        console.error('Supabase function error:', error);
-        throw new Error(error.message || 'Failed to create user');
+      const text = await res.text();
+      if (!res.ok) {
+        let msg;
+        try { 
+          msg = JSON.parse(text).message;
+        } catch { 
+          msg = text || 'Server error';
+        }
+        throw new Error(msg);
       }
 
-      if (!data) {
-        throw new Error('No response from server');
-      }
-
-      // Check if the response indicates an error
-      if (data.ok === false) {
-        console.error('Function returned error:', data);
-        throw new Error(data.message || 'Server error');
-      }
-
-      return data;
+      return JSON.parse(text);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
