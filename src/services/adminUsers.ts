@@ -66,9 +66,10 @@ export const useCreateUser = () => {
         throw new Error('No response from server');
       }
 
-      if (!data.success) {
+      // Check if the response indicates an error
+      if (data.ok === false || (!data.success && !data.ok)) {
         console.error('Function returned error:', data);
-        const errorMessage = data.error || 'Failed to create user';
+        const errorMessage = data.message || data.error || 'Failed to create user';
         throw new Error(errorMessage);
       }
 
