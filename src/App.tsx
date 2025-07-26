@@ -12,6 +12,7 @@ import Organizador from "./pages/Organizador";
 import Equipo from "./pages/Equipo";
 import Fiscal from "./pages/Fiscal";
 import AdminUsers from "./pages/Admin/Users";
+import Torneos from "./pages/Torneos";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 import { checkAndRunMigration } from "@/utils/dataMigration";
@@ -54,6 +55,11 @@ function App() {
               <Route path="/admin/users" element={
                 <PrivateRoute roles={['admin']}>
                   <AdminUsers />
+                </PrivateRoute>
+              } />
+              <Route path="/torneos" element={
+                <PrivateRoute>
+                  <Torneos />
                 </PrivateRoute>
               } />
               <Route path="*" element={<NotFound />} />

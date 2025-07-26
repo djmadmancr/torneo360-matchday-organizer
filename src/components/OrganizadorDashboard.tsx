@@ -1,72 +1,38 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
-import { Trophy, Users, Calendar, TrendingUp } from "lucide-react";
+import { Trophy, Users, Calendar, TrendingUp, Play } from "lucide-react";
+import { useTournaments } from '@/hooks/useTournaments';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useGenerateFixture } from '@/hooks/useTournamentRegistrations';
+import { toast } from 'sonner';
 
-interface Torneo {
-  id: string;
-  nombre: string;
-  categoria: string;
-  tipo: string;
-  formato: string;
-  fechaInicio: string;
-  fechaFin: string;
-  logo: string;
-  maxEquipos: number;
-  equiposInscritos: number;
-  estado: "inscripciones_abiertas" | "inscripciones_cerradas" | "en_curso" | "finalizado";
-  fechaCierre: string;
-  puntajeExtra: string;
-  idaVuelta: {
-    grupos: boolean;
-    eliminatoria: boolean;
-  };
-  diasSemana: string[];
-  partidosPorSemana: string;
-  fechaCreacion: string;
-}
 
 const OrganizadorDashboard = () => {
-  const [torneos, setTorneos] = useState<Torneo[]>([]);
+  const { user } = useSupabaseAuth();
+  const { tournaments = [], isLoading } = useTournaments(user?.id);
+  const generateFixture = useGenerateFixture();
 
-  useEffect(() => {
-    // Load tournaments from localStorage for backward compatibility
+  const handleStartTournament = async (tournamentId: string) => {
     try {
-      const torneosGuardados = localStorage.getItem('torneos');
-      if (torneosGuardados) {
-        setTorneos(JSON.parse(torneosGuardados));
-      }
+      await generateFixture.mutateAsync(tournamentId);
     } catch (error) {
-      console.error('Error loading tournaments:', error);
+      console.error('Error starting tournament:', error);
     }
-  }, []);
+  };
 
-  // Datos para gráficos
+  // Statistics calculations using Supabase data
   const estadisticasPorEstado = [
-    { nombre: "Inscripciones Abiertas", valor: torneos.filter(t => t.estado === "inscripciones_abiertas").length, color: "#22c55e" },
-    { nombre: "En Curso", valor: torneos.filter(t => t.estado === "en_curso").length, color: "#3b82f6" },
-    { nombre: "Finalizados", valor: torneos.filter(t => t.estado === "finalizado").length, color: "#6b7280" },
-    { nombre: "Inscripciones Cerradas", valor: torneos.filter(t => t.estado === "inscripciones_cerradas").length, color: "#f59e0b" }
+    { nombre: "Inscripciones Abiertas", valor: tournaments.filter(t => t.status === "enrolling").length, color: "#22c55e" },
+    { nombre: "En Curso", valor: tournaments.filter(t => t.status === "in_progress").length, color: "#3b82f6" },
+    { nombre: "Finalizados", valor: tournaments.filter(t => t.status === "finished").length, color: "#6b7280" },
+    { nombre: "Borrador", valor: tournaments.filter(t => t.status === "draft").length, color: "#f59e0b" }
   ];
 
-  const estadisticasPorCategoria = torneos.reduce((acc, torneo) => {
-    const existing = acc.find(item => item.categoria === torneo.categoria);
-    if (existing) {
-      existing.cantidad += 1;
-      existing.equipos += torneo.equiposInscritos;
-    } else {
-      acc.push({
-        categoria: torneo.categoria,
-        cantidad: 1,
-        equipos: torneo.equiposInscritos
-      });
-    }
-    return acc;
-  }, [] as { categoria: string; cantidad: number; equipos: number }[]);
-
-  const torneosPorMes = torneos.reduce((acc, torneo) => {
-    const mes = new Date(torneo.fechaCreacion).toLocaleDateString('es-ES', { month: 'short', year: '2-digit' });
+  const torneosPorMes = tournaments.reduce((acc, tournament) => {
+    const mes = new Date(tournament.created_at).toLocaleDateString('es-ES', { month: 'short', year: '2-digit' });
     const existing = acc.find(item => item.mes === mes);
     if (existing) {
       existing.torneos += 1;
@@ -76,8 +42,8 @@ const OrganizadorDashboard = () => {
     return acc;
   }, [] as { mes: string; torneos: number }[]);
 
-  const totalEquipos = torneos.reduce((acc, torneo) => acc + torneo.equiposInscritos, 0);
-  const promedioEquiposPorTorneo = torneos.length > 0 ? Math.round(totalEquipos / torneos.length) : 0;
+  const totalEquipos = tournaments.reduce((acc, tournament) => acc + (tournament.teams?.length || 0), 0);
+  const promedioEquiposPorTorneo = tournaments.length > 0 ? Math.round(totalEquipos / tournaments.length) : 0;
 
   return (
     <div className="space-y-6">
@@ -89,7 +55,7 @@ const OrganizadorDashboard = () => {
             <Trophy className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{torneos.length}</div>
+            <div className="text-2xl font-bold">{tournaments.length}</div>
           </CardContent>
         </Card>
         
@@ -110,7 +76,7 @@ const OrganizadorDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {torneos.filter(t => t.estado === "en_curso" || t.estado === "inscripciones_abiertas").length}
+              {tournaments.filter(t => t.status === "in_progress" || t.status === "enrolling").length}
             </div>
           </CardContent>
         </Card>
@@ -157,19 +123,37 @@ const OrganizadorDashboard = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Torneos por Categoría</CardTitle>
+            <CardTitle>Torneos Recientes</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={estadisticasPorCategoria}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="categoria" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="cantidad" fill="#3b82f6" name="Torneos" />
-                <Bar dataKey="equipos" fill="#22c55e" name="Equipos" />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="space-y-4">
+              {tournaments.slice(0, 5).map((tournament) => (
+                <div key={tournament.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <h4 className="font-medium">{tournament.name}</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {tournament.teams?.length || 0} equipos • {tournament.status}
+                    </p>
+                  </div>
+                  {tournament.status === 'enrolling' && (tournament.teams?.length || 0) >= 2 && (
+                    <Button
+                      size="sm"
+                      onClick={() => handleStartTournament(tournament.id)}
+                      disabled={generateFixture.isPending}
+                      className="flex items-center gap-2"
+                    >
+                      <Play className="w-4 h-4" />
+                      Iniciar Torneo
+                    </Button>
+                  )}
+                </div>
+              ))}
+              {tournaments.length === 0 && (
+                <div className="text-center py-4 text-muted-foreground">
+                  No hay torneos recientes
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -198,39 +182,54 @@ const OrganizadorDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {torneos.length === 0 ? (
+            {isLoading ? (
+              <div className="text-center py-8">
+                <div className="text-lg">Cargando torneos...</div>
+              </div>
+            ) : tournaments.length === 0 ? (
               <div className="text-center py-8">
                 <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-2">No hay torneos</h3>
                 <p className="text-muted-foreground">Crea tu primer torneo para ver las estadísticas aquí</p>
               </div>
             ) : (
-              torneos.map((torneo) => (
-                <div key={torneo.id} className="flex items-center justify-between p-4 border rounded-lg">
+              tournaments.map((tournament) => (
+                <div key={tournament.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center gap-4">
-                    <img 
-                      src={torneo.logo || '/placeholder.svg'} 
-                      alt={torneo.nombre}
-                      className="w-12 h-12 rounded-lg object-cover"
-                    />
+                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-green-500 flex items-center justify-center text-white font-bold">
+                      {tournament.name.charAt(0).toUpperCase()}
+                    </div>
                     <div>
-                      <h4 className="font-medium">{torneo.nombre}</h4>
+                      <h4 className="font-medium">{tournament.name}</h4>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>{torneo.categoria}</span>
+                        <span>{tournament.teams?.length || 0}/{tournament.max_teams} equipos</span>
                         <span>•</span>
-                        <span>{torneo.equiposInscritos}/{torneo.maxEquipos} equipos</span>
-                        <span>•</span>
-                        <span>Creado: {torneo.fechaCreacion}</span>
+                        <span>Creado: {new Date(tournament.created_at).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </div>
-                  <Badge variant={
-                    torneo.estado === "en_curso" ? "default" :
-                    torneo.estado === "inscripciones_abiertas" ? "secondary" :
-                    torneo.estado === "finalizado" ? "outline" : "destructive"
-                  }>
-                    {torneo.estado.replace("_", " ")}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {tournament.status === 'enrolling' && (tournament.teams?.length || 0) >= 2 && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleStartTournament(tournament.id)}
+                        disabled={generateFixture.isPending}
+                        className="flex items-center gap-2"
+                      >
+                        <Play className="w-4 h-4" />
+                        Iniciar
+                      </Button>
+                    )}
+                    <Badge variant={
+                      tournament.status === "in_progress" ? "default" :
+                      tournament.status === "enrolling" ? "secondary" :
+                      tournament.status === "finished" ? "outline" : "destructive"
+                    }>
+                      {tournament.status === "enrolling" ? "Inscripciones" :
+                       tournament.status === "in_progress" ? "En Curso" :
+                       tournament.status === "finished" ? "Finalizado" : "Borrador"}
+                    </Badge>
+                  </div>
                 </div>
               ))
             )}
