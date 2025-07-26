@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Trophy, Calendar, Users } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { usePublicTournaments, useRequestRegistration } from '@/hooks/useTournamentRegistrations';
+import { useTeamInvitations } from '@/hooks/useTeamInvitations';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useSupabaseTeams } from '@/hooks/useSupabaseTeams';
 import { toast } from 'sonner';
@@ -16,6 +17,7 @@ const Torneos = () => {
   const { user } = useSupabaseAuth();
   const { teams } = useSupabaseTeams();
   const { data: tournaments, isLoading } = usePublicTournaments();
+  const { data: invitations } = useTeamInvitations(teams?.[0]?.team_code);
   const requestRegistration = useRequestRegistration();
   
   const [selectedTournament, setSelectedTournament] = useState<any>(null);
@@ -26,13 +28,18 @@ const Torneos = () => {
     const tournamentId = searchParams.get('tournament');
     const action = searchParams.get('action');
     
-    if (tournamentId && action === 'register' && tournaments) {
-      const tournament = tournaments.find(t => t.id === tournamentId);
+    if (tournamentId && action === 'register') {
+      // Look in both public tournaments and invitations
+      let tournament: any = tournaments?.find(t => t.id === tournamentId);
+      if (!tournament && invitations) {
+        tournament = invitations.find(t => t.id === tournamentId);
+      }
+      
       if (tournament) {
         handleShowModal(tournament);
       }
     }
-  }, [searchParams, tournaments]);
+  }, [searchParams, tournaments, invitations]);
 
   const handleShowModal = (tournament: any) => {
     if (!user || !teams || teams.length === 0) {
@@ -148,7 +155,7 @@ const Torneos = () => {
         torneo={selectedTournament ? {
           id: selectedTournament.id,
           nombre: selectedTournament.name,
-          organizadorNombre: selectedTournament.users?.full_name || 'N/A',
+          organizadorNombre: selectedTournament.users?.full_name || selectedTournament.organizer?.full_name || 'N/A',
           organizadorId: selectedTournament.organizer_id,
           esPublico: selectedTournament.visibility === 'public',
           descripcion: selectedTournament.description,
