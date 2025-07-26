@@ -23,24 +23,6 @@ const Torneos = () => {
   const [selectedTournament, setSelectedTournament] = useState<any>(null);
   const [showPlayerModal, setShowPlayerModal] = useState(false);
 
-  // Check URL params for auto-opening modal
-  React.useEffect(() => {
-    const tournamentId = searchParams.get('tournament');
-    const action = searchParams.get('action');
-    
-    if (tournamentId && action === 'register') {
-      // Look in both public tournaments and invitations
-      let tournament: any = tournaments?.find(t => t.id === tournamentId);
-      if (!tournament && invitations) {
-        tournament = invitations.find(t => t.id === tournamentId);
-      }
-      
-      if (tournament) {
-        handleShowModal(tournament);
-      }
-    }
-  }, [searchParams, tournaments, invitations]);
-
   const handleShowModal = (tournament: any) => {
     if (!user || !teams || teams.length === 0) {
       toast.error('Necesitas tener un equipo para inscribirte');

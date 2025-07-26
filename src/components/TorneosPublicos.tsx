@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useSupabaseTeams } from '@/hooks/useSupabaseTeams';
 import { usePublicTournaments, useRequestRegistration } from '@/hooks/useTournamentRegistrations';
+import SeleccionJugadoresModal from '@/components/SeleccionJugadoresModal';
 
 
 const TorneosPublicos = () => {
@@ -19,6 +20,8 @@ const TorneosPublicos = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedTournament, setSelectedTournament] = useState<any>(null);
+  const [showPlayerModal, setShowPlayerModal] = useState(false);
 
   // Filter tournaments based on search term and status
   const filteredTournaments = tournaments.filter(tournament => {
@@ -31,13 +34,28 @@ const TorneosPublicos = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const handleRegister = (tournamentId: string) => {
+  const handleRegister = (tournament: any) => {
     if (!user || !teams || teams.length === 0) {
       toast.error('Necesitas tener un equipo para inscribirte');
       return;
     }
-    // Navigate to torneos page with registration parameters
-    window.location.href = `/torneos?tournament=${tournamentId}&action=register`;
+    setSelectedTournament(tournament);
+    setShowPlayerModal(true);
+  };
+
+  const handleConfirmarInscripcion = async (jugadoresSeleccionados: any[], staffSeleccionado: any[]) => {
+    if (!selectedTournament || !teams || teams.length === 0) return;
+
+    try {
+      await requestRegistration.mutateAsync({
+        tournamentId: selectedTournament.id,
+        teamId: teams[0].id,
+      });
+      setShowPlayerModal(false);
+      setSelectedTournament(null);
+    } catch (error) {
+      console.error('Error registering for tournament:', error);
+    }
   };
 
   
@@ -126,23 +144,64 @@ const TorneosPublicos = () => {
                 
                 <div className="flex items-center justify-between pt-2">
                   <div />
-                  {tournament.status === 'enrolling' && (
-                    <Button 
-                      onClick={() => handleRegister(tournament.id)}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      Inscribirse
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                    {tournament.status === 'enrolling' && (
+                      <Button 
+                        onClick={() => handleRegister(tournament)}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        Inscribirse
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
-    </div>
-  );
-};
+        {/* Modal de selección de jugadores */}
+        <SeleccionJugadoresModal
+          open={showPlayerModal}
+          onClose={() => {
+            setShowPlayerModal(false);
+            setSelectedTournament(null);
+          }}
+          torneo={selectedTournament ? {
+            id: selectedTournament.id,
+            nombre: selectedTournament.name,
+            organizadorNombre: selectedTournament.users?.full_name || 'N/A',
+            organizadorId: selectedTournament.organizer_id,
+            esPublico: selectedTournament.visibility === 'public',
+            descripcion: selectedTournament.description,
+            categoria: 'General',
+            tipo: 'Liga',
+            formato: 'Round Robin',
+            fechaInicio: selectedTournament.start_date,
+            fechaFin: selectedTournament.end_date,
+            fechaCierre: selectedTournament.enrollment_deadline || selectedTournament.start_date,
+            logo: '',
+            maxEquipos: selectedTournament.max_teams || 16,
+            equiposInscritos: 0,
+            estado: selectedTournament.status,
+          } : null}
+          jugadores={teams?.[0]?.team_members?.filter((m: any) => m.member_type === 'player').map((m: any) => ({
+            id: m.id,
+            nombre: m.name,
+            posicion: m.position || 'N/A',
+            numeroIdentificacion: m.member_data?.identification || 'N/A',
+            edad: m.member_data?.age || 0,
+            numeroCamiseta: m.jersey_number || 0,
+          })) || []}
+          coaches={teams?.[0]?.team_members?.filter((m: any) => m.member_type === 'coach').map((m: any) => ({
+            id: m.id,
+            nombre: m.name,
+            tipo: m.position || 'Entrenador',
+            numeroIdentificacion: m.member_data?.identification || 'N/A',
+          })) || []}
+          onConfirmarInscripcion={handleConfirmarInscripcion}
+        />
+      </div>
+    );
+  };
 
-export default TorneosPublicos;
+  export default TorneosPublicos;
