@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tournament } from '@/hooks/useTournaments';
 import { useStartTournament } from '@/hooks/useTournamentManagement';
-import { Settings, Trophy, Users, BarChart3, Calendar, Play } from 'lucide-react';
+import { Settings, Trophy, Users, BarChart3, Calendar, Play, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface TournamentCardProps {
   tournament: Tournament;
@@ -12,6 +13,7 @@ interface TournamentCardProps {
   onViewFixtures: (tournament: Tournament) => void;
   onViewStats: (tournament: Tournament) => void;
   onManageReferees: (tournament: Tournament) => void;
+  onDelete?: (tournament: Tournament) => void;
 }
 
 const TournamentCard: React.FC<TournamentCardProps> = ({
@@ -19,7 +21,8 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
   onEdit,
   onViewFixtures,
   onViewStats,
-  onManageReferees
+  onManageReferees,
+  onDelete
 }) => {
   const startTournament = useStartTournament();
   
@@ -170,6 +173,40 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
               Estadísticas
             </Button>
           </div>
+
+          {/* Delete Tournament Button - Only show for draft/enrolling tournaments */}
+          {onDelete && (tournament.status === 'draft' || tournament.status === 'enrolling') && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  className="w-full flex items-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Eliminar Torneo
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta acción no se puede deshacer. Esto eliminará permanentemente el torneo
+                    "{tournament.name}" y todos sus datos asociados (fixtures, inscripciones, etc.).
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={() => onDelete(tournament)}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Sí, eliminar torneo
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </CardFooter>
     </Card>

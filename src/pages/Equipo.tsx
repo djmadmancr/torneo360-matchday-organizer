@@ -19,6 +19,7 @@ import { useLegacyAuth } from '@/hooks/useLegacyAuth';
 import { useSupabaseTeams } from '@/hooks/useSupabaseTeams';
 import TeamCards from '@/components/TeamCards';
 import { EditUserProfile } from '@/components/EditUserProfile';
+import TeamInvitations from '@/components/TeamInvitations';
 
 interface Notificacion {
   id: string;
@@ -162,14 +163,19 @@ const Equipo = () => {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="mis-equipos">Mis Equipos</TabsTrigger>
+            <TabsTrigger value="invitaciones">Invitaciones</TabsTrigger>
             <TabsTrigger value="torneos-publicos">Buscar Torneos</TabsTrigger>
             <TabsTrigger value="estadisticas">Estadísticas</TabsTrigger>
           </TabsList>
 
           <TabsContent value="mis-equipos" className="mt-6">
             <TeamCards />
+          </TabsContent>
+
+          <TabsContent value="invitaciones" className="mt-6">
+            <TeamInvitations teamCode={teams?.[0]?.team_code} />
           </TabsContent>
 
           <TabsContent value="torneos-publicos" className="mt-6">

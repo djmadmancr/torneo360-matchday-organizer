@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
+import { toast } from 'sonner';
 
 export type Tournament = Tables<'tournaments'>;
 export type TournamentInsert = TablesInsert<'tournaments'>;
@@ -71,11 +72,29 @@ export const useTournaments = (organizerId?: string, userCity?: string) => {
     },
   });
 
+  const deleteTournamentMutation = useMutation({
+    mutationFn: async (tournamentId: string) => {
+      const { error } = await supabase.rpc('delete_tournament_cascade', {
+        tournament_id: tournamentId
+      });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+      toast.success('Torneo eliminado exitosamente');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Error al eliminar el torneo');
+    },
+  });
+
   return {
     tournaments,
     isLoading,
     createTournament: createTournamentMutation.mutateAsync,
     updateTournament: updateTournamentMutation.mutateAsync,
+    deleteTournament: deleteTournamentMutation.mutateAsync,
   };
 };
 

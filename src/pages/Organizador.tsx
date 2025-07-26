@@ -32,12 +32,12 @@ interface SolicitudInscripcion {
 const Organizador = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('torneos');
   const [showCreateTorneo, setShowCreateTorneo] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showEditTournament, setShowEditTournament] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
-  const { tournaments: organizerTournaments, isLoading: torneosLoading } = useTournaments(currentUser?.id);
+  const { tournaments: organizerTournaments, isLoading: torneosLoading, deleteTournament } = useTournaments(currentUser?.id);
   const [solicitudes, setSolicitudes] = useState<SolicitudInscripcion[]>([]);
   const [solicitudesPendientes, setSolicitudesPendientes] = useState(0);
 
@@ -275,7 +275,8 @@ const Organizador = () => {
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="torneos">Torneos</TabsTrigger>
+            <TabsTrigger value="resumen">Resumen de Torneos</TabsTrigger>
             <TabsTrigger value="solicitudes" className="relative">
               Solicitudes
               {solicitudesPendientes > 0 && (
@@ -284,10 +285,9 @@ const Organizador = () => {
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="torneos">Torneos</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dashboard" className="mt-6">
+          <TabsContent value="resumen" className="mt-6">
             <OrganizadorDashboard />
           </TabsContent>
 
@@ -418,6 +418,13 @@ const Organizador = () => {
                     onManageReferees={(tournament) => {
                       // TODO: Implementar gestión de árbitros
                       console.log('Gestionar árbitros:', tournament);
+                    }}
+                    onDelete={async (tournament) => {
+                      try {
+                        await deleteTournament(tournament.id);
+                      } catch (error) {
+                        console.error('Error al eliminar torneo:', error);
+                      }
                     }}
                   />
                 ))}
