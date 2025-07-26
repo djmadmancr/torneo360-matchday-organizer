@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ImageUploadProps {
   value?: string;
@@ -43,13 +44,28 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     setUploading(true);
     
     try {
-      // Por ahora crear URL temporal para preview
-      // TODO: Implementar upload a Supabase Storage
-      const objectUrl = URL.createObjectURL(file);
-      onChange(objectUrl);
-      toast.success('Imagen cargada correctamente');
+      // Crear nombre único para el archivo
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+      
+      // Subir a Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('team-logos')
+        .upload(fileName, file);
+
+      if (error) {
+        throw error;
+      }
+
+      // Obtener URL pública
+      const { data: { publicUrl } } = supabase.storage
+        .from('team-logos')
+        .getPublicUrl(fileName);
+
+      onChange(publicUrl);
+      toast.success('Logo subido correctamente');
     } catch (error) {
-      toast.error('Error al cargar la imagen');
+      toast.error('Error al subir la imagen');
       console.error(error);
     } finally {
       setUploading(false);
