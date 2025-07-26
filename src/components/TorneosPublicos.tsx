@@ -31,20 +31,13 @@ const TorneosPublicos = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const handleRegister = async (tournamentId: string) => {
+  const handleRegister = (tournamentId: string) => {
     if (!user || !teams || teams.length === 0) {
       toast.error('Necesitas tener un equipo para inscribirte');
       return;
     }
-
-    try {
-      await requestRegistration.mutateAsync({
-        tournamentId,
-        teamId: teams[0].id, // Use first team
-      });
-    } catch (error) {
-      console.error('Error registering for tournament:', error);
-    }
+    // Navigate to torneos page with registration parameters
+    window.location.href = `/torneos?tournament=${tournamentId}&action=register`;
   };
 
   
