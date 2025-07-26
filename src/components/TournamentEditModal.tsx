@@ -46,9 +46,16 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
     if (!canEdit) return;
 
     try {
+      // Convert empty date strings to null for Supabase
+      const cleanedData = {
+        ...formData,
+        start_date: formData.start_date || null,
+        end_date: formData.end_date || null,
+      };
+
       await updateMutation.mutateAsync({
         id: tournament.id,
-        ...formData,
+        ...cleanedData,
       });
       onOpenChange(false);
     } catch (error) {

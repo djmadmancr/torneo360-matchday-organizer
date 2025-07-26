@@ -71,13 +71,25 @@ const TeamCards = () => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
+                  <div className="p-2 bg-blue-100 rounded-lg relative">
                     {team.logo_url ? (
-                      <img 
-                        src={team.logo_url} 
-                        alt={`Logo de ${team.name}`}
-                        className="w-8 h-8 object-cover rounded"
-                      />
+                      <>
+                        <img 
+                          src={team.logo_url} 
+                          alt={`Logo de ${team.name}`}
+                          className="w-8 h-8 object-cover rounded"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const trophy = e.currentTarget.parentElement?.querySelector('[data-fallback="trophy"]') as HTMLElement;
+                            if (trophy) trophy.style.display = 'block';
+                          }}
+                        />
+                        <Trophy 
+                          className="w-8 h-8 text-blue-600 absolute inset-2" 
+                          data-fallback="trophy"
+                          style={{ display: 'none' }}
+                        />
+                      </>
                     ) : (
                       <Trophy className="w-8 h-8 text-blue-600" />
                     )}
