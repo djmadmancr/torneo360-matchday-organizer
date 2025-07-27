@@ -45,7 +45,7 @@ export const useSupabaseTeams = () => {
         .select(`
           *,
           tournament:tournament_id(id, name, status),
-          team_members(id, name, position, jersey_number, member_type)
+          team_members(id, name, position, jersey_number, member_type, member_data)
         `)
         .eq('admin_user_id', currentUser.id)
         .order('created_at', { ascending: false });
