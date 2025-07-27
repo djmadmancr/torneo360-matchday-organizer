@@ -53,7 +53,21 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
   onDelete,
 }) => {
   const { team, updateTeam, deleteTeam, addTeamMember, updateTeamMember, removeTeamMember } = useTeam(teamId);
-  const [newMember, setNewMember] = useState<{ name: string; position: string; member_type: 'player' | 'staff' }>({ name: '', position: '', member_type: 'player' });
+  const [newMember, setNewMember] = useState<{ 
+    name: string; 
+    first_lastname: string; 
+    second_lastname: string; 
+    id_number: string; 
+    position: string; 
+    member_type: 'player' | 'staff' 
+  }>({ 
+    name: '', 
+    first_lastname: '', 
+    second_lastname: '', 
+    id_number: '', 
+    position: '', 
+    member_type: 'player' 
+  });
 
   const {
     register,
@@ -111,7 +125,7 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
   };
 
   const handleAddMember = async () => {
-    if (!newMember.name || !newMember.position) {
+    if (!newMember.name || !newMember.first_lastname || !newMember.second_lastname || !newMember.id_number || !newMember.position) {
       toast.error("Por favor completa todos los campos");
       return;
     }
@@ -119,11 +133,24 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
     try {
       await addTeamMember({
         team_id: teamId,
-        name: newMember.name,
+        name: `${newMember.name} ${newMember.first_lastname} ${newMember.second_lastname}`,
         position: newMember.position,
-        member_type: newMember.member_type
+        member_type: newMember.member_type,
+        member_data: {
+          first_name: newMember.name,
+          first_lastname: newMember.first_lastname,
+          second_lastname: newMember.second_lastname,
+          id_number: newMember.id_number
+        }
       });
-      setNewMember({ name: '', position: '', member_type: 'player' });
+      setNewMember({ 
+        name: '', 
+        first_lastname: '', 
+        second_lastname: '', 
+        id_number: '', 
+        position: '', 
+        member_type: 'player' 
+      });
       toast.success("Miembro agregado correctamente");
     } catch (error) {
       toast.error("Error al agregar miembro");
@@ -131,7 +158,7 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
     }
   };
 
-  const handleUpdateMember = async (memberId: string, updates: Partial<{ name: string; position: string; member_type: string }>) => {
+  const handleUpdateMember = async (memberId: string, updates: any) => {
     try {
       await updateTeamMember({ memberId, ...updates });
       toast.success("Miembro actualizado correctamente");
@@ -296,22 +323,60 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
       {/* Add New Member */}
       <div className="space-y-4 p-4 border rounded-lg">
         <h3 className="text-lg font-semibold">Agregar Nuevo Miembro</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div>
-            <Label>Nombre Completo</Label>
+            <Label>Nombre</Label>
             <Input
               value={newMember.name}
               onChange={(e) => setNewMember({...newMember, name: e.target.value})}
-              placeholder="Nombre completo"
+              placeholder="Nombre"
+            />
+          </div>
+          <div>
+            <Label>Primer Apellido</Label>
+            <Input
+              value={newMember.first_lastname}
+              onChange={(e) => setNewMember({...newMember, first_lastname: e.target.value})}
+              placeholder="Primer apellido"
+            />
+          </div>
+          <div>
+            <Label>Segundo Apellido</Label>
+            <Input
+              value={newMember.second_lastname}
+              onChange={(e) => setNewMember({...newMember, second_lastname: e.target.value})}
+              placeholder="Segundo apellido"
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <Label>Número de ID</Label>
+            <Input
+              value={newMember.id_number}
+              onChange={(e) => setNewMember({...newMember, id_number: e.target.value})}
+              placeholder="Número de identificación"
             />
           </div>
           <div>
             <Label>Posición/Cargo</Label>
-            <Input
-              value={newMember.position}
-              onChange={(e) => setNewMember({...newMember, position: e.target.value})}
-              placeholder="Posición o cargo"
-            />
+            <Select 
+              value={newMember.position} 
+              onValueChange={(value) => setNewMember({...newMember, position: value})}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar posición" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="defensor">Defensor</SelectItem>
+                <SelectItem value="medio_campo">Medio Campo</SelectItem>
+                <SelectItem value="delantero">Delantero</SelectItem>
+                <SelectItem value="director_tecnico">Director Técnico</SelectItem>
+                <SelectItem value="asistente_tecnico">Asistente Técnico</SelectItem>
+                <SelectItem value="medico">Médico</SelectItem>
+                <SelectItem value="otro">Otro</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label>Tipo</Label>
@@ -341,38 +406,97 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Jugadores ({players.length})</h3>
         <div className="space-y-2">
-          {players.map((player) => (
-            <div key={player.id} className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="flex items-center gap-4 flex-1">
-                <div className="flex-1">
-                  <Input
-                    value={player.name}
-                    onChange={(e) => handleUpdateMember(player.id, { name: e.target.value })}
-                    placeholder="Nombre"
-                  />
+          {players.map((player) => {
+            const memberData = player.member_data as any || {};
+            return (
+              <div key={player.id} className="space-y-2 p-3 border rounded-lg">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <div>
+                    <Label className="text-xs">Nombre</Label>
+                    <Input
+                      value={memberData.first_name || player.name.split(' ')[0] || ''}
+                      onChange={(e) => handleUpdateMember(player.id, { 
+                        member_data: { ...memberData, first_name: e.target.value } 
+                      })}
+                      placeholder="Nombre"
+                      className="h-8"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Primer Apellido</Label>
+                    <Input
+                      value={memberData.first_lastname || player.name.split(' ')[1] || ''}
+                      onChange={(e) => handleUpdateMember(player.id, { 
+                        member_data: { ...memberData, first_lastname: e.target.value } 
+                      })}
+                      placeholder="Primer apellido"
+                      className="h-8"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Segundo Apellido</Label>
+                    <Input
+                      value={memberData.second_lastname || player.name.split(' ')[2] || ''}
+                      onChange={(e) => handleUpdateMember(player.id, { 
+                        member_data: { ...memberData, second_lastname: e.target.value } 
+                      })}
+                      placeholder="Segundo apellido"
+                      className="h-8"
+                    />
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <Input
-                    value={player.position || ''}
-                    onChange={(e) => handleUpdateMember(player.id, { position: e.target.value })}
-                    placeholder="Posición"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <div>
+                    <Label className="text-xs">Número de ID</Label>
+                    <Input
+                      value={memberData.id_number || ''}
+                      onChange={(e) => handleUpdateMember(player.id, { 
+                        member_data: { ...memberData, id_number: e.target.value } 
+                      })}
+                      placeholder="Número de identificación"
+                      className="h-8"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Posición</Label>
+                    <Select 
+                      value={player.position || ''} 
+                      onValueChange={(value) => handleUpdateMember(player.id, { position: value })}
+                    >
+                      <SelectTrigger className="h-8">
+                        <SelectValue placeholder="Seleccionar posición" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="defensor">Defensor</SelectItem>
+                        <SelectItem value="medio_campo">Medio Campo</SelectItem>
+                        <SelectItem value="delantero">Delantero</SelectItem>
+                        <SelectItem value="director_tecnico">Director Técnico</SelectItem>
+                        <SelectItem value="asistente_tecnico">Asistente Técnico</SelectItem>
+                        <SelectItem value="medico">Médico</SelectItem>
+                        <SelectItem value="otro">Otro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveMember(player.id)}
+                      className="w-full"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Eliminar
+                    </Button>
+                  </div>
                 </div>
                 {player.jersey_number && (
-                  <div className="text-sm font-mono bg-muted px-2 py-1 rounded">
+                  <div className="text-sm font-mono bg-muted px-2 py-1 rounded w-fit">
                     #{player.jersey_number}
                   </div>
                 )}
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleRemoveMember(player.id)}
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
-          ))}
+            );
+          })}
           {players.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               No hay jugadores registrados
@@ -385,33 +509,89 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Cuerpo Técnico ({technicalStaff.length})</h3>
         <div className="space-y-2">
-          {technicalStaff.map((staff) => (
-            <div key={staff.id} className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="flex items-center gap-4 flex-1">
-                <div className="flex-1">
-                  <Input
-                    value={staff.name}
-                    onChange={(e) => handleUpdateMember(staff.id, { name: e.target.value })}
-                    placeholder="Nombre"
-                  />
+          {technicalStaff.map((staff) => {
+            const memberData = staff.member_data as any || {};
+            return (
+              <div key={staff.id} className="space-y-2 p-3 border rounded-lg">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <div>
+                    <Label className="text-xs">Nombre</Label>
+                    <Input
+                      value={memberData.first_name || staff.name.split(' ')[0] || ''}
+                      onChange={(e) => handleUpdateMember(staff.id, { 
+                        member_data: { ...memberData, first_name: e.target.value } 
+                      })}
+                      placeholder="Nombre"
+                      className="h-8"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Primer Apellido</Label>
+                    <Input
+                      value={memberData.first_lastname || staff.name.split(' ')[1] || ''}
+                      onChange={(e) => handleUpdateMember(staff.id, { 
+                        member_data: { ...memberData, first_lastname: e.target.value } 
+                      })}
+                      placeholder="Primer apellido"
+                      className="h-8"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Segundo Apellido</Label>
+                    <Input
+                      value={memberData.second_lastname || staff.name.split(' ')[2] || ''}
+                      onChange={(e) => handleUpdateMember(staff.id, { 
+                        member_data: { ...memberData, second_lastname: e.target.value } 
+                      })}
+                      placeholder="Segundo apellido"
+                      className="h-8"
+                    />
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <Input
-                    value={staff.position || ''}
-                    onChange={(e) => handleUpdateMember(staff.id, { position: e.target.value })}
-                    placeholder="Cargo"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <div>
+                    <Label className="text-xs">Número de ID</Label>
+                    <Input
+                      value={memberData.id_number || ''}
+                      onChange={(e) => handleUpdateMember(staff.id, { 
+                        member_data: { ...memberData, id_number: e.target.value } 
+                      })}
+                      placeholder="Número de identificación"
+                      className="h-8"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Cargo</Label>
+                    <Select 
+                      value={staff.position || ''} 
+                      onValueChange={(value) => handleUpdateMember(staff.id, { position: value })}
+                    >
+                      <SelectTrigger className="h-8">
+                        <SelectValue placeholder="Seleccionar cargo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="director_tecnico">Director Técnico</SelectItem>
+                        <SelectItem value="asistente_tecnico">Asistente Técnico</SelectItem>
+                        <SelectItem value="medico">Médico</SelectItem>
+                        <SelectItem value="otro">Otro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveMember(staff.id)}
+                      className="w-full"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Eliminar
+                    </Button>
+                  </div>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleRemoveMember(staff.id)}
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
-          ))}
+            );
+          })}
           {technicalStaff.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               No hay cuerpo técnico registrado
