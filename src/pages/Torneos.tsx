@@ -156,15 +156,13 @@ const Torneos = () => {
           id: m.id,
           nombre: m.name,
           posicion: m.position || 'N/A',
-          numeroIdentificacion: m.member_data?.identification || 'N/A',
-          edad: m.member_data?.age || 0,
-          numeroCamiseta: m.jersey_number || 0,
+          numeroIdentificacion: m.member_data?.id_number || m.member_data?.identification || 'N/A',
+          edad: m.member_data?.age || 20,
         })) || []}
-        coaches={teams?.[0]?.team_members?.filter((m: any) => m.member_type === 'coach').map((m: any) => ({
-          id: m.id,
+        coaches={teams?.[0]?.team_members?.filter((m: any) => m.member_type === 'staff').map((m: any) => ({
           nombre: m.name,
-          tipo: m.position || 'Entrenador',
-          numeroIdentificacion: m.member_data?.identification || 'N/A',
+          tipo: m.position?.includes('director') || m.position?.includes('tecnico') ? 'entrenador' : 'asistente',
+          numeroIdentificacion: m.member_data?.id_number || m.member_data?.identification || 'N/A',
         })) || []}
         onConfirmarInscripcion={handleConfirmarInscripcion}
       />
