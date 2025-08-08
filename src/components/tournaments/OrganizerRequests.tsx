@@ -24,6 +24,13 @@ export const OrganizerRequests: React.FC<OrganizerRequestsProps> = ({
   const approveRegistration = useApproveRegistration();
   const generateFixture = useGenerateFixture();
 
+  console.log('OrganizerRequests render:', {
+    tournamentId,
+    requests,
+    isLoading,
+    requestsCount: requests?.length || 0
+  });
+
   const pendingRequests = requests?.filter(req => req.status === 'pending') || [];
   const approvedRequests = requests?.filter(req => req.status === 'approved') || [];
   const rejectedRequests = requests?.filter(req => req.status === 'rejected') || [];
@@ -144,28 +151,28 @@ export const OrganizerRequests: React.FC<OrganizerRequestsProps> = ({
                   <TableRow key={request.id}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
-                        {request.team?.logo_url ? (
-                          <img 
-                            src={request.team.logo_url} 
-                            alt={`Logo de ${request.team.name}`}
-                            className="w-8 h-8 object-cover rounded"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 bg-gray-200 rounded flex items-center justify-center">
-                            <Trophy className="w-4 h-4 text-gray-500" />
-                          </div>
-                        )}
-                        {request.team?.name}
+                         {request.teams?.logo_url ? (
+                           <img 
+                             src={request.teams.logo_url} 
+                             alt={`Logo de ${request.teams.name}`}
+                             className="w-8 h-8 object-cover rounded"
+                           />
+                         ) : (
+                           <div className="w-8 h-8 bg-gray-200 rounded flex items-center justify-center">
+                             <Trophy className="w-4 h-4 text-gray-500" />
+                           </div>
+                         )}
+                         {request.teams?.name}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div>
-                        <div className="font-medium">{(request as any).team_users?.full_name}</div>
-                        <div className="text-sm text-muted-foreground">{(request as any).team_users?.email}</div>
-                      </div>
+                       <div>
+                         <div className="font-medium">{request.teams?.admin_user?.full_name}</div>
+                         <div className="text-sm text-muted-foreground">{request.teams?.admin_user?.email}</div>
+                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{request.team?.invite_code}</Badge>
+                       <Badge variant="outline">{request.teams?.invite_code}</Badge>
                     </TableCell>
                     <TableCell>
                       {format(new Date(request.requested_at), 'PPp', { locale: es })}
@@ -225,28 +232,28 @@ export const OrganizerRequests: React.FC<OrganizerRequestsProps> = ({
                   <TableRow key={request.id}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
-                        {request.team?.logo_url ? (
-                          <img 
-                            src={request.team.logo_url} 
-                            alt={`Logo de ${request.team.name}`}
-                            className="w-8 h-8 object-cover rounded"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 bg-gray-200 rounded flex items-center justify-center">
-                            <Trophy className="w-4 h-4 text-gray-500" />
-                          </div>
-                        )}
-                        {request.team?.name}
+                         {request.teams?.logo_url ? (
+                           <img 
+                             src={request.teams.logo_url} 
+                             alt={`Logo de ${request.teams.name}`}
+                             className="w-8 h-8 object-cover rounded"
+                           />
+                         ) : (
+                           <div className="w-8 h-8 bg-gray-200 rounded flex items-center justify-center">
+                             <Trophy className="w-4 h-4 text-gray-500" />
+                           </div>
+                         )}
+                         {request.teams?.name}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div>
-                        <div className="font-medium">{(request as any).team_users?.full_name}</div>
-                        <div className="text-sm text-muted-foreground">{(request as any).team_users?.email}</div>
-                      </div>
+                       <div>
+                         <div className="font-medium">{request.teams?.admin_user?.full_name}</div>
+                         <div className="text-sm text-muted-foreground">{request.teams?.admin_user?.email}</div>
+                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{request.team?.invite_code}</Badge>
+                      <Badge variant="outline">{request.teams?.invite_code}</Badge>
                     </TableCell>
                     <TableCell>
                       {request.approved_at && format(new Date(request.approved_at), 'PPp', { locale: es })}

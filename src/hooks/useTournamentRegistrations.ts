@@ -9,11 +9,16 @@ export interface TournamentRegistration {
   status: 'pending' | 'approved' | 'rejected';
   requested_at: string;
   approved_at?: string;
-  team?: {
+  teams?: {
     id: string;
     name: string;
     logo_url?: string;
     invite_code: string;
+    admin_user_id: string;
+    admin_user?: {
+      full_name: string;
+      email: string;
+    };
   };
   tournament?: {
     id: string;
@@ -139,19 +144,24 @@ export const useRegistrationRequests = (tournamentId: string) => {
           status,
           requested_at,
           approved_at,
-          teams!inner(
+          teams(
             id,
             name,
             logo_url,
             invite_code,
-            admin_user_id
-          ),
-          team_users:teams!inner(users!teams_admin_user_id_fkey(full_name, email))
+            admin_user_id,
+            admin_user:admin_user_id(full_name, email)
+          )
         `)
         .eq('tournament_id', tournamentId)
         .order('requested_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching registration requests:', error);
+        throw error;
+      }
+      
+      console.log('Registration requests fetched:', data);
       return data as TournamentRegistration[];
     },
     enabled: Boolean(tournamentId),
