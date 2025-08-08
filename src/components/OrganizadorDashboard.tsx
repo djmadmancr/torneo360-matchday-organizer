@@ -44,6 +44,12 @@ const OrganizadorDashboard = () => {
 
   const totalEquipos = tournaments.reduce((acc, tournament) => acc + (tournament.teams?.length || 0), 0);
   const promedioEquiposPorTorneo = tournaments.length > 0 ? Math.round(totalEquipos / tournaments.length) : 0;
+  
+  // Calcular solicitudes pendientes
+  const solicitudesPendientes = tournaments.reduce((acc, tournament) => {
+    const pendientes = (tournament as any).team_registrations?.filter((reg: any) => reg.status === 'pending').length || 0;
+    return acc + pendientes;
+  }, 0);
 
   return (
     <div className="space-y-6">
@@ -83,11 +89,14 @@ const OrganizadorDashboard = () => {
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Promedio Equipos</CardTitle>
+            <CardTitle className="text-sm font-medium">Solicitudes Pendientes</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{promedioEquiposPorTorneo}</div>
+            <div className="text-2xl font-bold text-orange-600">{solicitudesPendientes}</div>
+            <p className="text-xs text-muted-foreground">
+              {solicitudesPendientes > 0 ? 'Requieren atención' : 'Todo al día'}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -129,12 +138,18 @@ const OrganizadorDashboard = () => {
             <div className="space-y-4">
               {tournaments.slice(0, 5).map((tournament) => (
                 <div key={tournament.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <h4 className="font-medium">{tournament.name}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {tournament.teams?.length || 0} equipos • {tournament.status}
-                    </p>
-                  </div>
+                   <div>
+                     <h4 className="font-medium">{tournament.name}</h4>
+                     <div className="text-sm text-muted-foreground flex items-center gap-2">
+                       <span>{tournament.teams?.length || 0} equipos</span>
+                       {(tournament as any).team_registrations?.filter((reg: any) => reg.status === 'pending').length > 0 && (
+                         <Badge variant="outline" className="text-xs bg-orange-50 text-orange-600 border-orange-200">
+                           {(tournament as any).team_registrations?.filter((reg: any) => reg.status === 'pending').length} pendientes
+                         </Badge>
+                       )}
+                       <span>• {tournament.status}</span>
+                     </div>
+                   </div>
                   {tournament.status === 'enrolling' && (tournament.teams?.length || 0) >= 2 && (
                     <Button
                       size="sm"

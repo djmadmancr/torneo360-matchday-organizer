@@ -19,7 +19,8 @@ export const useTournaments = (organizerId?: string, userCity?: string) => {
         .select(`
           *,
           organizer:organizer_id(id, full_name, email),
-          teams(id, name, enrollment_status)
+          teams(id, name, enrollment_status),
+          team_registrations(id, status)
         `);
       
       if (organizerId) {
