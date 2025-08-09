@@ -16,18 +16,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { EditUserProfile } from '@/components/EditUserProfile';
 import { UserMenu } from '@/components/UserMenu';
 import { useTournaments, Tournament } from '@/hooks/useTournaments';
+import { AllOrganizerRequests } from '@/components/tournaments/AllOrganizerRequests';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
-interface SolicitudInscripcion {
-  id: string;
-  equipoId: string;
-  equipoNombre: string;
-  torneoId: string;
-  torneoNombre: string;
-  fechaSolicitud: string;
-  estado: 'pendiente' | 'aprobada' | 'rechazada';
-  contacto: string;
-  mensaje?: string;
-}
 
 const Organizador = () => {
   const navigate = useNavigate();
@@ -38,145 +30,32 @@ const Organizador = () => {
   const [showEditTournament, setShowEditTournament] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const { tournaments: organizerTournaments, isLoading: torneosLoading, deleteTournament } = useTournaments(currentUser?.id);
-  const [solicitudes, setSolicitudes] = useState<SolicitudInscripcion[]>([]);
-  const [solicitudesPendientes, setSolicitudesPendientes] = useState(0);
-
-  useEffect(() => {
-    if (currentUser) {
-      cargarSolicitudes();
+  
+  // Hook para obtener solicitudes pendientes reales
+  const { data: pendingRequestsCount = 0 } = useQuery({
+    queryKey: ['organizer-pending-count', currentUser?.id],
+    queryFn: async () => {
+      if (!currentUser?.id) return 0;
       
-      const interval = setInterval(cargarSolicitudes, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [currentUser]);
+      const { data, error } = await supabase
+        .from('team_registrations')
+        .select('id, tournaments!inner(organizer_id)')
+        .eq('tournaments.organizer_id', currentUser.id)
+        .eq('status', 'pending');
 
-  const cargarSolicitudes = () => {
-    if (!currentUser) return;
+      if (error) throw error;
+      return data.length;
+    },
+    enabled: !!currentUser?.id,
+  });
 
-    try {
-      const solicitudesKey = `solicitudes_inscripcion_${currentUser.id}`;
-      const solicitudesGuardadas = localStorage.getItem(solicitudesKey);
-      
-      if (solicitudesGuardadas) {
-        const solicitudesData: SolicitudInscripcion[] = JSON.parse(solicitudesGuardadas);
-        setSolicitudes(solicitudesData);
-        
-        const pendientes = solicitudesData.filter(s => s.estado === 'pendiente').length;
-        setSolicitudesPendientes(pendientes);
-        
-        console.log('📋 Solicitudes cargadas:', {
-          total: solicitudesData.length,
-          pendientes: pendientes,
-          organizadorId: currentUser.id
-        });
-      }
-    } catch (error) {
-      console.error('❌ Error al cargar solicitudes:', error);
-    }
-  };
 
-  const procesarSolicitud = (solicitudId: string, accion: 'aprobar' | 'rechazar') => {
-    if (!currentUser) return;
-
-    try {
-      const solicitud = solicitudes.find(s => s.id === solicitudId);
-      if (!solicitud) return;
-
-      // Actualizar solicitud
-      const solicitudesActualizadas = solicitudes.map(s => 
-        s.id === solicitudId 
-          ? { ...s, estado: accion === 'aprobar' ? 'aprobada' as const : 'rechazada' as const }
-          : s
-      );
-      
-      setSolicitudes(solicitudesActualizadas);
-      
-      const solicitudesKey = `solicitudes_inscripcion_${currentUser.id}`;
-      localStorage.setItem(solicitudesKey, JSON.stringify(solicitudesActualizadas));
-
-      if (accion === 'aprobar') {
-        // Crear inscripción aprobada
-        const inscripcionKey = `inscripcion_${solicitud.torneoId}_${solicitud.equipoId}`;
-        const inscripcionData = {
-          equipoId: solicitud.equipoId,
-          torneoId: solicitud.torneoId,
-          fechaInscripcion: solicitud.fechaSolicitud,
-          estado: 'aprobado',
-          fechaAprobacion: new Date().toISOString()
-        };
-        
-        localStorage.setItem(inscripcionKey, JSON.stringify(inscripcionData));
-
-        // Actualizar lista de equipos inscritos
-        const equiposInscritosKey = `equipos_inscritos_${solicitud.torneoId}`;
-        const equiposInscritos = JSON.parse(localStorage.getItem(equiposInscritosKey) || '[]');
-        
-        if (!equiposInscritos.some((e: any) => e.equipoId === solicitud.equipoId)) {
-          equiposInscritos.push({
-            equipoId: solicitud.equipoId,
-            fechaInscripcion: new Date().toISOString(),
-            estado: 'aprobado'
-          });
-          localStorage.setItem(equiposInscritosKey, JSON.stringify(equiposInscritos));
-        }
-
-        // Crear notificación para el equipo
-        const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
-        const nuevaNotificacion = {
-          id: `NOT-${Date.now()}`,
-          tipo: 'aprobacion',
-          titulo: '¡Inscripción Aprobada!',
-          mensaje: `Tu solicitud para el torneo "${solicitud.torneoNombre}" ha sido aprobada.`,
-          fecha: new Date().toLocaleDateString(),
-          torneoId: solicitud.torneoId,
-          equipoId: solicitud.equipoId,
-          accionRequerida: true
-        };
-        
-        notificacionesEquipo.push(nuevaNotificacion);
-        localStorage.setItem('notificacionesEquipo', JSON.stringify(notificacionesEquipo));
-
-        console.log('✅ Solicitud aprobada y notificación creada:', {
-          solicitud: solicitud,
-          inscripcion: inscripcionData,
-          notificacion: nuevaNotificacion
-        });
-        
-        toast.success(`Inscripción de ${solicitud.equipoNombre} aprobada`);
-      } else {
-        // Crear notificación de rechazo
-        const notificacionesEquipo = JSON.parse(localStorage.getItem('notificacionesEquipo') || '[]');
-        const nuevaNotificacion = {
-          id: `NOT-${Date.now()}`,
-          tipo: 'rechazo',
-          titulo: 'Inscripción Rechazada',
-          mensaje: `Tu solicitud para el torneo "${solicitud.torneoNombre}" ha sido rechazada.`,
-          fecha: new Date().toLocaleDateString(),
-          torneoId: solicitud.torneoId,
-          equipoId: solicitud.equipoId,
-          accionRequerida: true
-        };
-        
-        notificacionesEquipo.push(nuevaNotificacion);
-        localStorage.setItem('notificacionesEquipo', JSON.stringify(notificacionesEquipo));
-        
-        toast.success(`Inscripción de ${solicitud.equipoNombre} rechazada`);
-      }
-
-      const pendientes = solicitudesActualizadas.filter(s => s.estado === 'pendiente').length;
-      setSolicitudesPendientes(pendientes);
-
-    } catch (error) {
-      console.error('❌ Error al procesar solicitud:', error);
-      toast.error('Error al procesar la solicitud');
-    }
-  };
 
   const getOrganizadorStats = () => {
     return {
       torneos: organizerTournaments?.length || 0,
       organizacion: currentUser?.full_name || 'Sin nombre',
-      solicitudesPendientes: solicitudesPendientes
+      solicitudesPendientes: pendingRequestsCount
     };
   };
 
@@ -279,9 +158,9 @@ const Organizador = () => {
             <TabsTrigger value="resumen">Resumen de Torneos</TabsTrigger>
             <TabsTrigger value="solicitudes" className="relative">
               Solicitudes
-              {solicitudesPendientes > 0 && (
+              {pendingRequestsCount > 0 && (
                 <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 p-0 text-xs">
-                  {solicitudesPendientes}
+                  {pendingRequestsCount}
                 </Badge>
               )}
             </TabsTrigger>
@@ -292,92 +171,7 @@ const Organizador = () => {
           </TabsContent>
 
           <TabsContent value="solicitudes" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Bell className="w-5 h-5" />
-                  Solicitudes de Inscripción
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {solicitudes.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No hay solicitudes</h3>
-                    <p className="text-muted-foreground">
-                      Las solicitudes de inscripción a tus torneos aparecerán aquí
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {solicitudes.map((solicitud) => (
-                      <div
-                        key={solicitud.id}
-                        className={`p-4 border rounded-lg ${
-                          solicitud.estado === 'pendiente' ? 'border-yellow-200 bg-yellow-50' :
-                          solicitud.estado === 'aprobada' ? 'border-green-200 bg-green-50' :
-                          'border-red-200 bg-red-50'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2">
-                              {solicitud.estado === 'pendiente' && <Clock className="w-5 h-5 text-yellow-500" />}
-                              {solicitud.estado === 'aprobada' && <CheckCircle className="w-5 h-5 text-green-500" />}
-                              {solicitud.estado === 'rechazada' && <XCircle className="w-5 h-5 text-red-500" />}
-                            </div>
-                            <div>
-                              <h4 className="font-semibold">{solicitud.equipoNombre}</h4>
-                              <p className="text-sm text-muted-foreground">
-                                Torneo: {solicitud.torneoNombre}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                Fecha: {new Date(solicitud.fechaSolicitud).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          {solicitud.estado === 'pendiente' && (
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                onClick={() => procesarSolicitud(solicitud.id, 'aprobar')}
-                                className="bg-green-600 hover:bg-green-700"
-                              >
-                                <CheckCircle className="w-4 h-4 mr-1" />
-                                Aprobar
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => procesarSolicitud(solicitud.id, 'rechazar')}
-                              >
-                                <XCircle className="w-4 h-4 mr-1" />
-                                Rechazar
-                              </Button>
-                            </div>
-                          )}
-                          
-                          {solicitud.estado !== 'pendiente' && (
-                            <Badge variant={
-                              solicitud.estado === 'aprobada' ? 'default' : 'destructive'
-                            }>
-                              {solicitud.estado === 'aprobada' ? 'Aprobada' : 'Rechazada'}
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        {solicitud.mensaje && (
-                          <div className="mt-3 p-2 bg-muted rounded text-sm">
-                            <strong>Mensaje:</strong> {solicitud.mensaje}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <AllOrganizerRequests organizerId={currentUser?.id || ''} />
           </TabsContent>
 
           <TabsContent value="torneos" className="mt-6">
