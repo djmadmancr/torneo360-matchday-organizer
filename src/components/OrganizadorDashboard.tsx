@@ -8,12 +8,16 @@ import { useTournaments } from '@/hooks/useTournaments';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useGenerateFixture } from '@/hooks/useTournamentRegistrations';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 
 const OrganizadorDashboard = () => {
   const { user } = useSupabaseAuth();
   const { tournaments = [], isLoading } = useTournaments(user?.id);
   const generateFixture = useGenerateFixture();
+  const navigate = useNavigate();
 
   const handleStartTournament = async (tournamentId: string) => {
     try {
@@ -45,11 +49,33 @@ const OrganizadorDashboard = () => {
   const totalEquipos = tournaments.reduce((acc, tournament) => acc + (tournament.teams?.length || 0), 0);
   const promedioEquiposPorTorneo = tournaments.length > 0 ? Math.round(totalEquipos / tournaments.length) : 0;
   
-  // Calcular solicitudes pendientes
-  const solicitudesPendientes = tournaments.reduce((acc, tournament) => {
-    const pendientes = (tournament as any).team_registrations?.filter((reg: any) => reg.status === 'pending').length || 0;
-    return acc + pendientes;
-  }, 0);
+  // Hook para obtener todas las solicitudes pendientes del organizador
+  const { data: allRegistrations = [] } = useQuery({
+    queryKey: ['organizer-pending-requests', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('team_registrations')
+        .select(`
+          id,
+          status,
+          tournament_id,
+          tournaments!inner(
+            id,
+            organizer_id
+          )
+        `)
+        .eq('tournaments.organizer_id', user.id)
+        .eq('status', 'pending');
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const solicitudesPendientes = allRegistrations.length;
 
   return (
     <div className="space-y-6">
@@ -142,11 +168,14 @@ const OrganizadorDashboard = () => {
                      <h4 className="font-medium">{tournament.name}</h4>
                      <div className="text-sm text-muted-foreground flex items-center gap-2">
                        <span>{tournament.teams?.length || 0} equipos</span>
-                       {(tournament as any).team_registrations?.filter((reg: any) => reg.status === 'pending').length > 0 && (
-                         <Badge variant="outline" className="text-xs bg-orange-50 text-orange-600 border-orange-200">
-                           {(tournament as any).team_registrations?.filter((reg: any) => reg.status === 'pending').length} pendientes
-                         </Badge>
-                       )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100"
+                          onClick={() => navigate(`/organizador/solicitudes/${tournament.id}`)}
+                        >
+                          Ver Solicitudes
+                        </Button>
                        <span>• {tournament.status}</span>
                      </div>
                    </div>

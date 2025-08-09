@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { CheckCircle, XCircle, Play, Users, Calendar, Trophy } from 'lucide-react';
 import { useRegistrationRequests, useApproveRegistration, useGenerateFixture } from '@/hooks/useTournamentRegistrations';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -24,12 +25,9 @@ export const OrganizerRequests: React.FC<OrganizerRequestsProps> = ({
   const approveRegistration = useApproveRegistration();
   const generateFixture = useGenerateFixture();
 
-  console.log('OrganizerRequests render:', {
-    tournamentId,
-    requests,
-    isLoading,
-    requestsCount: requests?.length || 0
-  });
+  if (!requests) {
+    console.log('No requests data yet');
+  }
 
   const pendingRequests = requests?.filter(req => req.status === 'pending') || [];
   const approvedRequests = requests?.filter(req => req.status === 'approved') || [];
@@ -52,7 +50,13 @@ export const OrganizerRequests: React.FC<OrganizerRequestsProps> = ({
   };
 
   const handleGenerateFixture = async () => {
-    await generateFixture.mutateAsync(tournamentId);
+    try {
+      await generateFixture.mutateAsync(tournamentId);
+      toast.success('Fixture generado exitosamente');
+    } catch (error) {
+      console.error('Error generating fixture:', error);
+      toast.error('Error al generar el fixture');
+    }
   };
 
   if (isLoading) {
