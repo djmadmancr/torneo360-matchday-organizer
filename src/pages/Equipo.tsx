@@ -12,7 +12,7 @@ import { useNavigate } from "react-router-dom";
 import TorneosInscritos from '../components/TorneosInscritos';
 import TorneosPublicos from '../components/TorneosPublicos';
 import EditarPerfilEquipo from '../components/EditarPerfilEquipo';
-import EstadisticasEquipoWrapper from '../components/EstadisticasEquipoWrapper';
+import TorneosActivos from '../components/TorneosActivos';
 import NotificacionesEquipo from '../components/NotificacionesEquipo';
 import { useLegacyAuth } from '@/hooks/useLegacyAuth';
 
@@ -167,7 +167,7 @@ const Equipo = () => {
             <TabsTrigger value="mis-equipos">Mis Equipos</TabsTrigger>
             <TabsTrigger value="invitaciones">Invitaciones</TabsTrigger>
             <TabsTrigger value="torneos-publicos">Buscar Torneos</TabsTrigger>
-            <TabsTrigger value="estadisticas">Estadísticas</TabsTrigger>
+            <TabsTrigger value="torneos-activos">Torneos Activos</TabsTrigger>
           </TabsList>
 
           <TabsContent value="mis-equipos" className="mt-6">
@@ -191,8 +191,8 @@ const Equipo = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="estadisticas" className="mt-6">
-            <EstadisticasEquipoWrapper />
+          <TabsContent value="torneos-activos" className="mt-6">
+            <TorneosActivos />
           </TabsContent>
         </Tabs>
 
