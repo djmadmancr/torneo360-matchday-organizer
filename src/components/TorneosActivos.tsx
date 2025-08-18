@@ -33,7 +33,24 @@ const TorneosActivos = () => {
     queryFn: async () => {
       if (!currentUser) return [];
 
-      // Primero obtenemos los team_registrations aprobados donde el usuario actual es admin del equipo
+      // Primero obtenemos los equipos donde el usuario actual es admin
+      const { data: userTeams, error: teamsError } = await supabase
+        .from('teams')
+        .select('id')
+        .eq('admin_user_id', currentUser.id);
+
+      if (teamsError) {
+        console.error('Error fetching user teams:', teamsError);
+        throw teamsError;
+      }
+
+      if (!userTeams || userTeams.length === 0) {
+        return [];
+      }
+
+      const teamIds = userTeams.map(team => team.id);
+
+      // Ahora obtenemos los team_registrations aprobados para esos equipos
       const { data, error } = await supabase
         .from('team_registrations')
         .select(`
@@ -47,12 +64,11 @@ const TorneosActivos = () => {
           ),
           teams!inner(
             id,
-            name,
-            admin_user_id
+            name
           )
         `)
         .eq('status', 'approved')
-        .eq('teams.admin_user_id', currentUser.id)
+        .in('team_id', teamIds)
         .in('tournaments.status', ['enrolling', 'scheduled', 'in_progress'])
         .order('tournaments.start_date', { ascending: true });
 
