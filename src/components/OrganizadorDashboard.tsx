@@ -46,7 +46,11 @@ const OrganizadorDashboard = () => {
     return acc;
   }, [] as { mes: string; torneos: number }[]);
 
-  const totalEquipos = tournaments.reduce((acc, tournament) => acc + (tournament.teams?.length || 0), 0);
+  // Calculate approved teams count from team_registrations
+  const totalEquipos = tournaments.reduce((acc, tournament) => {
+    const approvedTeams = tournament.teams?.filter(team => team.enrollment_status === 'approved') || [];
+    return acc + approvedTeams.length;
+  }, 0);
   const promedioEquiposPorTorneo = tournaments.length > 0 ? Math.round(totalEquipos / tournaments.length) : 0;
   
   // Hook para obtener todas las solicitudes pendientes del organizador
@@ -166,20 +170,20 @@ const OrganizadorDashboard = () => {
                 <div key={tournament.id} className="flex items-center justify-between p-3 border rounded-lg">
                    <div>
                      <h4 className="font-medium">{tournament.name}</h4>
-                     <div className="text-sm text-muted-foreground flex items-center gap-2">
-                       <span>{tournament.teams?.length || 0} equipos</span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-xs bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100"
-                          onClick={() => navigate(`/organizador/solicitudes/${tournament.id}`)}
-                        >
-                          Ver Solicitudes
-                        </Button>
-                       <span>• {tournament.status}</span>
-                     </div>
+                      <div className="text-sm text-muted-foreground flex items-center gap-2">
+                        <span>{tournament.teams?.filter(team => team.enrollment_status === 'approved').length || 0} equipos aprobados</span>
+                         <Button
+                           variant="outline"
+                           size="sm"
+                           className="text-xs bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100"
+                           onClick={() => navigate(`/organizador/solicitudes/${tournament.id}`)}
+                         >
+                           Ver Solicitudes
+                         </Button>
+                        <span>• {tournament.status}</span>
+                      </div>
                    </div>
-                  {tournament.status === 'enrolling' && (tournament.teams?.length || 0) >= 2 && (
+                   {tournament.status === 'enrolling' && (tournament.teams?.filter(team => team.enrollment_status === 'approved').length || 0) >= 2 && (
                     <Button
                       size="sm"
                       onClick={() => handleStartTournament(tournament.id)}
@@ -245,15 +249,15 @@ const OrganizadorDashboard = () => {
                     </div>
                     <div>
                       <h4 className="font-medium">{tournament.name}</h4>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>{tournament.teams?.length || 0}/{tournament.max_teams} equipos</span>
-                        <span>•</span>
-                        <span>Creado: {new Date(tournament.created_at).toLocaleDateString()}</span>
-                      </div>
+                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                         <span>{tournament.teams?.filter(team => team.enrollment_status === 'approved').length || 0}/{tournament.max_teams} equipos</span>
+                         <span>•</span>
+                         <span>Creado: {new Date(tournament.created_at).toLocaleDateString()}</span>
+                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {tournament.status === 'enrolling' && (tournament.teams?.length || 0) >= 2 && (
+                    {tournament.status === 'enrolling' && (tournament.teams?.filter(team => team.enrollment_status === 'approved').length || 0) >= 2 && (
                       <Button
                         size="sm"
                         onClick={() => handleStartTournament(tournament.id)}

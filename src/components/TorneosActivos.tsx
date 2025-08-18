@@ -33,34 +33,51 @@ const TorneosActivos = () => {
     queryFn: async () => {
       if (!currentUser) return [];
 
+      // Primero obtenemos los team_registrations aprobados donde el usuario actual es admin del equipo
       const { data, error } = await supabase
-        .from('tournaments')
+        .from('team_registrations')
         .select(`
-          id,
-          name,
           status,
-          start_date,
-          end_date,
-          team_registrations!inner(
+          tournaments!inner(
+            id,
+            name,
             status,
-            team:team_id(
-              id,
-              name,
-              admin_user_id
-            )
+            start_date,
+            end_date
+          ),
+          teams!inner(
+            id,
+            name,
+            admin_user_id
           )
         `)
-        .eq('team_registrations.status', 'approved')
-        .eq('team_registrations.team.admin_user_id', currentUser.id)
-        .in('status', ['scheduled', 'in_progress'])
-        .order('start_date', { ascending: true });
+        .eq('status', 'approved')
+        .eq('teams.admin_user_id', currentUser.id)
+        .in('tournaments.status', ['enrolling', 'scheduled', 'in_progress'])
+        .order('tournaments.start_date', { ascending: true });
 
       if (error) {
         console.error('Error fetching active tournaments:', error);
         throw error;
       }
 
-      return data as ActiveTournament[];
+      // Transformar los datos al formato esperado
+      const transformedData = data.map(registration => ({
+        id: registration.tournaments.id,
+        name: registration.tournaments.name,
+        status: registration.tournaments.status,
+        start_date: registration.tournaments.start_date,
+        end_date: registration.tournaments.end_date,
+        team_registrations: [{
+          status: registration.status,
+          team: {
+            id: registration.teams.id,
+            name: registration.teams.name
+          }
+        }]
+      }));
+
+      return transformedData as ActiveTournament[];
     },
     enabled: !!currentUser,
   });

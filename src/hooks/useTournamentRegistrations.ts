@@ -203,8 +203,18 @@ export const useApproveRegistration = () => {
           ? 'Equipo aprobado correctamente' 
           : 'Solicitud rechazada'
       );
+      // Invalidate multiple queries to ensure UI consistency
       queryClient.invalidateQueries({ 
         queryKey: ['registration-requests', tournamentId] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['tournaments'] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['active-tournaments'] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['organizer-pending-requests'] 
       });
     },
     onError: (error: any) => {
