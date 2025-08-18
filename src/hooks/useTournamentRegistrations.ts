@@ -58,7 +58,7 @@ export const usePublicTournaments = () => {
       const registeredTournamentIds = existingRegistrations?.map(reg => reg.tournament_id) || [];
 
       // Finalmente obtenemos torneos públicos excluyendo los ya registrados
-      const query = supabase
+      let query = supabase
         .from('tournaments')
         .select(`
           id,
@@ -77,8 +77,9 @@ export const usePublicTournaments = () => {
         .eq('status', 'enrolling')
         .order('created_at', { ascending: false });
 
+      // Solo filtrar si hay torneos registrados
       if (registeredTournamentIds.length > 0) {
-        query.not('id', 'in', `(${registeredTournamentIds.join(',')})`);
+        query = query.not('id', 'in', `(${registeredTournamentIds.join(',')})`);
       }
 
       const { data, error } = await query;
@@ -245,15 +246,13 @@ export const useApproveRegistration = () => {
       queryClient.invalidateQueries({ 
         queryKey: ['tournaments'] 
       });
-      queryClient.invalidateQueries({ 
-        queryKey: ['active-tournaments'] 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ['public-tournaments'] 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ['organizer-pending-requests'] 
-      });
+      // Invalidar todas las queries relacionadas para reflejar cambios inmediatamente
+      queryClient.invalidateQueries({ queryKey: ['active-tournaments'] });
+      queryClient.invalidateQueries({ queryKey: ['public-tournaments'] });
+      queryClient.invalidateQueries({ queryKey: ['organizer-pending-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+      queryClient.invalidateQueries({ queryKey: ['team-registrations'] });
+      queryClient.invalidateQueries({ queryKey: ['my-registrations'] });
     },
     onError: (error: any) => {
       console.error('Error updating registration:', error);

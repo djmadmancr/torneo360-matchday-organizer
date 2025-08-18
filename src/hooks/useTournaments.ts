@@ -81,8 +81,13 @@ export const useTournaments = (organizerId?: string, userCity?: string) => {
       if (error) throw error;
     },
     onSuccess: () => {
+      // Invalidar todas las queries relacionadas después de eliminar un torneo
       queryClient.invalidateQueries({ queryKey: ['tournaments'] });
-      toast.success('Torneo eliminado exitosamente');
+      queryClient.invalidateQueries({ queryKey: ['public-tournaments'] });
+      queryClient.invalidateQueries({ queryKey: ['active-tournaments'] });
+      queryClient.invalidateQueries({ queryKey: ['my-registrations'] });
+      queryClient.invalidateQueries({ queryKey: ['team-registrations'] });
+      toast.success('Torneo eliminado exitosamente junto con todas sus inscripciones');
     },
     onError: (error: any) => {
       toast.error(error.message || 'Error al eliminar el torneo');
