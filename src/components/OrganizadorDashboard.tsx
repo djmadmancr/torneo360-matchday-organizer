@@ -46,11 +46,32 @@ const OrganizadorDashboard = () => {
     return acc;
   }, [] as { mes: string; torneos: number }[]);
 
-  // Calculate approved teams count from team_registrations
-  const totalEquipos = tournaments.reduce((acc, tournament) => {
-    const approvedTeams = tournament.teams?.filter(team => team.enrollment_status === 'approved') || [];
-    return acc + approvedTeams.length;
-  }, 0);
+  // Hook para obtener conteo de equipos aprobados por torneo
+  const { data: approvedTeamsCount = {} } = useQuery({
+    queryKey: ['approved-teams-count', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return {};
+      
+      const { data, error } = await supabase
+        .from('team_registrations')
+        .select(`
+          tournament_id,
+          tournaments!inner(organizer_id)
+        `)
+        .eq('tournaments.organizer_id', user.id)
+        .eq('status', 'approved');
+
+      if (error) throw error;
+      
+      return data.reduce((acc, registration) => {
+        acc[registration.tournament_id] = (acc[registration.tournament_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+    },
+    enabled: !!user?.id,
+  });
+
+  const totalEquipos = Object.values(approvedTeamsCount).reduce((sum, count) => sum + count, 0);
   const promedioEquiposPorTorneo = tournaments.length > 0 ? Math.round(totalEquipos / tournaments.length) : 0;
   
   // Hook para obtener todas las solicitudes pendientes del organizador
@@ -171,7 +192,7 @@ const OrganizadorDashboard = () => {
                    <div>
                      <h4 className="font-medium">{tournament.name}</h4>
                       <div className="text-sm text-muted-foreground flex items-center gap-2">
-                        <span>{tournament.teams?.filter(team => team.enrollment_status === 'approved').length || 0} equipos aprobados</span>
+                        <span>{approvedTeamsCount[tournament.id] || 0} equipos aprobados</span>
                          <Button
                            variant="outline"
                            size="sm"
@@ -183,7 +204,7 @@ const OrganizadorDashboard = () => {
                         <span>• {tournament.status}</span>
                       </div>
                    </div>
-                   {tournament.status === 'enrolling' && (tournament.teams?.filter(team => team.enrollment_status === 'approved').length || 0) >= 2 && (
+                   {tournament.status === 'enrolling' && (approvedTeamsCount[tournament.id] || 0) >= 2 && (
                     <Button
                       size="sm"
                       onClick={() => handleStartTournament(tournament.id)}
@@ -250,14 +271,14 @@ const OrganizadorDashboard = () => {
                     <div>
                       <h4 className="font-medium">{tournament.name}</h4>
                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                         <span>{tournament.teams?.filter(team => team.enrollment_status === 'approved').length || 0}/{tournament.max_teams} equipos</span>
+                         <span>{approvedTeamsCount[tournament.id] || 0}/{tournament.max_teams} equipos</span>
                          <span>•</span>
                          <span>Creado: {new Date(tournament.created_at).toLocaleDateString()}</span>
                        </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {tournament.status === 'enrolling' && (tournament.teams?.filter(team => team.enrollment_status === 'approved').length || 0) >= 2 && (
+                    {tournament.status === 'enrolling' && (approvedTeamsCount[tournament.id] || 0) >= 2 && (
                       <Button
                         size="sm"
                         onClick={() => handleStartTournament(tournament.id)}

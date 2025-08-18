@@ -29,6 +29,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
     end_date: tournament.end_date || '',
     max_teams: tournament.max_teams || 16,
     coverage: tournament.coverage || 'local' as CoverageType,
+    visibility: tournament.visibility || 'public',
     invite_codes: tournament.invite_codes || [],
   });
   
@@ -152,36 +153,52 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
           {/* Edit Form */}
           {canEdit && (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name">Nombre del Torneo</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="coverage">Cobertura</Label>
-                  <Select
-                    value={formData.coverage}
-                    onValueChange={(value: CoverageType) => setFormData({ ...formData, coverage: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {coverageOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+               <div className="grid md:grid-cols-3 gap-4">
+                 <div>
+                   <Label htmlFor="name">Nombre del Torneo</Label>
+                   <Input
+                     id="name"
+                     value={formData.name}
+                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                     required
+                   />
+                 </div>
+                 
+                 <div>
+                   <Label htmlFor="coverage">Cobertura</Label>
+                   <Select
+                     value={formData.coverage}
+                     onValueChange={(value: CoverageType) => setFormData({ ...formData, coverage: value })}
+                   >
+                     <SelectTrigger>
+                       <SelectValue />
+                     </SelectTrigger>
+                     <SelectContent>
+                       {coverageOptions.map((option) => (
+                         <SelectItem key={option.value} value={option.value}>
+                           {option.label}
+                         </SelectItem>
+                       ))}
+                     </SelectContent>
+                   </Select>
+                 </div>
+
+                 <div>
+                   <Label htmlFor="visibility">Visibilidad</Label>
+                   <Select
+                     value={formData.visibility}
+                     onValueChange={(value) => setFormData({ ...formData, visibility: value })}
+                   >
+                     <SelectTrigger>
+                       <SelectValue />
+                     </SelectTrigger>
+                     <SelectContent>
+                       <SelectItem value="public">Público</SelectItem>
+                       <SelectItem value="private">Privado (Solo con códigos)</SelectItem>
+                     </SelectContent>
+                   </Select>
+                 </div>
+               </div>
 
               <div>
                 <Label htmlFor="description">Descripción</Label>
@@ -229,40 +246,45 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                 </div>
               </div>
 
-              {/* Invite Codes */}
-              <div>
-                <Label>Códigos de Invitación</Label>
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <Input
-                      value={newInviteCode}
-                      onChange={(e) => setNewInviteCode(e.target.value)}
-                      placeholder="Nuevo código"
-                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addInviteCode())}
-                    />
-                    <Button type="button" variant="outline" onClick={addInviteCode}>
-                      <Plus className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  
-                  {formData.invite_codes.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {formData.invite_codes.map((code) => (
-                        <Badge key={code} variant="secondary" className="gap-1">
-                          {code}
-                          <button
-                            type="button"
-                            onClick={() => removeInviteCode(code)}
-                            className="hover:bg-destructive hover:text-destructive-foreground rounded-full p-0.5"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
+               {/* Invite Codes */}
+               <div>
+                 <Label>Códigos de Invitación</Label>
+                 <p className="text-sm text-muted-foreground mb-2">
+                   {formData.visibility === 'private' 
+                     ? 'Solo los equipos con estos códigos podrán inscribirse.' 
+                     : 'Códigos opcionales para invitar equipos específicos.'}
+                 </p>
+                 <div className="space-y-2">
+                   <div className="flex gap-2">
+                     <Input
+                       value={newInviteCode}
+                       onChange={(e) => setNewInviteCode(e.target.value)}
+                       placeholder="Nuevo código de equipo"
+                       onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addInviteCode())}
+                     />
+                     <Button type="button" variant="outline" onClick={addInviteCode}>
+                       <Plus className="w-4 h-4" />
+                     </Button>
+                   </div>
+                   
+                   {formData.invite_codes.length > 0 && (
+                     <div className="flex flex-wrap gap-1">
+                       {formData.invite_codes.map((code) => (
+                         <Badge key={code} variant="secondary" className="gap-1">
+                           {code}
+                           <button
+                             type="button"
+                             onClick={() => removeInviteCode(code)}
+                             className="hover:bg-destructive hover:text-destructive-foreground rounded-full p-0.5"
+                           >
+                             <X className="w-3 h-3" />
+                           </button>
+                         </Badge>
+                       ))}
+                     </div>
+                   )}
+                 </div>
+               </div>
 
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
