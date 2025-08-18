@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
@@ -447,22 +447,22 @@ export type Database = {
       test_admin_full_access: {
         Args: Record<PropertyKey, never>
         Returns: {
-          test_result: string
           passed: boolean
+          test_result: string
         }[]
       }
       test_anonymous_access: {
         Args: Record<PropertyKey, never>
         Returns: {
-          test_result: string
           should_fail: boolean
+          test_result: string
         }[]
       }
       test_team_admin_access: {
         Args: Record<PropertyKey, never>
         Returns: {
-          test_result: string
           passed: boolean
+          test_result: string
         }[]
       }
     }
