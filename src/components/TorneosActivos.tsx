@@ -52,7 +52,7 @@ const TorneosActivos = () => {
           )
         `)
         .eq('status', 'approved')
-        .eq('teams.admin_user_id', currentUser.id)
+        .eq('teams.admin_user_id', currentUser.auth_user_id)
         .in('tournaments.status', ['enrolling', 'scheduled', 'in_progress'])
         .order('tournaments.start_date', { ascending: true });
 

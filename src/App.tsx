@@ -42,6 +42,11 @@ function App() {
                   <Organizador />
                 </PrivateRoute>
               } />
+              <Route path="/organizador/solicitudes" element={
+                <PrivateRoute roles={['organizer']}>
+                  <Organizador />
+                </PrivateRoute>
+              } />
               <Route path="/equipo" element={
                 <PrivateRoute roles={['team_admin']}>
                   <Equipo />
