@@ -68,8 +68,16 @@ function App() {
                   <Torneos />
                 </PrivateRoute>
               } />
-              <Route path="/torneos/:id" element={<TorneoFixture />} />
-              <Route path="/torneo/:id/fixture" element={<TorneoFixture />} />
+              <Route path="/torneos/:id" element={
+                <PrivateRoute>
+                  <Torneos />
+                </PrivateRoute>
+              } />
+              <Route path="/torneo/:id/fixture" element={
+                <PrivateRoute>
+                  <Torneos />
+                </PrivateRoute>
+              } />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
