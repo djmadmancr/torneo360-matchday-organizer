@@ -2,12 +2,12 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Calendar, MapPin, BarChart3 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Trophy } from "lucide-react";
 import { useState } from 'react';
 import TournamentStatisticsModal from './TournamentStatisticsModal';
+import TournamentActiveCard from './TournamentActiveCard';
 
 interface ActiveTournament {
   id: string;
@@ -152,6 +152,8 @@ const TorneosActivos = () => {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case 'enrolling':
+        return <Badge variant="outline">Inscribiendo</Badge>;
       case 'scheduled':
         return <Badge variant="default">Programado</Badge>;
       case 'in_progress':
@@ -168,61 +170,13 @@ const TorneosActivos = () => {
         <Badge variant="secondary">{activeTournaments.length} torneo(s)</Badge>
       </div>
 
-      <div className="grid gap-4">
+      <div className="max-w-4xl mx-auto space-y-4">
         {activeTournaments.map((tournament) => (
-          <Card key={tournament.id} className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Trophy className="w-5 h-5 text-primary" />
-                  {tournament.name}
-                </CardTitle>
-                {getStatusBadge(tournament.status)}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Inicio:</span>
-                  <span>{new Date(tournament.start_date).toLocaleDateString()}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Fin:</span>
-                  <span>{new Date(tournament.end_date).toLocaleDateString()}</span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-4 border-t">
-                <div className="text-sm text-muted-foreground">
-                  Mi equipo: <span className="font-medium text-foreground">
-                    {tournament.team_registrations[0]?.team.name}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => setSelectedTournament(tournament.id)}
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2"
-                  >
-                    <BarChart3 className="w-4 h-4" />
-                    Estadísticas
-                  </Button>
-                  <Button
-                    onClick={() => window.open(`/torneo/${tournament.id}/fixture`, '_blank')}
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2"
-                  >
-                    <Calendar className="w-4 h-4" />
-                    Fixture
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <TournamentActiveCard 
+            key={tournament.id} 
+            tournament={tournament}
+            onViewStatistics={() => setSelectedTournament(tournament.id)}
+          />
         ))}
       </div>
 

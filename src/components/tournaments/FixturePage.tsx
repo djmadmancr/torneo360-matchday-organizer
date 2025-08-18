@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Trophy, MapPin, Clock, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar, Trophy, MapPin, Clock, Users, Edit, Settings } from 'lucide-react';
 import { useTournamentFixtures } from '@/hooks/useTournamentRegistrations';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useAuth } from '@/contexts/AuthContext';
+import FixtureMatchEditor from '../FixtureMatchEditor';
 
 interface FixturePageProps {
   tournamentId: string;
@@ -15,7 +18,14 @@ export const FixturePage: React.FC<FixturePageProps> = ({
   tournamentId,
   tournamentName,
 }) => {
+  const { currentUser } = useAuth();
   const { data: fixtures, isLoading } = useTournamentFixtures(tournamentId);
+  const [selectedMatch, setSelectedMatch] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  
+  // Por ahora, asumimos que el componente se usa desde el panel de organizador
+  // Si se necesita verificación adicional, se puede obtener el torneo por separado
+  const isOrganizer = true; // Temporal - mejorar con verificación real
 
   if (isLoading) {
     return (
@@ -178,6 +188,22 @@ export const FixturePage: React.FC<FixturePageProps> = ({
 
                       {/* Estado */}
                       {getStatusBadge(fixture.status)}
+                      
+                      {/* Botón de editar para organizadores */}
+                      {isOrganizer && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedMatch(fixture);
+                            setShowEditModal(true);
+                          }}
+                          className="ml-2"
+                        >
+                          <Edit className="w-3 h-3 mr-1" />
+                          Editar
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -185,6 +211,18 @@ export const FixturePage: React.FC<FixturePageProps> = ({
             </CardContent>
           </Card>
         ))}
+        
+      {/* Modal de edición para organizadores */}
+      {selectedMatch && showEditModal && (
+        <FixtureMatchEditor
+          match={selectedMatch}
+          isOpen={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setSelectedMatch(null);
+          }}
+        />
+      )}
     </div>
   );
 };
