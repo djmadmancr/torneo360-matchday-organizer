@@ -33,15 +33,11 @@ const TorneosActivos = () => {
     queryFn: async () => {
       if (!currentUser) return [];
 
-      console.log('TorneosActivos: currentUser', currentUser);
-
       // Primero obtenemos los equipos donde el usuario actual es admin
       const { data: userTeams, error: teamsError } = await supabase
         .from('teams')
         .select('id, name')
         .eq('admin_user_id', currentUser.id);
-
-      console.log('TorneosActivos: userTeams', userTeams, teamsError);
 
       if (teamsError) {
         console.error('Error fetching user teams:', teamsError);
@@ -49,12 +45,10 @@ const TorneosActivos = () => {
       }
 
       if (!userTeams || userTeams.length === 0) {
-        console.log('TorneosActivos: No teams found for user');
         return [];
       }
 
       const teamIds = userTeams.map(team => team.id);
-      console.log('TorneosActivos: teamIds', teamIds);
 
       // Ahora obtenemos los team_registrations aprobados para esos equipos
       const { data, error } = await supabase
@@ -79,9 +73,6 @@ const TorneosActivos = () => {
         .in('team_id', teamIds)
         .in('tournaments.status', ['enrolling', 'scheduled', 'in_progress'])
         .order('tournaments.start_date', { ascending: true });
-
-      console.log('TorneosActivos: registrations data', data, error);
-
       if (error) {
         console.error('Error fetching active tournaments:', error);
         throw error;
@@ -102,8 +93,6 @@ const TorneosActivos = () => {
           }
         }]
       })) || [];
-
-      console.log('TorneosActivos: transformedData', transformedData);
 
       return transformedData as ActiveTournament[];
     },
