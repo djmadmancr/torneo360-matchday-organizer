@@ -71,10 +71,6 @@ const TorneosActivos = () => {
             status,
             start_date,
             end_date
-          ),
-          teams!inner(
-            id,
-            name
           )
         `)
         .eq('status', 'approved')
@@ -89,20 +85,25 @@ const TorneosActivos = () => {
       }
 
       // Transformar los datos al formato esperado
-      const transformedData = data?.map(registration => ({
-        id: registration.tournaments.id,
-        name: registration.tournaments.name,
-        status: registration.tournaments.status,
-        start_date: registration.tournaments.start_date,
-        end_date: registration.tournaments.end_date,
-        team_registrations: [{
-          status: registration.status,
-          team: {
-            id: registration.teams.id,
-            name: registration.teams.name
-          }
-        }]
-      })) || [];
+      const transformedData = data?.map(registration => {
+        // Buscar el equipo correspondiente en userTeams
+        const team = userTeams.find(t => t.id === registration.team_id);
+        
+        return {
+          id: registration.tournaments.id,
+          name: registration.tournaments.name,
+          status: registration.tournaments.status,
+          start_date: registration.tournaments.start_date,
+          end_date: registration.tournaments.end_date,
+          team_registrations: [{
+            status: registration.status,
+            team: {
+              id: registration.team_id,
+              name: team?.name || 'Equipo desconocido'
+            }
+          }]
+        };
+      }) || [];
 
       console.log('🔍 TorneosActivos DEBUG - transformedData:', transformedData);
 
