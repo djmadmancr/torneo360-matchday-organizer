@@ -179,15 +179,26 @@ const TorneosActivos = () => {
                     {tournament.team_registrations[0]?.team.name}
                   </span>
                 </div>
-                <Button
-                  onClick={() => setSelectedTournament(tournament.id)}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <BarChart3 className="w-4 h-4" />
-                  Ver Estadísticas
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => setSelectedTournament(tournament.id)}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                    Estadísticas
+                  </Button>
+                  <Button
+                    onClick={() => window.open(`/torneo/${tournament.id}/fixture`, '_blank')}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Calendar className="w-4 h-4" />
+                    Fixture
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

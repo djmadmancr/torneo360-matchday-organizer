@@ -13,6 +13,7 @@ import Equipo from "./pages/Equipo";
 import Fiscal from "./pages/Fiscal";
 import AdminUsers from "./pages/Admin/Users";
 import Torneos from "./pages/Torneos";
+import TorneoFixture from "./pages/TorneoFixture";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 import { checkAndRunMigration } from "@/utils/dataMigration";
@@ -67,6 +68,8 @@ function App() {
                   <Torneos />
                 </PrivateRoute>
               } />
+              <Route path="/torneos/:id" element={<TorneoFixture />} />
+              <Route path="/torneo/:id/fixture" element={<TorneoFixture />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 export interface TournamentRegistration {
@@ -29,10 +30,35 @@ export interface TournamentRegistration {
 
 // Hook para obtener torneos públicos
 export const usePublicTournaments = () => {
+  const { currentUser } = useAuth();
+  
   return useQuery({
-    queryKey: ['public-tournaments'],
+    queryKey: ['public-tournaments', currentUser?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      if (!currentUser) return [];
+
+      // Primero obtenemos los equipos del usuario
+      const { data: userTeams, error: teamsError } = await supabase
+        .from('teams')
+        .select('id')
+        .eq('admin_user_id', currentUser.id);
+
+      if (teamsError) throw teamsError;
+
+      const teamIds = userTeams?.map(team => team.id) || [];
+
+      // Luego obtenemos las inscripciones existentes
+      const { data: existingRegistrations, error: regError } = await supabase
+        .from('team_registrations')
+        .select('tournament_id')
+        .in('team_id', teamIds);
+
+      if (regError) throw regError;
+
+      const registeredTournamentIds = existingRegistrations?.map(reg => reg.tournament_id) || [];
+
+      // Finalmente obtenemos torneos públicos excluyendo los ya registrados
+      const query = supabase
         .from('tournaments')
         .select(`
           id,
@@ -51,9 +77,16 @@ export const usePublicTournaments = () => {
         .eq('status', 'enrolling')
         .order('created_at', { ascending: false });
 
+      if (registeredTournamentIds.length > 0) {
+        query.not('id', 'in', `(${registeredTournamentIds.join(',')})`);
+      }
+
+      const { data, error } = await query;
+
       if (error) throw error;
       return data;
     },
+    enabled: !!currentUser,
   });
 };
 
@@ -118,6 +151,8 @@ export const useRequestRegistration = () => {
     onSuccess: () => {
       toast.success('Solicitud de inscripción enviada correctamente');
       queryClient.invalidateQueries({ queryKey: ['team-registrations'] });
+      queryClient.invalidateQueries({ queryKey: ['public-tournaments'] });
+      queryClient.invalidateQueries({ queryKey: ['active-tournaments'] });
     },
     onError: (error: any) => {
       console.error('Error requesting registration:', error);
@@ -212,6 +247,9 @@ export const useApproveRegistration = () => {
       });
       queryClient.invalidateQueries({ 
         queryKey: ['active-tournaments'] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['public-tournaments'] 
       });
       queryClient.invalidateQueries({ 
         queryKey: ['organizer-pending-requests'] 
