@@ -75,8 +75,7 @@ const TorneosActivos = () => {
         `)
         .eq('status', 'approved')
         .in('team_id', teamIds)
-        .in('tournaments.status', ['enrolling', 'scheduled', 'in_progress'])
-        .order('tournaments.start_date', { ascending: true });
+        .in('tournaments.status', ['enrolling', 'scheduled', 'in_progress']);
       console.log('🔍 TorneosActivos DEBUG - registrations query result:', { data, error });
 
       if (error) {
@@ -84,7 +83,7 @@ const TorneosActivos = () => {
         throw error;
       }
 
-      // Transformar los datos al formato esperado
+      // Transformar los datos al formato esperado y ordenar por fecha de inicio
       const transformedData = data?.map(registration => {
         // Buscar el equipo correspondiente en userTeams
         const team = userTeams.find(t => t.id === registration.team_id);
@@ -104,6 +103,14 @@ const TorneosActivos = () => {
           }]
         };
       }) || [];
+
+      // Ordenar por fecha de inicio en el cliente
+      transformedData.sort((a, b) => {
+        if (!a.start_date && !b.start_date) return 0;
+        if (!a.start_date) return 1;
+        if (!b.start_date) return -1;
+        return new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
+      });
 
       console.log('🔍 TorneosActivos DEBUG - transformedData:', transformedData);
 
