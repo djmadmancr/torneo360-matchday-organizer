@@ -75,16 +75,17 @@ const Index = () => {
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="text-center flex-1">
-              <h1 className="text-4xl font-bold text-primary mb-2">⚽ Global Link Soccer</h1>
-              <p className="text-muted-foreground">Gestión completa de torneos de fútbol</p>
-              <div className="text-sm text-primary mt-2">
+          <div className="flex items-center gap-4">
+            <div className="flex-1 text-center min-w-0">
+              <h1 className="text-2xl md:text-4xl font-bold text-primary mb-2">⚽ Global Link Soccer</h1>
+              <p className="text-sm md:text-base text-muted-foreground">Gestión completa de torneos de fútbol</p>
+              <div className="text-xs md:text-sm text-primary mt-2">
                 <p>Bienvenido, {currentUser.full_name || currentUser.email}</p>
                 <p>Rol: <span className="font-medium">{currentUser.role}</span></p>
               </div>
             </div>
-            <div className="flex gap-2">
+            
+            <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
               {currentUser.role === 'admin' && (
                 <Button
                   variant="outline"
@@ -92,8 +93,8 @@ const Index = () => {
                   onClick={() => navigate('/admin/users')}
                   className="text-blue-600 hover:text-blue-700"
                 >
-                  <UserCog className="w-4 h-4 mr-2" />
-                  Admin Panel
+                  <UserCog className="w-4 h-4" />
+                  <span className="hidden md:inline ml-2">Admin Panel</span>
                 </Button>
               )}
               <Button
@@ -102,8 +103,8 @@ const Index = () => {
                 onClick={handleLogout}
                 className="text-red-600 hover:text-red-700"
               >
-                <LogOut className="w-4 h-4 mr-2" />
-                Cerrar Sesión
+                <LogOut className="w-4 h-4" />
+                <span className="hidden md:inline ml-2">Cerrar Sesión</span>
               </Button>
             </div>
           </div>
