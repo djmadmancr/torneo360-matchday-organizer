@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Users, Calendar, Settings, Plus, Bell, CheckCircle, XCircle, Clock, ArrowLeft, User } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Trophy, Users, Calendar, Settings, Plus, Bell, CheckCircle, XCircle, Clock, ArrowLeft, User, ChevronDown, Menu } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -26,8 +26,10 @@ import { supabase } from '@/integrations/supabase/client';
 const Organizador = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState('torneos');
   const [showCreateTorneo, setShowCreateTorneo] = useState(false);
+  const [torneosOpen, setTorneosOpen] = useState(true);
+  const [resumenOpen, setResumenOpen] = useState(false);
+  const [solicitudesOpen, setSolicitudesOpen] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showEditTournament, setShowEditTournament] = useState(false);
   const [showFixtureModal, setShowFixtureModal] = useState(false);
@@ -155,115 +157,126 @@ const Organizador = () => {
           </div>
         </div>
 
-        {/* Main Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          {/* Desktop Tabs */}
-          <TabsList className="hidden md:grid w-full grid-cols-3">
-            <TabsTrigger value="torneos">Torneos</TabsTrigger>
-            <TabsTrigger value="resumen">Resumen de Torneos</TabsTrigger>
-            <TabsTrigger value="solicitudes" className="relative">
-              Solicitudes
-              {pendingRequestsCount > 0 && (
-                <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 p-0 text-xs">
-                  {pendingRequestsCount}
-                </Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Mobile Dropdown */}
-          <div className="md:hidden mb-4">
-            <select 
-              value={activeTab} 
-              onChange={(e) => setActiveTab(e.target.value)}
-              className="w-full p-3 border rounded-lg bg-background text-foreground"
-            >
-              <option value="torneos">🏆 Torneos</option>
-              <option value="resumen">📊 Resumen de Torneos</option>
-              <option value="solicitudes">
-                📋 Solicitudes {pendingRequestsCount > 0 ? `(${pendingRequestsCount})` : ''}
-              </option>
-            </select>
-          </div>
-
-          <TabsContent value="resumen" className="mt-6">
-            <OrganizadorDashboard />
-          </TabsContent>
-
-          <TabsContent value="solicitudes" className="mt-6">
-            <AllOrganizerRequests organizerId={currentUser?.id || ''} />
-          </TabsContent>
-
-          <TabsContent value="torneos" className="mt-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-primary">Mis Torneos</h2>
-              <Button 
-                onClick={() => setShowCreateTorneo(true)}
-                className="bg-primary hover:bg-primary/90"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Crear Torneo
-              </Button>
-            </div>
-
-            {torneosLoading ? (
-              <div className="text-center py-8">
-                <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                <p>Cargando torneos...</p>
-              </div>
-            ) : organizerTournaments && organizerTournaments.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {organizerTournaments.map((tournament) => (
-                  <TournamentCard
-                    key={tournament.id}
-                    tournament={tournament as Tournament}
-                    onEdit={(tournament) => {
-                       setSelectedTournament(tournament as Tournament);
-                       setShowEditTournament(true);
-                     }}
-                     onViewFixtures={(tournament) => {
-                       setSelectedTournament(tournament as Tournament);
-                       setShowFixtureModal(true);
-                     }}
-                    onViewStats={(tournament) => {
-                      // TODO: Implementar vista de estadísticas
-                      console.log('Ver estadísticas:', tournament);
-                    }}
-                    onManageReferees={(tournament) => {
-                      // TODO: Implementar gestión de árbitros
-                      console.log('Gestionar árbitros:', tournament);
-                    }}
-                    onDelete={async (tournament) => {
-                      try {
-                        await deleteTournament(tournament.id);
-                      } catch (error) {
-                        console.error('Error al eliminar torneo:', error);
-                      }
-                    }}
-                  />
-                ))}
-              </div>
-            ) : (
-              <Card className="text-center py-12">
-                <CardContent>
-                  <Trophy className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No tienes torneos creados</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Crea tu primer torneo para comenzar a gestionar equipos y partidos.
-                  </p>
-                  <Button 
-                    onClick={() => setShowCreateTorneo(true)}
-                    className="bg-primary hover:bg-primary/90"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Crear Primer Torneo
-                  </Button>
+        {/* Main Content - Collapsible Sections */}
+        <div className="space-y-4">
+          {/* Torneos Section */}
+          <Card>
+            <Collapsible open={torneosOpen} onOpenChange={setTorneosOpen}>
+              <CollapsibleTrigger className="w-full">
+                <CardHeader className="flex flex-row items-center justify-between py-4 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <Trophy className="w-5 h-5 text-primary" />
+                    </div>
+                    <CardTitle className="text-lg">Mis Torneos</CardTitle>
+                  </div>
+                  <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${torneosOpen ? 'rotate-180' : ''}`} />
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="pt-0">
+                  {torneosLoading ? (
+                    <div className="text-center py-8">
+                      <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                      <p>Cargando torneos...</p>
+                    </div>
+                  ) : organizerTournaments && organizerTournaments.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {organizerTournaments.map((tournament) => (
+                        <TournamentCard
+                          key={tournament.id}
+                          tournament={tournament as Tournament}
+                          onEdit={(tournament) => {
+                             setSelectedTournament(tournament as Tournament);
+                             setShowEditTournament(true);
+                           }}
+                           onViewFixtures={(tournament) => {
+                             setSelectedTournament(tournament as Tournament);
+                             setShowFixtureModal(true);
+                           }}
+                          onViewStats={(tournament) => {
+                            // TODO: Implementar vista de estadísticas
+                            console.log('Ver estadísticas:', tournament);
+                          }}
+                          onManageReferees={(tournament) => {
+                            // TODO: Implementar gestión de árbitros
+                            console.log('Gestionar árbitros:', tournament);
+                          }}
+                          onDelete={async (tournament) => {
+                            try {
+                              await deleteTournament(tournament.id);
+                            } catch (error) {
+                              console.error('Error al eliminar torneo:', error);
+                            }
+                          }}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Trophy className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No tienes torneos creados</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Crea tu primer torneo para comenzar a gestionar equipos y partidos.
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
-              </Card>
-            )}
-          </TabsContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </Card>
 
-        </Tabs>
+          {/* Resumen Section */}
+          <Card>
+            <Collapsible open={resumenOpen} onOpenChange={setResumenOpen}>
+              <CollapsibleTrigger className="w-full">
+                <CardHeader className="flex flex-row items-center justify-between py-4 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-secondary/10 rounded-lg">
+                      <Calendar className="w-5 h-5 text-secondary" />
+                    </div>
+                    <CardTitle className="text-lg">Resumen de Torneos</CardTitle>
+                  </div>
+                  <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${resumenOpen ? 'rotate-180' : ''}`} />
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="pt-0">
+                  <OrganizadorDashboard />
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </Card>
+
+          {/* Solicitudes Section */}
+          <Card>
+            <Collapsible open={solicitudesOpen} onOpenChange={setSolicitudesOpen}>
+              <CollapsibleTrigger className="w-full">
+                <CardHeader className="flex flex-row items-center justify-between py-4 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-orange-100 rounded-lg">
+                      <Bell className="w-5 h-5 text-orange-600" />
+                    </div>
+                    <CardTitle className="text-lg">
+                      Solicitudes
+                      {pendingRequestsCount > 0 && (
+                        <Badge variant="destructive" className="ml-2">
+                          {pendingRequestsCount}
+                        </Badge>
+                      )}
+                    </CardTitle>
+                  </div>
+                  <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${solicitudesOpen ? 'rotate-180' : ''}`} />
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="pt-0">
+                  <AllOrganizerRequests organizerId={currentUser?.id || ''} />
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </Card>
+        </div>
 
         {/* Modales */}
         <TorneoFormModalWrapper
