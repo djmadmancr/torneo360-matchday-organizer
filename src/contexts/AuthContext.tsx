@@ -30,6 +30,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Cleanup auth state utility
+  const cleanupAuthState = () => {
+    // Remove all Supabase auth keys from localStorage
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        localStorage.removeItem(key);
+      }
+    });
+    // Remove from sessionStorage if in use
+    Object.keys(sessionStorage || {}).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        sessionStorage.removeItem(key);
+      }
+    });
+  };
+
   // Fetch user profile from public.users table
   const fetchUserProfile = async (authUserId: string) => {
     try {
@@ -37,10 +53,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('users')
         .select('id, email, role, roles, full_name')
         .eq('auth_user_id', authUserId)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single
 
       if (error) {
         console.error('Error fetching user profile:', error);
+        return null;
+      }
+
+      if (!data) {
+        console.warn('No user profile found for auth user:', authUserId);
         return null;
       }
 
@@ -101,6 +122,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       
+      // Clean up existing state first
+      cleanupAuthState();
+      
+      // Attempt global sign out to clear any existing sessions
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // Continue even if this fails
+      }
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -108,15 +139,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         console.error('Sign in error:', error);
-        toast.error('Error al iniciar sesión: ' + error.message);
+        toast.error('Credenciales inválidas');
         return false;
       }
 
       if (data.user) {
         const userProfile = await fetchUserProfile(data.user.id);
-        setCurrentUser(userProfile);
-        toast.success('¡Bienvenido!');
-        return true;
+        if (userProfile) {
+          setCurrentUser(userProfile);
+          toast.success(`¡Bienvenido, ${userProfile.full_name || userProfile.email}!`);
+          // Force page reload to ensure clean state
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 100);
+          return true;
+        } else {
+          toast.error('No se pudo cargar el perfil de usuario');
+          return false;
+        }
       }
 
       return false;
@@ -167,15 +207,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async (): Promise<void> => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Sign out error:', error);
-        toast.error('Error al cerrar sesión');
-      } else {
-        setSession(null);
-        setCurrentUser(null);
-        toast.success('Sesión cerrada');
+      // Clean up auth state first
+      cleanupAuthState();
+      
+      // Attempt global sign out
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // Ignore errors
       }
+      
+      setSession(null);
+      setCurrentUser(null);
+      toast.success('Sesión cerrada');
+      
+      // Force page reload for clean state
+      window.location.href = '/auth';
     } catch (error) {
       console.error('Sign out error:', error);
       toast.error('Error al cerrar sesión');
