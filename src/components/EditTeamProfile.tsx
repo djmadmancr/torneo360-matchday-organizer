@@ -59,14 +59,16 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
     second_lastname: string; 
     id_number: string; 
     position: string; 
-    member_type: 'player' | 'staff' 
+    member_type: 'player' | 'staff';
+    age: number;
   }>({ 
     name: '', 
     first_lastname: '', 
     second_lastname: '', 
     id_number: '', 
     position: '', 
-    member_type: 'player' 
+    member_type: 'player',
+    age: 18
   });
 
   const {
@@ -125,7 +127,7 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
   };
 
   const handleAddMember = async () => {
-    if (!newMember.name || !newMember.first_lastname || !newMember.second_lastname || !newMember.id_number || !newMember.position) {
+    if (!newMember.name || !newMember.first_lastname || !newMember.second_lastname || !newMember.id_number || !newMember.position || !newMember.age) {
       toast.error("Por favor completa todos los campos");
       return;
     }
@@ -140,7 +142,8 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
           first_name: newMember.name,
           first_lastname: newMember.first_lastname,
           second_lastname: newMember.second_lastname,
-          id_number: newMember.id_number
+          id_number: newMember.id_number,
+          age: newMember.age
         }
       });
       setNewMember({ 
@@ -149,7 +152,8 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
         second_lastname: '', 
         id_number: '', 
         position: '', 
-        member_type: 'player' 
+        member_type: 'player',
+        age: 18
       });
       toast.success("Miembro agregado correctamente");
     } catch (error) {
@@ -349,13 +353,24 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
             />
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>
             <Label>Número de ID</Label>
             <Input
               value={newMember.id_number}
               onChange={(e) => setNewMember({...newMember, id_number: e.target.value})}
               placeholder="Número de identificación"
+            />
+          </div>
+          <div>
+            <Label>Edad</Label>
+            <Input
+              type="number"
+              value={newMember.age}
+              onChange={(e) => setNewMember({...newMember, age: parseInt(e.target.value) || 18})}
+              placeholder="Edad"
+              min="16"
+              max="45"
             />
           </div>
           <div>
@@ -445,7 +460,7 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                   <div>
                     <Label className="text-xs">Número de ID</Label>
                     <Input
@@ -454,6 +469,20 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
                         member_data: { ...memberData, id_number: e.target.value } 
                       })}
                       placeholder="Número de identificación"
+                      className="h-8"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Edad</Label>
+                    <Input
+                      type="number"
+                      value={memberData.age || ''}
+                      onChange={(e) => handleUpdateMember(player.id, { 
+                        member_data: { ...memberData, age: parseInt(e.target.value) || 18 } 
+                      })}
+                      placeholder="Edad"
+                      min="16"
+                      max="45"
                       className="h-8"
                     />
                   </div>
