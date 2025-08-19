@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Minus, AlertTriangle, Clock, Trophy, UserX } from "lucide-react";
+import { Plus, Minus, AlertTriangle, Clock, Trophy, UserX, ArrowUpDown } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -37,6 +37,10 @@ interface PlayerStats {
 }
 
 const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps) => {
+  const [homeTeamId, setHomeTeamId] = useState(match.home_team_id);
+  const [awayTeamId, setAwayTeamId] = useState(match.away_team_id);
+  const [homeTeamData, setHomeTeamData] = useState(match.home_teams);
+  const [awayTeamData, setAwayTeamData] = useState(match.away_teams);
   const [homeScore, setHomeScore] = useState(match.home_score);
   const [awayScore, setAwayScore] = useState(match.away_score);
   const [matchStatus, setMatchStatus] = useState(match.status);
@@ -57,6 +61,8 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
       const { error } = await supabase
         .from('fixtures')
         .update({
+          home_team_id: homeTeamId,
+          away_team_id: awayTeamId,
           home_score: homeScore,
           away_score: awayScore,
           status: matchStatus,
@@ -76,6 +82,7 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
     onSuccess: () => {
       toast.success('Partido actualizado correctamente');
       queryClient.invalidateQueries({ queryKey: ['fixtures'] });
+      queryClient.invalidateQueries({ queryKey: ['tournament-fixtures'] });
       queryClient.invalidateQueries({ queryKey: ['tournament-statistics'] });
       onClose();
     },
@@ -136,6 +143,26 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
 
   const handleSave = () => {
     updateMatchMutation.mutate({});
+  };
+
+  const swapTeams = () => {
+    // Intercambiar los equipos
+    const tempTeamId = homeTeamId;
+    const tempTeamData = homeTeamData;
+    const tempScore = homeScore;
+    const tempPlayerStats = homePlayerStats;
+
+    setHomeTeamId(awayTeamId);
+    setHomeTeamData(awayTeamData);
+    setHomeScore(awayScore);
+    setHomePlayerStats(awayPlayerStats);
+
+    setAwayTeamId(tempTeamId);
+    setAwayTeamData(tempTeamData);
+    setAwayScore(tempScore);
+    setAwayPlayerStats(tempPlayerStats);
+
+    toast.info('Equipos intercambiados: Local ↔ Visitante');
   };
 
   const PlayerStatsEditor = ({ 
@@ -251,11 +278,70 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-orange-500" />
-            Editor de Partido: {match.home_teams?.name} vs {match.away_teams?.name}
+            Editor de Partido: {homeTeamData?.name} vs {awayTeamData?.name}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Selector de equipos */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Trophy className="w-4 h-4" />
+                  Selección de Equipos
+                </h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={swapTeams}
+                  className="flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300"
+                >
+                  <ArrowUpDown className="w-4 h-4" />
+                  Intercambiar
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-4 items-center">
+                <div className="text-center p-4 border-2 border-green-200 bg-green-50 rounded-lg">
+                  <Label className="text-sm font-medium text-green-800 mb-2 block">
+                    🏠 Equipo Local
+                  </Label>
+                  <div className="flex items-center justify-center gap-2">
+                    {homeTeamData?.logo_url && (
+                      <img 
+                        src={homeTeamData.logo_url} 
+                        alt={`Logo ${homeTeamData.name}`}
+                        className="w-8 h-8 object-cover rounded-full"
+                      />
+                    )}
+                    <span className="font-bold text-green-900">{homeTeamData?.name}</span>
+                  </div>
+                </div>
+                
+                <div className="text-center text-2xl font-bold text-muted-foreground">
+                  VS
+                </div>
+                
+                <div className="text-center p-4 border-2 border-blue-200 bg-blue-50 rounded-lg">
+                  <Label className="text-sm font-medium text-blue-800 mb-2 block">
+                    ✈️ Equipo Visitante
+                  </Label>
+                  <div className="flex items-center justify-center gap-2">
+                    {awayTeamData?.logo_url && (
+                      <img 
+                        src={awayTeamData.logo_url} 
+                        alt={`Logo ${awayTeamData.name}`}
+                        className="w-8 h-8 object-cover rounded-full"
+                      />
+                    )}
+                    <span className="font-bold text-blue-900">{awayTeamData?.name}</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Marcador */}
           <Card>
             <CardContent className="p-4">
@@ -266,13 +352,13 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
               
               <div className="grid grid-cols-3 gap-4 items-center">
                 <div className="text-center">
-                  <Label className="text-sm font-medium">{match.home_teams?.name}</Label>
+                  <Label className="text-sm font-medium text-green-700">🏠 {homeTeamData?.name}</Label>
                   <Input
                     type="number"
                     min="0"
                     value={homeScore}
                     onChange={(e) => setHomeScore(parseInt(e.target.value) || 0)}
-                    className="text-center text-2xl font-bold mt-2"
+                    className="text-center text-2xl font-bold mt-2 border-green-300 focus:border-green-500"
                   />
                 </div>
                 
@@ -281,13 +367,13 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
                 </div>
                 
                 <div className="text-center">
-                  <Label className="text-sm font-medium">{match.away_teams?.name}</Label>
+                  <Label className="text-sm font-medium text-blue-700">✈️ {awayTeamData?.name}</Label>
                   <Input
                     type="number"
                     min="0"
                     value={awayScore}
                     onChange={(e) => setAwayScore(parseInt(e.target.value) || 0)}
-                    className="text-center text-2xl font-bold mt-2"
+                    className="text-center text-2xl font-bold mt-2 border-blue-300 focus:border-blue-500"
                   />
                 </div>
               </div>
@@ -326,8 +412,8 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="home">{match.home_teams?.name}</SelectItem>
-                    <SelectItem value="away">{match.away_teams?.name}</SelectItem>
+                    <SelectItem value="home">🏠 {homeTeamData?.name}</SelectItem>
+                    <SelectItem value="away">✈️ {awayTeamData?.name}</SelectItem>
                   </SelectContent>
                 </Select>
                 
@@ -350,13 +436,13 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <PlayerStatsEditor 
               players={homePlayerStats}
-              teamName={match.home_teams?.name || 'Equipo Local'}
+              teamName={`🏠 ${homeTeamData?.name || 'Equipo Local'}`}
               team="home"
             />
             
             <PlayerStatsEditor 
               players={awayPlayerStats}
-              teamName={match.away_teams?.name || 'Equipo Visitante'}
+              teamName={`✈️ ${awayTeamData?.name || 'Equipo Visitante'}`}
               team="away"
             />
           </div>
