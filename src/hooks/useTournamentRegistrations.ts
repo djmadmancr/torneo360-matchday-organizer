@@ -137,6 +137,28 @@ export const useRequestRegistration = () => {
       tournamentId: string;
       teamId: string;
     }) => {
+      console.log('🔍 Registration attempt:', { tournamentId, teamId });
+      
+      // Verificar usuario actual
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('👤 Current user:', user?.id, user?.email);
+      
+      // Verificar datos del equipo
+      const { data: teamData } = await supabase
+        .from('teams')
+        .select('id, name, admin_user_id, users!teams_admin_user_id_fkey(auth_user_id, email)')
+        .eq('id', teamId)
+        .single();
+      console.log('🏆 Team data:', teamData);
+      
+      // Verificar datos del torneo
+      const { data: tournamentData } = await supabase
+        .from('tournaments')
+        .select('id, name, visibility, organizer_id, users!tournaments_organizer_id_fkey(auth_user_id, email)')
+        .eq('id', tournamentId)
+        .single();
+      console.log('🏅 Tournament data:', tournamentData);
+
       const { data, error } = await supabase
         .from('team_registrations')
         .insert({
@@ -147,6 +169,7 @@ export const useRequestRegistration = () => {
         .select()
         .single();
 
+      console.log('📝 Insert result:', { data, error });
       if (error) throw error;
       return data;
     },
