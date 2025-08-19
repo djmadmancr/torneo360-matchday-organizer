@@ -154,7 +154,7 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
               variant="outline" 
               size="sm" 
               onClick={() => onViewFixtures(tournament)}
-              className="w-full flex items-center gap-2"
+              className="w-full flex items-center gap-2 bg-gradient-to-r from-green-50 to-green-100 border-green-200 text-green-700 hover:from-green-100 hover:to-green-200"
             >
               <Calendar className="w-4 h-4" />
               Ver Fixture Generado
@@ -179,15 +179,18 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
               Configurar
             </Button>
             
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => onViewFixtures(tournament)}
-              className="flex items-center gap-1"
-            >
-              <Calendar className="w-3 h-3" />
-              Fixture
-            </Button>
+            {/* Solo mostrar botón de fixture si no es un torneo programado con botón dedicado arriba */}
+            {tournament.status !== 'scheduled' && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => onViewFixtures(tournament)}
+                className="flex items-center gap-1"
+              >
+                <Calendar className="w-3 h-3" />
+                Fixture
+              </Button>
+            )}
             
             <Button 
               variant="outline" 

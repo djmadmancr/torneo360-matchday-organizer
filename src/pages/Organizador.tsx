@@ -12,6 +12,7 @@ import OrganizadorDashboard from '../components/OrganizadorDashboard';
 import TorneoFormModalWrapper from '../components/TorneoFormModalWrapper';
 import TournamentCard from '../components/TournamentCard';
 import { TournamentEditModal } from '../components/TournamentEditModal';
+import { TournamentFixtureModal } from '../components/TournamentFixtureModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { EditUserProfile } from '@/components/EditUserProfile';
 import { UserMenu } from '@/components/UserMenu';
@@ -29,6 +30,7 @@ const Organizador = () => {
   const [showCreateTorneo, setShowCreateTorneo] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showEditTournament, setShowEditTournament] = useState(false);
+  const [showFixtureModal, setShowFixtureModal] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const { data: organizerTournaments, isLoading: torneosLoading } = useOrganizerTournaments(currentUser?.id);
   const { deleteTournament } = useTournaments();
@@ -219,10 +221,10 @@ const Organizador = () => {
                        setSelectedTournament(tournament as Tournament);
                        setShowEditTournament(true);
                      }}
-                    onViewFixtures={(tournament) => {
-                      // TODO: Implementar vista de fixtures
-                      console.log('Ver fixtures:', tournament);
-                    }}
+                     onViewFixtures={(tournament) => {
+                       setSelectedTournament(tournament as Tournament);
+                       setShowFixtureModal(true);
+                     }}
                     onViewStats={(tournament) => {
                       // TODO: Implementar vista de estadísticas
                       console.log('Ver estadísticas:', tournament);
@@ -290,6 +292,17 @@ const Organizador = () => {
             onOpenChange={(open) => {
               setShowEditTournament(open);
               if (!open) setSelectedTournament(null);
+            }}
+          />
+        )}
+
+        {showFixtureModal && selectedTournament && (
+          <TournamentFixtureModal
+            tournament={selectedTournament}
+            isOpen={showFixtureModal}
+            onClose={() => {
+              setShowFixtureModal(false);
+              setSelectedTournament(null);
             }}
           />
         )}
