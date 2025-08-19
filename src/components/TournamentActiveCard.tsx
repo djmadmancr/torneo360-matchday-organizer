@@ -149,7 +149,7 @@ const TournamentActiveCard = ({ tournament, onViewStatistics }: TournamentActive
             className="flex items-center gap-2 hover:bg-primary/5"
           >
             <BarChart3 className="w-4 h-4" />
-            Ver Estadísticas y Fixtures
+            Ver Fixtures
           </Button>
         </div>
       </CardContent>

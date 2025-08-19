@@ -201,16 +201,6 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
               <Users className="w-3 h-3" />
               Árbitros
             </Button>
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => onViewStats(tournament)}
-              className="flex items-center gap-1"
-            >
-              <BarChart3 className="w-3 h-3" />
-              Estadísticas
-            </Button>
           </div>
 
           {/* Delete Tournament Button - Only show for draft/enrolling tournaments */}
