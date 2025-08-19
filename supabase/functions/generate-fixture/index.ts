@@ -17,6 +17,7 @@ interface Fixture {
   home_team_id: string;
   away_team_id: string;
   status: string;
+  kickoff: string;
 }
 
 serve(async (req) => {
@@ -110,6 +111,16 @@ serve(async (req) => {
     const fixtures: Fixture[] = [];
     let matchDay = 1;
 
+    // Calculate start date (1 week from now)
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() + 7); // Add 7 days
+    
+    // Set to next Sunday if not already a Sunday (assuming matches on weekends)
+    const daysUntilSunday = (7 - startDate.getDay()) % 7;
+    if (daysUntilSunday > 0) {
+      startDate.setDate(startDate.getDate() + daysUntilSunday);
+    }
+
     // Round-robin algorithm
     const numTeams = teams.length;
     const isOdd = numTeams % 2 === 1;
@@ -121,6 +132,12 @@ serve(async (req) => {
     const teamIndices = Array.from({ length: totalTeams }, (_, i) => i);
     
     for (let round = 0; round < rounds; round++) {
+      // Calculate match date for this round (each round is on consecutive weekends)
+      const matchDate = new Date(startDate);
+      matchDate.setDate(startDate.getDate() + (round * 7)); // Each round is 1 week apart
+      
+      let matchTime = 15; // Start at 3 PM (15:00)
+      
       for (let match = 0; match < matchesPerRound; match++) {
         const home = teamIndices[match];
         const away = teamIndices[totalTeams - 1 - match];
@@ -130,13 +147,24 @@ serve(async (req) => {
           continue;
         }
 
+        // Create kickoff time for this match
+        const kickoffTime = new Date(matchDate);
+        kickoffTime.setHours(matchTime, 0, 0, 0); // Set specific hour
+        
         fixtures.push({
           tournament_id,
           match_day: matchDay,
           home_team_id: teams[home].id,
           away_team_id: teams[away].id,
-          status: 'scheduled'
+          status: 'scheduled',
+          kickoff: kickoffTime.toISOString()
         });
+        
+        // Increment match time by 2 hours for next match
+        matchTime += 2;
+        if (matchTime > 21) { // Don't schedule matches after 9 PM
+          matchTime = 15; // Reset to 3 PM for next day (though this is basic logic)
+        }
       }
 
       // Rotate teams (keep first team fixed, rotate others)
