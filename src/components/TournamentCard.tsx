@@ -147,6 +147,19 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
               </Button>
             </div>
           )}
+
+          {/* Show fixture button for scheduled tournaments */}
+          {tournament.status === 'scheduled' && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => onViewFixtures(tournament)}
+              className="w-full flex items-center gap-2"
+            >
+              <Calendar className="w-4 h-4" />
+              Ver Fixture Generado
+            </Button>
+          )}
           
           {/* Info message if not enough teams */}
           {tournament.status === 'enrolling' && teamCount < 2 && (

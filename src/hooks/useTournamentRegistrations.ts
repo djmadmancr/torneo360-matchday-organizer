@@ -283,6 +283,8 @@ export const useGenerateFixture = () => {
       queryClient.invalidateQueries({ 
         queryKey: ['tournament-fixtures', tournamentId] 
       });
+      queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+      queryClient.invalidateQueries({ queryKey: ['organizer-tournaments'] });
     },
     onError: (error: any) => {
       console.error('Error generating fixture:', error);

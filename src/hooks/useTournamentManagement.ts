@@ -63,6 +63,7 @@ export const useStartTournament = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+      queryClient.invalidateQueries({ queryKey: ['organizer-tournaments'] });
       queryClient.invalidateQueries({ queryKey: ['fixtures'] });
       toast.success('¡Torneo iniciado! Se ha generado el fixture automáticamente');
     },
