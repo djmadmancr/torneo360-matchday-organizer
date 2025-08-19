@@ -393,8 +393,8 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="scheduled">Programado</SelectItem>
-                  <SelectItem value="in_progress">En Progreso</SelectItem>
-                  <SelectItem value="completed">Completado</SelectItem>
+                  <SelectItem value="live">En Vivo</SelectItem>
+                  <SelectItem value="finished">Finalizado</SelectItem>
                   <SelectItem value="cancelled">Cancelado</SelectItem>
                   <SelectItem value="postponed">Pospuesto</SelectItem>
                 </SelectContent>
