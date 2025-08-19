@@ -164,7 +164,21 @@ const TournamentStatisticsModal: React.FC<TournamentStatisticsModalProps> = ({
         }
       });
 
-      return Object.values(teamStats).sort((a, b) => b.points - a.points);
+      return Object.values(teamStats).sort((a, b) => {
+        // First criteria: points (descending)
+        if (b.points !== a.points) return b.points - a.points;
+        
+        // Second criteria: goal difference (descending)
+        const goalDiffA = a.goals_for - a.goals_against;
+        const goalDiffB = b.goals_for - b.goals_against;
+        if (goalDiffB !== goalDiffA) return goalDiffB - goalDiffA;
+        
+        // Third criteria: goals for (descending)
+        if (b.goals_for !== a.goals_for) return b.goals_for - a.goals_for;
+        
+        // Fourth criteria: alphabetical by team name
+        return a.team_name.localeCompare(b.team_name);
+      });
     },
     enabled: isOpen && !!tournamentId,
   });

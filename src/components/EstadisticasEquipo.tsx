@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trophy, Target, Shield, Clock, Calendar, TrendingUp, Users, Award } from "lucide-react";
 import { obtenerEquipoIdDeUsuario } from '../utils/equipoMigration';
+import { supabase } from '@/integrations/supabase/client';
 
 interface EstadisticasEquipoProps {
   equipoId: string; // Este es el userId, pero internamente usaremos equipoId numérico
@@ -46,7 +47,7 @@ const EstadisticasEquipo: React.FC<EstadisticasEquipoProps> = ({ equipoId: userI
     cargarEstadisticas();
   }, [userId]);
 
-  const cargarEstadisticas = () => {
+  const cargarEstadisticas = async () => {
     // Obtener equipoId numérico del usuario actual
     const userStr = localStorage.getItem('currentUser');
     if (!userStr) {
@@ -67,13 +68,99 @@ const EstadisticasEquipo: React.FC<EstadisticasEquipoProps> = ({ equipoId: userI
     
     // Cargar estadísticas usando equipoId numérico
     const historialTorneos = JSON.parse(localStorage.getItem(`historialTorneos_${equipoId}`) || '[]');
-    const historialJugadores = JSON.parse(localStorage.getItem(`historialJugadores_${equipoId}`) || '[]');
     
     console.log('📈 Historial de torneos encontrado (equipoId numérico):', historialTorneos);
-    console.log('⚽ Historial de jugadores encontrado (equipoId numérico):', historialJugadores);
     
     setEstadisticasTorneos(historialTorneos);
-    setEstadisticasJugadores(historialJugadores);
+    
+    // Cargar estadísticas reales de jugadores desde Supabase
+    await cargarEstadisticasJugadores(equipoId);
+  };
+
+  const cargarEstadisticasJugadores = async (equipoId: number) => {
+    try {
+      // Obtener el ID del equipo en Supabase
+      const equipoData = JSON.parse(localStorage.getItem(`equipo_${equipoId}`) || '{}');
+      if (!equipoData.id) {
+        console.log('❌ No se encontró ID de equipo en Supabase');
+        return;
+      }
+      
+      // Buscar partidos completados donde participe el equipo
+      const { data: fixtures, error } = await supabase
+        .from('fixtures')
+        .select('*')
+        .or(`home_team_id.eq.${equipoData.id},away_team_id.eq.${equipoData.id}`)
+        .in('status', ['completed', 'finished']);
+
+      if (error) {
+        console.error('Error cargando fixtures para estadísticas:', error);
+        return;
+      }
+
+      const jugadoresEstadisticas: EstadisticasJugador[] = [];
+      const playerStatsMap: { [key: string]: EstadisticasJugador } = {};
+
+      fixtures?.forEach((fixture: any) => {
+        const matchData = fixture.match_data || {};
+        
+        // Procesar goles
+        const goals = matchData.goals || [];
+        goals.forEach((goal: any) => {
+          // Solo procesar jugadores de nuestro equipo
+          if (goal.team_id === equipoData.id) {
+            const playerKey = goal.player_name;
+            if (!playerStatsMap[playerKey]) {
+              playerStatsMap[playerKey] = {
+                jugadorId: goal.player_name,
+                jugadorNombre: goal.player_name,
+                minutosJugados: 90, // Asumimos 90 minutos por partido
+                goles: 0,
+                asistencias: 0,
+                tarjetasAmarillas: 0,
+                tarjetasRojas: 0
+              };
+            }
+            playerStatsMap[playerKey].goles++;
+          }
+        });
+
+        // Procesar tarjetas
+        const cards = matchData.cards || [];
+        cards.forEach((card: any) => {
+          // Solo procesar jugadores de nuestro equipo
+          if (card.team_id === equipoData.id) {
+            const playerKey = card.player_name;
+            if (!playerStatsMap[playerKey]) {
+              playerStatsMap[playerKey] = {
+                jugadorId: card.player_name,
+                jugadorNombre: card.player_name,
+                minutosJugados: 90,
+                goles: 0,
+                asistencias: 0,
+                tarjetasAmarillas: 0,
+                tarjetasRojas: 0
+              };
+            }
+            if (card.card_type === 'yellow') {
+              playerStatsMap[playerKey].tarjetasAmarillas++;
+            } else if (card.card_type === 'red') {
+              playerStatsMap[playerKey].tarjetasRojas++;
+            }
+          }
+        });
+      });
+
+      const estadisticasFinales = Object.values(playerStatsMap);
+      console.log('⚽ Estadísticas de jugadores cargadas desde Supabase:', estadisticasFinales);
+      
+      setEstadisticasJugadores(estadisticasFinales);
+    } catch (error) {
+      console.error('Error cargando estadísticas de jugadores:', error);
+      // Fallback a datos locales
+      const historialJugadores = JSON.parse(localStorage.getItem(`historialJugadores_${equipoId}`) || '[]');
+      setEstadisticasJugadores(historialJugadores);
+    }
   };
 
   const estadisticasFiltradas = estadisticasTorneos.filter(estadistica => {
@@ -272,39 +359,103 @@ const EstadisticasEquipo: React.FC<EstadisticasEquipoProps> = ({ equipoId: userI
         </Card>
       )}
 
-      {/* Jugadores con más minutos */}
-      {jugadoresTopMinutos.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Jugadores con Más Minutos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {jugadoresTopMinutos.map((jugador, index) => (
-                <div key={jugador.jugadorId} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm font-medium">
-                      {index + 1}
-                    </div>
-                    <div>
-                      <div className="font-medium">{jugador.jugadorNombre}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {jugador.goles} goles • {jugador.asistencias} asistencias
+      {/* Estadísticas de Jugadores */}
+      {estadisticasJugadores.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Goleadores */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="w-5 h-5" />
+                Top Goleadores
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {estadisticasJugadores
+                  .filter(jugador => jugador.goles > 0)
+                  .sort((a, b) => b.goles - a.goles)
+                  .slice(0, 5)
+                  .map((jugador, index) => (
+                    <div key={jugador.jugadorId} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-sm font-medium">
+                          {index + 1}
+                        </div>
+                        <div>
+                          <div className="font-medium">{jugador.jugadorNombre}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {jugador.tarjetasAmarillas} amarillas • {jugador.tarjetasRojas} rojas
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-green-600">{jugador.goles}</div>
+                        <div className="text-sm text-muted-foreground">goles</div>
                       </div>
                     </div>
+                  ))}
+                {estadisticasJugadores.filter(j => j.goles > 0).length === 0 && (
+                  <div className="text-center py-4 text-muted-foreground">
+                    No hay goleadores registrados
                   </div>
-                  <div className="text-right">
-                    <div className="font-medium">{jugador.minutosJugados}'</div>
-                    <div className="text-sm text-muted-foreground">minutos</div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tarjetas */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5" />
+                Tarjetas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {estadisticasJugadores
+                  .filter(jugador => jugador.tarjetasAmarillas > 0 || jugador.tarjetasRojas > 0)
+                  .sort((a, b) => (b.tarjetasAmarillas + b.tarjetasRojas * 2) - (a.tarjetasAmarillas + a.tarjetasRojas * 2))
+                  .slice(0, 5)
+                  .map((jugador, index) => (
+                    <div key={jugador.jugadorId} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center text-sm font-medium">
+                          {index + 1}
+                        </div>
+                        <div>
+                          <div className="font-medium">{jugador.jugadorNombre}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {jugador.goles} goles en total
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right flex items-center gap-2">
+                        {jugador.tarjetasAmarillas > 0 && (
+                          <div className="flex items-center gap-1">
+                            <div className="w-3 h-4 bg-yellow-400 rounded-sm"></div>
+                            <span className="text-sm font-medium">{jugador.tarjetasAmarillas}</span>
+                          </div>
+                        )}
+                        {jugador.tarjetasRojas > 0 && (
+                          <div className="flex items-center gap-1">
+                            <div className="w-3 h-4 bg-red-500 rounded-sm"></div>
+                            <span className="text-sm font-medium">{jugador.tarjetasRojas}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                {estadisticasJugadores.filter(j => j.tarjetasAmarillas > 0 || j.tarjetasRojas > 0).length === 0 && (
+                  <div className="text-center py-4 text-muted-foreground">
+                    No hay tarjetas registradas
                   </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
