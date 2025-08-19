@@ -56,7 +56,13 @@ export const useCreateUser = () => {
       });
 
       if (error) {
+        // Extract error message properly from edge function response
         throw new Error(error.message || 'Failed to create user');
+      }
+
+      // Check if the response indicates an error (for edge functions that return error in data)
+      if (data && data.error) {
+        throw new Error(data.error);
       }
 
       return data;

@@ -110,16 +110,6 @@ serve(async (req) => {
     
     const msg = err instanceof Error ? err.message : 'unknown error';
     
-    // Determine appropriate status code based on error type
-    let code = 400; // default
-    if (msg.includes('duplicate')) {
-      code = 409; // Conflict
-    } else if (msg.includes('role') || msg.includes('validation')) {
-      code = 422; // Unprocessable Entity
-    } else if (err instanceof z.ZodError) {
-      code = 422;
-    }
-    
     // User-friendly error messages
     let userMessage = msg;
     if (msg.includes('duplicate key value violates unique constraint')) {
@@ -134,11 +124,15 @@ serve(async (req) => {
       userMessage = `Validation error: ${err.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`;
     }
     
+    // Return error in the format expected by supabase.functions.invoke
     return new Response(
-      JSON.stringify({ ok: false, message: userMessage }),
+      JSON.stringify({ 
+        error: userMessage,
+        details: msg 
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: code,
+        status: 400, // Always use 400 for function errors to ensure proper handling
       }
     );
   }
