@@ -465,6 +465,14 @@ export type Database = {
           test_result: string
         }[]
       }
+      user_organizes_tournament: {
+        Args: { tournament_id_param: string }
+        Returns: boolean
+      }
+      user_owns_team: {
+        Args: { team_id_param: string }
+        Returns: boolean
+      }
     }
     Enums: {
       coverage_type:
