@@ -94,7 +94,7 @@ export const TournamentFixtureModal: React.FC<TournamentFixtureModalProps> = ({
 
     // Calcular estadísticas basadas en partidos finalizados
     fixtures
-      .filter(fixture => fixture.status === 'finished')
+      .filter(fixture => fixture.status === 'finished' || fixture.status === 'completed')
       .forEach(fixture => {
         if (fixture.home_teams && fixture.away_teams) {
           const homeTeam = teamStats[fixture.home_teams.id];

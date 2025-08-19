@@ -80,7 +80,7 @@ const TournamentStatisticsModal: React.FC<TournamentStatisticsModalProps> = ({
         .from('fixtures')
         .select('*')
         .eq('tournament_id', tournamentId)
-        .eq('status', 'completed');
+        .in('status', ['completed', 'finished']);
 
       if (error) throw error;
 
@@ -240,7 +240,7 @@ const TournamentStatisticsModal: React.FC<TournamentStatisticsModalProps> = ({
         .from('fixtures')
         .select('*')
         .eq('tournament_id', tournamentId)
-        .eq('status', 'completed');
+        .in('status', ['completed', 'finished']);
 
       if (error) {
         console.error('Error loading fixtures for player stats:', error);
