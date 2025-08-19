@@ -142,6 +142,7 @@ export const useRequestRegistration = () => {
         .insert({
           tournament_id: tournamentId,
           team_id: teamId,
+          status: 'pending'
         })
         .select()
         .single();
