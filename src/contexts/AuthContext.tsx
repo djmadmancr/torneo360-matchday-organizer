@@ -49,21 +49,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Fetch user profile from public.users table
   const fetchUserProfile = async (authUserId: string) => {
     try {
+      console.log('🔍 Fetching user profile for auth_user_id:', authUserId);
+      
       const { data, error } = await supabase
         .from('users')
         .select('id, email, role, roles, full_name')
         .eq('auth_user_id', authUserId)
-        .maybeSingle(); // Use maybeSingle instead of single
+        .maybeSingle();
+
+      console.log('📊 Query result:', { data, error });
 
       if (error) {
-        console.error('Error fetching user profile:', error);
+        console.error('❌ Error fetching user profile:', error);
         return null;
       }
 
       if (!data) {
-        console.warn('No user profile found for auth user:', authUserId);
+        console.warn('⚠️ No user profile found for auth user:', authUserId);
         return null;
       }
+
+      console.log('✅ User profile found:', data);
 
       return {
         id: data.id,
@@ -75,7 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         full_name: data.full_name
       };
     } catch (error) {
-      console.error('Error in fetchUserProfile:', error);
+      console.error('💥 Exception in fetchUserProfile:', error);
       return null;
     }
   };
