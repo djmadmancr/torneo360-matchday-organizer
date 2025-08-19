@@ -12,6 +12,7 @@ import { useTeam, TeamMemberInsert } from "@/hooks/useTeams";
 import { ImageUpload } from "@/components/ImageUpload";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Trash2, Plus, Users } from "lucide-react";
+import { differenceInYears, parseISO } from "date-fns";
 
 const TeamProfileSchema = z.object({
   name: z.string().min(1, "El nombre del equipo es requerido"),
@@ -60,7 +61,7 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
     id_number: string; 
     position: string; 
     member_type: 'player' | 'staff';
-    age: number;
+    birth_date: string;
   }>({ 
     name: '', 
     first_lastname: '', 
@@ -68,8 +69,17 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
     id_number: '', 
     position: '', 
     member_type: 'player',
-    age: 18
+    birth_date: ''
   });
+
+  const calculateAge = (birthDate: string): number => {
+    if (!birthDate) return 18;
+    try {
+      return differenceInYears(new Date(), parseISO(birthDate));
+    } catch {
+      return 18;
+    }
+  };
 
   const {
     register,
@@ -127,11 +137,13 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
   };
 
   const handleAddMember = async () => {
-    if (!newMember.name || !newMember.first_lastname || !newMember.second_lastname || !newMember.id_number || !newMember.position || !newMember.age) {
+    if (!newMember.name || !newMember.first_lastname || !newMember.second_lastname || !newMember.id_number || !newMember.position || !newMember.birth_date) {
       toast.error("Por favor completa todos los campos");
       return;
     }
 
+    const calculatedAge = calculateAge(newMember.birth_date);
+    
     try {
       await addTeamMember({
         team_id: teamId,
@@ -143,7 +155,8 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
           first_lastname: newMember.first_lastname,
           second_lastname: newMember.second_lastname,
           id_number: newMember.id_number,
-          age: newMember.age
+          birth_date: newMember.birth_date,
+          age: calculatedAge
         }
       });
       setNewMember({ 
@@ -153,7 +166,7 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
         id_number: '', 
         position: '', 
         member_type: 'player',
-        age: 18
+        birth_date: ''
       });
       toast.success("Miembro agregado correctamente");
     } catch (error) {
@@ -363,15 +376,19 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
             />
           </div>
           <div>
-            <Label>Edad</Label>
+            <Label>Fecha de Nacimiento</Label>
             <Input
-              type="number"
-              value={newMember.age}
-              onChange={(e) => setNewMember({...newMember, age: parseInt(e.target.value) || 18})}
-              placeholder="Edad"
-              min="16"
-              max="45"
+              type="date"
+              value={newMember.birth_date}
+              onChange={(e) => setNewMember({...newMember, birth_date: e.target.value})}
+              placeholder="Fecha de nacimiento"
+              max={new Date().toISOString().split('T')[0]}
             />
+            {newMember.birth_date && (
+              <p className="text-xs text-muted-foreground">
+                Edad: {calculateAge(newMember.birth_date)} años
+              </p>
+            )}
           </div>
           <div>
             <Label>Posición/Cargo</Label>
@@ -473,18 +490,30 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
                     />
                   </div>
                   <div>
-                    <Label className="text-xs">Edad</Label>
+                    <Label className="text-xs">Fecha de Nacimiento</Label>
                     <Input
-                      type="number"
-                      value={memberData.age || ''}
-                      onChange={(e) => handleUpdateMember(player.id, { 
-                        member_data: { ...memberData, age: parseInt(e.target.value) || 18 } 
-                      })}
-                      placeholder="Edad"
-                      min="16"
-                      max="45"
+                      type="date"
+                      value={memberData.birth_date || ''}
+                      onChange={(e) => {
+                        const newBirthDate = e.target.value;
+                        const calculatedAge = calculateAge(newBirthDate);
+                        handleUpdateMember(player.id, { 
+                          member_data: { 
+                            ...memberData, 
+                            birth_date: newBirthDate,
+                            age: calculatedAge
+                          } 
+                        });
+                      }}
+                      placeholder="Fecha de nacimiento"
+                      max={new Date().toISOString().split('T')[0]}
                       className="h-8"
                     />
+                    {memberData.birth_date && (
+                      <p className="text-[10px] text-muted-foreground">
+                        Edad: {calculateAge(memberData.birth_date)} años
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label className="text-xs">Posición</Label>
