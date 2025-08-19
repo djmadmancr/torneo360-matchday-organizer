@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { EditUserProfile } from '@/components/EditUserProfile';
 import { UserMenu } from '@/components/UserMenu';
 import { useTournaments, Tournament } from '@/hooks/useTournaments';
+import { useOrganizerTournaments } from '@/hooks/useOrganizerTournaments';
 import { AllOrganizerRequests } from '@/components/tournaments/AllOrganizerRequests';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -29,7 +30,8 @@ const Organizador = () => {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showEditTournament, setShowEditTournament] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
-  const { tournaments: organizerTournaments, isLoading: torneosLoading, deleteTournament } = useTournaments(currentUser?.id);
+  const { data: organizerTournaments, isLoading: torneosLoading } = useOrganizerTournaments(currentUser?.id);
+  const { deleteTournament } = useTournaments();
   
   // Hook para obtener solicitudes pendientes reales
   const { data: pendingRequestsCount = 0 } = useQuery({
@@ -212,11 +214,11 @@ const Organizador = () => {
                 {organizerTournaments.map((tournament) => (
                   <TournamentCard
                     key={tournament.id}
-                    tournament={tournament}
+                    tournament={tournament as Tournament}
                     onEdit={(tournament) => {
-                      setSelectedTournament(tournament);
-                      setShowEditTournament(true);
-                    }}
+                       setSelectedTournament(tournament as Tournament);
+                       setShowEditTournament(true);
+                     }}
                     onViewFixtures={(tournament) => {
                       // TODO: Implementar vista de fixtures
                       console.log('Ver fixtures:', tournament);

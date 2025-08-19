@@ -68,7 +68,7 @@ serve(async (req) => {
       .from('team_registrations')
       .select(`
         team_id,
-        teams!inner(id, name)
+        teams(id, name)
       `)
       .eq('tournament_id', tournament_id)
       .eq('status', 'approved');

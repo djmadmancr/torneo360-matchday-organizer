@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tournament } from '@/hooks/useTournaments';
 import { useStartTournament } from '@/hooks/useTournamentManagement';
-import { Settings, Trophy, Users, BarChart3, Calendar, Play, Trash2 } from 'lucide-react';
+import { useGenerateFixture } from '@/hooks/useTournamentRegistrations';
+import { Settings, Trophy, Users, BarChart3, Calendar, Play, Trash2, Shuffle } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface TournamentCardProps {
@@ -25,6 +26,7 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
   onDelete
 }) => {
   const startTournament = useStartTournament();
+  const generateFixture = useGenerateFixture();
   
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -52,7 +54,7 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
     }
   };
 
-  const teamCount = (tournament as any).teams ? (tournament as any).teams.length : 0;
+  const teamCount = (tournament as any).approved_teams_count || 0;
   const maxTeams = tournament.max_teams || 16;
 
   return (
@@ -117,19 +119,40 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
 
       <CardFooter>
         <div className="space-y-2 w-full">
-          {/* Start Tournament Button - Only show if enrolling status and has teams */}
+          {/* Action Buttons for enrolling tournaments */}
           {tournament.status === 'enrolling' && teamCount >= 2 && (
-            <Button 
-              variant="default" 
-              size="sm" 
-              onClick={() => startTournament.mutate(tournament.id)}
-              disabled={startTournament.isPending}
-              className="w-full flex items-center gap-2 bg-green-600 hover:bg-green-700"
-              data-testid="start-tournament-button"
-            >
-              <Play className="w-4 h-4" />
-              {startTournament.isPending ? 'Iniciando...' : 'Iniciar Torneo'}
-            </Button>
+            <div className="grid grid-cols-2 gap-2 w-full">
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={() => startTournament.mutate(tournament.id)}
+                disabled={startTournament.isPending}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                data-testid="start-tournament-button"
+              >
+                <Play className="w-4 h-4" />
+                {startTournament.isPending ? 'Iniciando...' : 'Iniciar Torneo'}
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => generateFixture.mutate(tournament.id)}
+                disabled={generateFixture.isPending}
+                className="flex items-center gap-2"
+                data-testid="generate-fixture-button"
+              >
+                <Shuffle className="w-4 h-4" />
+                {generateFixture.isPending ? 'Generando...' : 'Generar Fixture'}
+              </Button>
+            </div>
+          )}
+          
+          {/* Info message if not enough teams */}
+          {tournament.status === 'enrolling' && teamCount < 2 && (
+            <div className="text-center text-sm text-muted-foreground p-2 bg-orange-50 rounded">
+              Se necesitan al menos 2 equipos aprobados para iniciar el torneo
+            </div>
           )}
           
           <div className="grid grid-cols-2 gap-2 w-full">
