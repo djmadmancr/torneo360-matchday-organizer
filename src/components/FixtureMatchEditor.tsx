@@ -21,8 +21,8 @@ interface FixtureMatchEditorProps {
     away_score: number;
     status: string;
     match_data: any;
-    home_team: { name: string };
-    away_team: { name: string };
+    home_teams: { id: string; name: string; logo_url?: string };
+    away_teams: { id: string; name: string; logo_url?: string };
   };
   isOpen: boolean;
   onClose: () => void;
@@ -251,7 +251,7 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-orange-500" />
-            Editor de Partido: {match.home_team.name} vs {match.away_team.name}
+            Editor de Partido: {match.home_teams?.name} vs {match.away_teams?.name}
           </DialogTitle>
         </DialogHeader>
 
@@ -266,7 +266,7 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
               
               <div className="grid grid-cols-3 gap-4 items-center">
                 <div className="text-center">
-                  <Label className="text-sm font-medium">{match.home_team.name}</Label>
+                  <Label className="text-sm font-medium">{match.home_teams?.name}</Label>
                   <Input
                     type="number"
                     min="0"
@@ -281,7 +281,7 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
                 </div>
                 
                 <div className="text-center">
-                  <Label className="text-sm font-medium">{match.away_team.name}</Label>
+                  <Label className="text-sm font-medium">{match.away_teams?.name}</Label>
                   <Input
                     type="number"
                     min="0"
@@ -326,8 +326,8 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="home">{match.home_team.name}</SelectItem>
-                    <SelectItem value="away">{match.away_team.name}</SelectItem>
+                    <SelectItem value="home">{match.home_teams?.name}</SelectItem>
+                    <SelectItem value="away">{match.away_teams?.name}</SelectItem>
                   </SelectContent>
                 </Select>
                 
@@ -350,13 +350,13 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <PlayerStatsEditor 
               players={homePlayerStats}
-              teamName={match.home_team.name}
+              teamName={match.home_teams?.name || 'Equipo Local'}
               team="home"
             />
             
             <PlayerStatsEditor 
               players={awayPlayerStats}
-              teamName={match.away_team.name}
+              teamName={match.away_teams?.name || 'Equipo Visitante'}
               team="away"
             />
           </div>
