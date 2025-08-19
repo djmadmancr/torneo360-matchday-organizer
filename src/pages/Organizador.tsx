@@ -153,7 +153,8 @@ const Organizador = () => {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
+          {/* Desktop Tabs */}
+          <TabsList className="hidden md:grid w-full grid-cols-3">
             <TabsTrigger value="torneos">Torneos</TabsTrigger>
             <TabsTrigger value="resumen">Resumen de Torneos</TabsTrigger>
             <TabsTrigger value="solicitudes" className="relative">
@@ -165,6 +166,21 @@ const Organizador = () => {
               )}
             </TabsTrigger>
           </TabsList>
+
+          {/* Mobile Dropdown */}
+          <div className="md:hidden mb-4">
+            <select 
+              value={activeTab} 
+              onChange={(e) => setActiveTab(e.target.value)}
+              className="w-full p-3 border rounded-lg bg-background text-foreground"
+            >
+              <option value="torneos">🏆 Torneos</option>
+              <option value="resumen">📊 Resumen de Torneos</option>
+              <option value="solicitudes">
+                📋 Solicitudes {pendingRequestsCount > 0 ? `(${pendingRequestsCount})` : ''}
+              </option>
+            </select>
+          </div>
 
           <TabsContent value="resumen" className="mt-6">
             <OrganizadorDashboard />

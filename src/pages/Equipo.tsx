@@ -163,12 +163,27 @@ const Equipo = () => {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          {/* Desktop Tabs */}
+          <TabsList className="hidden md:grid w-full grid-cols-4">
             <TabsTrigger value="mis-equipos">Mis Equipos</TabsTrigger>
             <TabsTrigger value="invitaciones">Invitaciones</TabsTrigger>
             <TabsTrigger value="torneos-publicos">Buscar Torneos</TabsTrigger>
             <TabsTrigger value="torneos-activos">Torneos Activos</TabsTrigger>
           </TabsList>
+
+          {/* Mobile Dropdown */}
+          <div className="md:hidden mb-4">
+            <select 
+              value={activeTab} 
+              onChange={(e) => setActiveTab(e.target.value)}
+              className="w-full p-3 border rounded-lg bg-background text-foreground"
+            >
+              <option value="mis-equipos">👥 Mis Equipos</option>
+              <option value="invitaciones">📨 Invitaciones</option>
+              <option value="torneos-publicos">🔍 Buscar Torneos</option>
+              <option value="torneos-activos">🏆 Torneos Activos</option>
+            </select>
+          </div>
 
           <TabsContent value="mis-equipos" className="mt-6">
             <TeamCards />
