@@ -442,6 +442,8 @@ export type Database = {
       users: {
         Row: {
           auth_user_id: string | null
+          city: string | null
+          country: string | null
           created_at: string | null
           email: string
           full_name: string | null
@@ -454,6 +456,8 @@ export type Database = {
         }
         Insert: {
           auth_user_id?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string | null
           email: string
           full_name?: string | null
@@ -466,6 +470,8 @@ export type Database = {
         }
         Update: {
           auth_user_id?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string | null
           email?: string
           full_name?: string | null
