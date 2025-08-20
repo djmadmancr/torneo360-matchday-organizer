@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Users, Trophy, Settings, Bell, Calendar, MapPin, Medal, Plus, ArrowLeft } from "lucide-react";
 import { UserMenu } from '@/components/UserMenu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -182,18 +183,32 @@ const Equipo = () => {
             <TabsTrigger value="torneos-activos">Torneos Activos</TabsTrigger>
           </TabsList>
 
-          {/* Mobile Dropdown */}
-          <div className="md:hidden mb-4">
-            <select 
-              value={activeTab} 
-              onChange={(e) => setActiveTab(e.target.value)}
-              className="w-full p-3 border rounded-lg bg-background text-foreground"
-            >
-              <option value="mis-equipos">👥 Mis Equipos</option>
-              <option value="invitaciones">📨 Invitaciones</option>
-              <option value="torneos-publicos">🔍 Buscar Torneos</option>
-              <option value="torneos-activos">🏆 Torneos Activos</option>
-            </select>
+          {/* Mobile Collapsible Navigation */}
+          <div className="md:hidden mb-4 space-y-2">
+            {[
+              { key: 'mis-equipos', label: '👥 Mis Equipos', icon: Users },
+              { key: 'invitaciones', label: '📨 Invitaciones', icon: Bell },
+              { key: 'torneos-publicos', label: '🔍 Buscar Torneos', icon: Trophy },
+              { key: 'torneos-activos', label: '🏆 Torneos Activos', icon: Calendar }
+            ].map(({ key, label, icon: Icon }) => (
+              <Collapsible key={key} open={activeTab === key} onOpenChange={() => setActiveTab(key)}>
+                <CollapsibleTrigger className="w-full">
+                  <Card className={`w-full transition-colors ${activeTab === key ? 'bg-primary/10 border-primary' : 'hover:bg-muted/50'}`}>
+                    <CardHeader className="py-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Icon className="w-5 h-5" />
+                          <span className="font-medium">{label}</span>
+                        </div>
+                        <Badge variant={activeTab === key ? 'default' : 'outline'}>
+                          {activeTab === key ? 'Activo' : 'Seleccionar'}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                  </Card>
+                </CollapsibleTrigger>
+              </Collapsible>
+            ))}
           </div>
 
           <TabsContent value="mis-equipos" className="mt-6">

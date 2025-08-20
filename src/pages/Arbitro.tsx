@@ -24,7 +24,7 @@ interface Partido {
   estado: "programado" | "en_curso" | "finalizado";
 }
 
-const Fiscal = () => {
+const Arbitro = () => {
   const navigate = useNavigate();
   const [partidoSeleccionado, setPartidoSeleccionado] = useState<Partido | null>(null);
   const [mostrarFormularioResultado, setMostrarFormularioResultado] = useState(false);
@@ -185,7 +185,7 @@ const Fiscal = () => {
               Volver
             </Button>
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-primary">🟠 Panel de Fiscal</h1>
+              <h1 className="text-xl md:text-2xl font-bold text-primary">🟠 Panel de Árbitro</h1>
               <p className="text-sm text-muted-foreground">Registra los resultados de los partidos</p>
             </div>
           </div>
@@ -442,15 +442,6 @@ const Fiscal = () => {
                   Cancelar
                 </Button>
               </div>
-
-              {!puedeEnviarResultado && (
-                <div className="text-center text-sm text-muted-foreground">
-                  {!resultado.golesLocal || !resultado.golesVisitante 
-                    ? "Completa el resultado del partido" 
-                    : "Adjunta el informe arbitral para continuar"
-                  }
-                </div>
-              )}
             </div>
           )}
         </DialogContent>
@@ -459,4 +450,4 @@ const Fiscal = () => {
   );
 };
 
-export default Fiscal;
+export default Arbitro;

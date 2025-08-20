@@ -332,6 +332,45 @@ export type Database = {
           },
         ]
       }
+      tournament_referees: {
+        Row: {
+          created_at: string
+          id: string
+          referee_id: string
+          tournament_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referee_id: string
+          tournament_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referee_id?: string
+          tournament_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_referees_referee_id_fkey"
+            columns: ["referee_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_referees_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournaments: {
         Row: {
           allowed_countries: string[] | null
@@ -408,6 +447,7 @@ export type Database = {
           full_name: string | null
           id: string
           profile_data: Json | null
+          referee_credential: string | null
           role: string | null
           roles: Json | null
           updated_at: string | null
@@ -419,6 +459,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           profile_data?: Json | null
+          referee_credential?: string | null
           role?: string | null
           roles?: Json | null
           updated_at?: string | null
@@ -430,6 +471,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           profile_data?: Json | null
+          referee_credential?: string | null
           role?: string | null
           roles?: Json | null
           updated_at?: string | null

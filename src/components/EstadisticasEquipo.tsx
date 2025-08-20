@@ -439,7 +439,7 @@ const EstadisticasEquipo: React.FC<EstadisticasEquipoProps> = ({ equipoId: userI
       </div>
 
       {/* Tabla de Posiciones y Próximos Partidos - Nuevo formato */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
         {/* Tabla de Posiciones */}
         {tournamentPositions.length > 0 && (
           <TournamentTable 

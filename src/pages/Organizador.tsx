@@ -19,6 +19,7 @@ import { UserMenu } from '@/components/UserMenu';
 import { useTournaments, Tournament } from '@/hooks/useTournaments';
 import { useOrganizerTournaments } from '@/hooks/useOrganizerTournaments';
 import { AllOrganizerRequests } from '@/components/tournaments/AllOrganizerRequests';
+import RefereeSearchModal from '@/components/RefereeSearchModal';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -33,6 +34,7 @@ const Organizador = () => {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showEditTournament, setShowEditTournament] = useState(false);
   const [showFixtureModal, setShowFixtureModal] = useState(false);
+  const [showRefereeModal, setShowRefereeModal] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const { data: organizerTournaments, isLoading: torneosLoading } = useOrganizerTournaments(currentUser?.id);
   const { deleteTournament } = useTournaments();
@@ -97,55 +99,60 @@ const Organizador = () => {
     }}>
       <div className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate('/')}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Volver
-              </Button>
-              <div>
-                <h1 className="text-xl md:text-2xl font-bold text-primary">🟢 Panel de Organizador</h1>
-                <p className="text-sm text-muted-foreground">Administra torneos y equipos</p>
-              </div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2 flex-shrink-0"
+              size="sm"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Volver</span>
+            </Button>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg md:text-2xl font-bold text-primary truncate">🟢 Panel de Organizador</h1>
+              <p className="text-xs md:text-sm text-muted-foreground hidden sm:block">Administra torneos y equipos</p>
             </div>
+          </div>
+          <div className="flex-shrink-0">
             <UserMenu onEditProfile={() => setShowEditProfile(true)} />
           </div>
+        </div>
         </div>
       </div>
       
       <div className="p-6">
         <div className="container mx-auto max-w-7xl">{/* Header */}
         <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-100 rounded-full">
-                <Trophy className="w-8 h-8 text-blue-600" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
+              <div className="p-2 md:p-3 bg-blue-100 rounded-full flex-shrink-0">
+                <Trophy className="w-6 h-6 md:w-8 md:h-8 text-blue-600" />
               </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">Organizador Dashboard</h2>
-                <p className="text-gray-600">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg md:text-2xl font-bold text-gray-900 truncate">Organizador Dashboard</h2>
+                <p className="text-sm md:text-base text-gray-600 truncate">
                   {stats?.organizacion || currentUser.full_name}
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <Button
                 onClick={() => setShowCreateTorneo(true)}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-blue-600 hover:bg-blue-700 flex-1 sm:flex-none"
+                size="sm"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Crear Torneo
+                <span className="hidden sm:inline">Crear Torneo</span>
+                <span className="sm:hidden">Crear</span>
               </Button>
             </div>
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
             <Card>
               <CardContent className="p-4 text-center">
                 <div className="text-2xl font-bold text-blue-600">{stats.torneos}</div>
@@ -191,7 +198,7 @@ const Organizador = () => {
                       <p>Cargando torneos...</p>
                     </div>
                   ) : organizerTournaments && organizerTournaments.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                       {organizerTournaments.map((tournament) => (
                         <TournamentCard
                           key={tournament.id}
@@ -208,10 +215,10 @@ const Organizador = () => {
                             // TODO: Implementar vista de estadísticas
                             console.log('Ver estadísticas:', tournament);
                           }}
-                          onManageReferees={(tournament) => {
-                            // TODO: Implementar gestión de árbitros
-                            console.log('Gestionar árbitros:', tournament);
-                          }}
+                           onManageReferees={(tournament) => {
+                             setSelectedTournament(tournament as Tournament);
+                             setShowRefereeModal(true);
+                           }}
                           onDelete={async (tournament) => {
                             try {
                               await deleteTournament(tournament.id);
@@ -325,6 +332,18 @@ const Organizador = () => {
             isOpen={showFixtureModal}
             onClose={() => {
               setShowFixtureModal(false);
+              setSelectedTournament(null);
+            }}
+          />
+        )}
+
+        {showRefereeModal && selectedTournament && (
+          <RefereeSearchModal
+            tournamentId={selectedTournament.id}
+            tournamentName={selectedTournament.name}
+            isOpen={showRefereeModal}
+            onClose={() => {
+              setShowRefereeModal(false);
               setSelectedTournament(null);
             }}
           />

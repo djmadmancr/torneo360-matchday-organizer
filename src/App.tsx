@@ -10,7 +10,7 @@ import Auth from "./pages/Auth";
 import NoAccess from "./pages/NoAccess";
 import Organizador from "./pages/Organizador";
 import Equipo from "./pages/Equipo";
-import Fiscal from "./pages/Fiscal";
+import Arbitro from "./pages/Arbitro";
 import AdminUsers from "./pages/Admin/Users";
 import Torneos from "./pages/Torneos";
 import TorneoFixture from "./pages/TorneoFixture";
@@ -53,9 +53,9 @@ function App() {
                   <Equipo />
                 </PrivateRoute>
               } />
-              <Route path="/fiscal" element={
+              <Route path="/arbitro" element={
                 <PrivateRoute roles={['referee']}>
-                  <Fiscal />
+                  <Arbitro />
                 </PrivateRoute>
               } />
               <Route path="/admin/users" element={
