@@ -38,46 +38,47 @@ const RefereeSearchModal: React.FC<RefereeSearchModalProps> = ({
   const [cityFilter, setCityFilter] = useState('');
   const queryClient = useQueryClient();
 
-  // Fetch all referees
+  // Fetch all referees - using completely different approach to avoid TypeScript issues
   const { data: referees = [], isLoading } = useQuery({
     queryKey: ['referees-search', searchTerm, countryFilter, cityFilter],
     queryFn: async () => {
-      let query = supabase
+      // Build filter conditions as object
+      const filters: Record<string, any> = { role: 'referee' };
+      if (countryFilter) filters.country = countryFilter;
+      if (cityFilter) filters.city = cityFilter;
+
+      // Execute base query without conditional chaining
+      const baseQuery = supabase
         .from('users')
         .select('id, full_name, email, referee_credential, city, country, profile_data')
-        .eq('role', 'referee');
+        .match(filters);
 
-      if (searchTerm) {
-        const searchQuery = `full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,referee_credential.ilike.%${searchTerm}%`;
-        query = query.or(searchQuery);
-      }
+      // Get both results separately
+      const [baseResult, assignedResult] = await Promise.all([
+        searchTerm ? 
+          baseQuery.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,referee_credential.ilike.%${searchTerm}%`).order('full_name') :
+          baseQuery.order('full_name'),
+        supabase
+          .from('tournament_referees')
+          .select('referee_id')
+          .eq('tournament_id', tournamentId)
+      ]);
 
-      if (countryFilter) {
-        query = query.eq('country', countryFilter);
-      }
+      if (baseResult.error) throw baseResult.error;
+      if (assignedResult.error) throw assignedResult.error;
 
-      if (cityFilter) {
-        query = query.eq('city', cityFilter);
-      }
+      const assignedIds = new Set(assignedResult.data?.map((ar: any) => ar.referee_id) || []);
 
-      const { data, error } = await query.order('full_name');
-      
-      if (error) throw error;
-
-      // Check which referees are already assigned to this tournament
-      const { data: assignedReferees, error: assignedError } = await supabase
-        .from('tournament_referees')
-        .select('referee_id')
-        .eq('tournament_id', tournamentId);
-
-      if (assignedError) throw assignedError;
-
-      const assignedIds = new Set(assignedReferees?.map((ar: any) => ar.referee_id) || []);
-
-      return (data || []).map((referee: any) => ({
-        ...referee,
+      return (baseResult.data || []).map((referee: any) => ({
+        id: referee.id,
+        full_name: referee.full_name,
+        email: referee.email,
+        referee_credential: referee.referee_credential,
+        city: referee.city,
+        country: referee.country,
+        profile_data: referee.profile_data,
         isAssigned: assignedIds.has(referee.id)
-      }));
+      } as Referee));
     },
     enabled: isOpen,
   });

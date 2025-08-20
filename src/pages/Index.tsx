@@ -44,7 +44,12 @@ const Index = () => {
   const availableModules = moduleAccess[currentUser.role] || [];
 
   const handleModuleNavigation = (module: string) => {
-    navigate(`/${module}`);
+    // Special case for fiscal/referee module
+    if (module === 'fiscal') {
+      navigate('/arbitro');
+    } else {
+      navigate(`/${module}`);  
+    }
   };
 
   const handleLogout = async () => {
@@ -64,8 +69,9 @@ const Index = () => {
       icon: Users
     },
     fiscal: {
-      title: "Fiscal",
+      title: "Árbitro",
       description: "Supervisa partidos, registra resultados y mantén la integridad del juego",
+      path: "/arbitro",
       icon: UserCheck
     }
   };

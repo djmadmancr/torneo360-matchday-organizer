@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Calendar, Trophy, MapPin, Clock, Users, Edit, BarChart3, Crown, Target } from 'lucide-react';
 import { useTournamentFixtures } from '@/hooks/useTournamentRegistrations';
+import TournamentBracketPlaceholder from './TournamentBracketPlaceholder';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuth } from '@/contexts/AuthContext';
@@ -247,22 +248,22 @@ export const TournamentFixtureModal: React.FC<TournamentFixtureModalProps> = ({
                                   {/* Equipos y marcador */}
                                   <div className="flex items-center gap-4 flex-1">
                                     {/* Equipo local */}
-                                    <div className="flex items-center gap-3 flex-1 justify-end">
-                                      <span className="font-medium text-right">
-                                        {fixture.home_teams?.name}
-                                      </span>
-                                      {fixture.home_teams?.logo_url ? (
-                                        <img 
-                                          src={fixture.home_teams.logo_url} 
-                                          alt={`Logo de ${fixture.home_teams.name}`}
-                                          className="w-8 h-8 object-cover rounded-full border-2 border-gray-200"
-                                        />
-                                      ) : (
-                                        <div className="w-8 h-8 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center">
-                                          <Trophy className="w-4 h-4 text-gray-500" />
-                                        </div>
-                                      )}
-                                    </div>
+                                     <div className="flex items-center gap-3 flex-1 justify-end">
+                                       <span className="font-medium text-right">
+                                         {fixture.home_teams?.name || '1° Grupo A'}
+                                       </span>
+                                       {fixture.home_teams?.logo_url ? (
+                                         <img 
+                                           src={fixture.home_teams.logo_url} 
+                                           alt={`Logo de ${fixture.home_teams.name}`}
+                                           className="w-8 h-8 object-cover rounded-full border-2 border-gray-200"
+                                         />
+                                       ) : (
+                                         <div className={`w-8 h-8 ${fixture.home_teams?.name ? 'bg-gradient-to-br from-gray-200 to-gray-300' : 'bg-gradient-to-br from-blue-100 to-blue-200 border-2 border-dashed border-blue-300'} rounded-full flex items-center justify-center`}>
+                                           <Trophy className={`w-4 h-4 ${fixture.home_teams?.name ? 'text-gray-500' : 'text-blue-500'}`} />
+                                         </div>
+                                       )}
+                                     </div>
 
                                     {/* Marcador */}
                                     <div className="flex items-center gap-2 min-w-[120px] justify-center">
@@ -282,22 +283,22 @@ export const TournamentFixtureModal: React.FC<TournamentFixtureModalProps> = ({
                                     </div>
 
                                     {/* Equipo visitante */}
-                                    <div className="flex items-center gap-3 flex-1">
-                                      {fixture.away_teams?.logo_url ? (
-                                        <img 
-                                          src={fixture.away_teams.logo_url} 
-                                          alt={`Logo de ${fixture.away_teams.name}`}
-                                          className="w-8 h-8 object-cover rounded-full border-2 border-gray-200"
-                                        />
-                                      ) : (
-                                        <div className="w-8 h-8 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center">
-                                          <Trophy className="w-4 h-4 text-gray-500" />
-                                        </div>
-                                      )}
-                                      <span className="font-medium">
-                                        {fixture.away_teams?.name}
-                                      </span>
-                                    </div>
+                                     <div className="flex items-center gap-3 flex-1">
+                                       {fixture.away_teams?.logo_url ? (
+                                         <img 
+                                           src={fixture.away_teams.logo_url} 
+                                           alt={`Logo de ${fixture.away_teams.name}`}
+                                           className="w-8 h-8 object-cover rounded-full border-2 border-gray-200"
+                                         />
+                                       ) : (
+                                         <div className={`w-8 h-8 ${fixture.away_teams?.name ? 'bg-gradient-to-br from-gray-200 to-gray-300' : 'bg-gradient-to-br from-green-100 to-green-200 border-2 border-dashed border-green-300'} rounded-full flex items-center justify-center`}>
+                                           <Trophy className={`w-4 h-4 ${fixture.away_teams?.name ? 'text-gray-500' : 'text-green-500'}`} />
+                                         </div>
+                                       )}
+                                       <span className="font-medium">
+                                         {fixture.away_teams?.name || '2° Grupo A'}
+                                       </span>
+                                     </div>
                                   </div>
 
                                   {/* Info del partido */}
