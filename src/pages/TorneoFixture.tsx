@@ -29,7 +29,7 @@ const TorneoFixture = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[image:var(--admin-gradient)] flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
           <p className="text-muted-foreground">Cargando torneo...</p>
@@ -40,7 +40,7 @@ const TorneoFixture = () => {
 
   if (!tournament) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[image:var(--admin-gradient)] flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-2">Torneo no encontrado</h2>
           <p className="text-muted-foreground mb-4">El torneo que buscas no existe o no tienes permisos para verlo</p>
@@ -53,7 +53,7 @@ const TorneoFixture = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
+    <div className="min-h-screen bg-[image:var(--admin-gradient)]">
       <div className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">

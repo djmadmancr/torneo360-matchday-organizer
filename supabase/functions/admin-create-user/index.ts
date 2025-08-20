@@ -67,6 +67,19 @@ serve(async (req) => {
       throw new Error(`Este correo electrónico ya está registrado en el sistema de autenticación`);
     }
 
+    // Check if email already exists in users table BEFORE creating auth user
+    console.log('Checking if email exists in users table:', email);
+    const { data: existingUser } = await supabaseAdmin
+      .from('users')
+      .select('id, auth_user_id')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (existingUser) {
+      console.error('Email already exists in users table:', email);
+      throw new Error(`Este correo electrónico ya está registrado`);
+    }
+
     // Create user in auth
     console.log('Creating user in auth:', email);
     const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -88,20 +101,6 @@ serve(async (req) => {
     const userRole = roles.includes('admin') ? 'admin' : 
                     roles.includes('organizer') ? 'organizer' :
                     roles.includes('referee') ? 'referee' : 'team_admin';
-
-    // Check if email already exists in users table
-    const { data: existingUser } = await supabaseAdmin
-      .from('users')
-      .select('id, auth_user_id')
-      .eq('email', email)
-      .maybeSingle();
-
-    if (existingUser) {
-      console.error('Email already exists in users table:', email);
-      // Clean up auth user since we can't proceed
-      await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
-      throw new Error(`Este correo electrónico ya está registrado`);
-    }
                     
     const { error: dbError } = await supabaseAdmin
       .from('users')
