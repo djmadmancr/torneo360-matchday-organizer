@@ -39,16 +39,17 @@ const RefereeSearchModal: React.FC<RefereeSearchModalProps> = ({
   const queryClient = useQueryClient();
 
   // Fetch all referees
-  const { data: referees = [], isLoading } = useQuery<Referee[]>({
+  const { data: referees = [], isLoading } = useQuery({
     queryKey: ['referees-search', searchTerm, countryFilter, cityFilter],
-    queryFn: async (): Promise<Referee[]> => {
+    queryFn: async () => {
       let query = supabase
         .from('users')
         .select('id, full_name, email, referee_credential, city, country, profile_data')
         .eq('role', 'referee');
 
       if (searchTerm) {
-        query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,referee_credential.ilike.%${searchTerm}%`);
+        const searchQuery = `full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,referee_credential.ilike.%${searchTerm}%`;
+        query = query.or(searchQuery);
       }
 
       if (countryFilter) {
@@ -82,9 +83,9 @@ const RefereeSearchModal: React.FC<RefereeSearchModalProps> = ({
   });
 
   // Fetch assigned referees count
-  const { data: assignedCount = 0 } = useQuery<number>({
+  const { data: assignedCount = 0 } = useQuery({
     queryKey: ['tournament-referees-count', tournamentId],
-    queryFn: async (): Promise<number> => {
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('tournament_referees')
         .select('id')
