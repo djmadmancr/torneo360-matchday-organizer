@@ -8,7 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ImageUpload } from '@/components/ImageUpload';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSupabaseTeams } from '@/hooks/useSupabaseTeams';
 import { toast } from 'sonner';
 
@@ -24,7 +24,6 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
   console.log('🎭 CreateTeamModal render:', { open });
   const [formData, setFormData] = useState({
     name: '',
-    logo_url: '',
     colors: {
       principal: '#1e40af',
       secundario: '#3b82f6'
@@ -32,8 +31,6 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
     phone: '',
     address: '',
     country: '',
-    players: [] as Array<{id: string, name: string, lastName: string, idNumber: string}>,
-    technicalStaff: [] as Array<{id: string, name: string, lastName: string, position: string}>,
   });
 
   const { createTeam, isCreating, teams } = useSupabaseTeams();
@@ -52,22 +49,18 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
     try {
       await createTeam({
         name: formData.name.trim(),
-        logo_url: formData.logo_url,
         colors: formData.colors,
+        country: formData.country,
         team_data: {
           description: `Equipo ${formData.name}`,
           phone: formData.phone,
           address: formData.address,
-          country: formData.country,
-          players: formData.players,
-          technicalStaff: formData.technicalStaff,
         }
       });
 
       // Reset form
       setFormData({
         name: '',
-        logo_url: '',
         colors: {
           principal: '#1e40af',
           secundario: '#3b82f6'
@@ -75,8 +68,6 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
         phone: '',
         address: '',
         country: '',
-        players: [],
-        technicalStaff: [],
       });
 
       onOpenChange(false);
@@ -99,63 +90,6 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
     }));
   };
 
-  const addPlayer = () => {
-    const newPlayer = {
-      id: Date.now().toString(),
-      name: '',
-      lastName: '',
-      idNumber: ''
-    };
-    setFormData(prev => ({
-      ...prev,
-      players: [...prev.players, newPlayer]
-    }));
-  };
-
-  const updatePlayer = (id: string, field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      players: prev.players.map(player =>
-        player.id === id ? { ...player, [field]: value } : player
-      )
-    }));
-  };
-
-  const removePlayer = (id: string) => {
-    setFormData(prev => ({
-      ...prev,
-      players: prev.players.filter(player => player.id !== id)
-    }));
-  };
-
-  const addStaff = () => {
-    const newStaff = {
-      id: Date.now().toString(),
-      name: '',
-      lastName: '',
-      position: ''
-    };
-    setFormData(prev => ({
-      ...prev,
-      technicalStaff: [...prev.technicalStaff, newStaff]
-    }));
-  };
-
-  const updateStaff = (id: string, field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      technicalStaff: prev.technicalStaff.map(staff =>
-        staff.id === id ? { ...staff, [field]: value } : staff
-      )
-    }));
-  };
-
-  const removeStaff = (id: string) => {
-    setFormData(prev => ({
-      ...prev,
-      technicalStaff: prev.technicalStaff.filter(staff => staff.id !== id)
-    }));
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -180,17 +114,6 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
               />
             </div>
 
-            {/* Logo Upload */}
-            <div>
-              <Label>Logo del Equipo</Label>
-              <ImageUpload
-                value={formData.logo_url}
-                onChange={(url) => handleInputChange('logo_url', url)}
-                maxSize={5 * 1024 * 1024}
-                accept="image/jpeg,image/png"
-                placeholder="Sube el logo de tu equipo (JPG o PNG)"
-              />
-            </div>
 
             {/* Contact Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -205,12 +128,37 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
               </div>
               <div>
                 <Label htmlFor="country">País</Label>
-                <Input
-                  id="country"
-                  value={formData.country}
-                  onChange={(e) => handleInputChange('country', e.target.value)}
-                  placeholder="Ej: España"
-                />
+                <Select 
+                  value={formData.country} 
+                  onValueChange={(value) => handleInputChange('country', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona el país" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    <SelectItem value="Argentina">Argentina</SelectItem>
+                    <SelectItem value="Bolivia">Bolivia</SelectItem>
+                    <SelectItem value="Brasil">Brasil</SelectItem>
+                    <SelectItem value="Chile">Chile</SelectItem>
+                    <SelectItem value="Colombia">Colombia</SelectItem>
+                    <SelectItem value="Costa Rica">Costa Rica</SelectItem>
+                    <SelectItem value="Ecuador">Ecuador</SelectItem>
+                    <SelectItem value="El Salvador">El Salvador</SelectItem>
+                    <SelectItem value="España">España</SelectItem>
+                    <SelectItem value="Estados Unidos">Estados Unidos</SelectItem>
+                    <SelectItem value="Guatemala">Guatemala</SelectItem>
+                    <SelectItem value="Honduras">Honduras</SelectItem>
+                    <SelectItem value="México">México</SelectItem>
+                    <SelectItem value="Nicaragua">Nicaragua</SelectItem>
+                    <SelectItem value="Panamá">Panamá</SelectItem>
+                    <SelectItem value="Paraguay">Paraguay</SelectItem>
+                    <SelectItem value="Perú">Perú</SelectItem>
+                    <SelectItem value="República Dominicana">República Dominicana</SelectItem>
+                    <SelectItem value="Uruguay">Uruguay</SelectItem>
+                    <SelectItem value="Venezuela">Venezuela</SelectItem>
+                    <SelectItem value="Otro">Otro</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -279,84 +227,6 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
             </div>
           </div>
 
-          {/* Players Section */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label>Jugadores</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addPlayer}>
-                + Agregar Jugador
-              </Button>
-            </div>
-            <div className="space-y-3 max-h-40 overflow-y-auto">
-              {formData.players.map((player) => (
-                <div key={player.id} className="grid grid-cols-4 gap-2 p-3 border rounded-lg">
-                  <Input
-                    placeholder="Nombre"
-                    value={player.name}
-                    onChange={(e) => updatePlayer(player.id, 'name', e.target.value)}
-                  />
-                  <Input
-                    placeholder="Apellido"
-                    value={player.lastName}
-                    onChange={(e) => updatePlayer(player.id, 'lastName', e.target.value)}
-                  />
-                  <Input
-                    placeholder="ID/Cédula"
-                    value={player.idNumber}
-                    onChange={(e) => updatePlayer(player.id, 'idNumber', e.target.value)}
-                  />
-                  <Button type="button" variant="destructive" size="sm" onClick={() => removePlayer(player.id)}>
-                    ×
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Technical Staff Section */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label>Cuerpo Técnico</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addStaff}>
-                + Agregar Personal
-              </Button>
-            </div>
-            <div className="space-y-3 max-h-40 overflow-y-auto">
-              {formData.technicalStaff.map((staff) => (
-                <div key={staff.id} className="grid grid-cols-4 gap-2 p-3 border rounded-lg">
-                  <Input
-                    placeholder="Nombre"
-                    value={staff.name}
-                    onChange={(e) => updateStaff(staff.id, 'name', e.target.value)}
-                  />
-                  <Input
-                    placeholder="Apellido"
-                    value={staff.lastName}
-                    onChange={(e) => updateStaff(staff.id, 'lastName', e.target.value)}
-                  />
-                  <Input
-                    placeholder="Cargo"
-                    value={staff.position}
-                    onChange={(e) => updateStaff(staff.id, 'position', e.target.value)}
-                  />
-                  <Button type="button" variant="destructive" size="sm" onClick={() => removeStaff(staff.id)}>
-                    ×
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Info Box */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-medium text-blue-900 mb-2">📋 Información importante</h4>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• El equipo será creado y aprobado inmediatamente</li>
-                <li>• Podrás agregar jugadores y staff después de la creación</li>
-                <li>• El logo por defecto puede cambiarse desde el perfil del equipo</li>
-                <li>• Por ahora solo puedes crear un equipo (primer equipo gratuito)</li>
-              </ul>
-            </div>
 
           <div className="flex justify-end space-x-2 pt-4">
             <Button
