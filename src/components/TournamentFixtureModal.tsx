@@ -195,11 +195,34 @@ export const TournamentFixtureModal: React.FC<TournamentFixtureModalProps> = ({
                   </Card>
                   
                   {/* Show elimination bracket placeholder */}
-                  <TournamentBracketPlaceholder 
-                    tournamentType="elimination"
-                    teamsCount={8}
-                    showEliminationBracket={true}
-                  />
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Cuadro Eliminatorio</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="p-4 border-2 border-dashed border-primary/30 rounded-lg text-center">
+                        <div className="text-sm text-muted-foreground">Cuartos de Final</div>
+                        <div className="mt-2 space-y-1">
+                          <div className="p-2 bg-blue-50 rounded">1° Grupo A</div>
+                          <div className="text-xs text-muted-foreground">vs</div>
+                          <div className="p-2 bg-green-50 rounded">2° Grupo B</div>
+                        </div>
+                      </div>
+                      <div className="p-4 border-2 border-dashed border-primary/30 rounded-lg text-center">
+                        <div className="text-sm text-muted-foreground">Semifinal</div>
+                        <div className="mt-2 p-2 bg-gray-50 rounded">Ganador CF1</div>
+                      </div>
+                      <div className="p-4 border-2 border-dashed border-primary/30 rounded-lg text-center">
+                        <div className="text-sm text-muted-foreground">Final</div>
+                        <div className="mt-2 p-2 bg-yellow-50 rounded">Ganador SF</div>
+                      </div>
+                      <div className="p-4 border-2 border-dashed border-primary/30 rounded-lg text-center">
+                        <div className="text-sm text-muted-foreground">Campeón</div>
+                        <div className="mt-2 p-2 bg-gold-50 rounded flex items-center justify-center">
+                          <Crown className="w-4 h-4 mr-1" />
+                          TBD
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <>

@@ -9,6 +9,16 @@ import { Search, User, MapPin, CreditCard, Phone, Calendar, Award, Globe, Filter
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+// Types for referee profile data
+interface RefereeProfileData {
+  phone?: string;
+  experience?: string;
+  certifications?: string;
+  availability?: string[];
+  bio?: string;
+  updated_at?: string;
+}
+
 interface RefereePoolModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -242,54 +252,54 @@ const RefereePoolModal: React.FC<RefereePoolModalProps> = ({
                               <span>{referee.city}</span>
                             </div>
                           )}
-                          {referee.profile_data?.phone && (
+                          {((referee.profile_data as RefereeProfileData) || {}).phone && (
                             <div className="flex items-center gap-2">
                               <Phone className="w-4 h-4 text-muted-foreground" />
-                              <span>{referee.profile_data.phone}</span>
+                              <span>{((referee.profile_data as RefereeProfileData) || {}).phone}</span>
                             </div>
                           )}
-                          {referee.profile_data?.experience && (
+                          {((referee.profile_data as RefereeProfileData) || {}).experience && (
                             <div className="flex items-center gap-2">
                               <Award className="w-4 h-4 text-muted-foreground" />
-                              <span>{formatExperience(referee.profile_data.experience)}</span>
+                              <span>{formatExperience(((referee.profile_data as RefereeProfileData) || {}).experience || '')}</span>
                             </div>
                           )}
                         </div>
 
                         {/* Availability */}
-                        {referee.profile_data?.availability && (
+                        {((referee.profile_data as RefereeProfileData) || {}).availability && (
                           <div>
                             <div className="flex items-center gap-2 mb-1">
                               <Calendar className="w-4 h-4 text-muted-foreground" />
                               <span className="text-sm font-medium">Disponibilidad:</span>
                             </div>
                             <p className="text-sm text-muted-foreground ml-6">
-                              {getAvailabilityText(referee.profile_data.availability)}
+                              {getAvailabilityText(((referee.profile_data as RefereeProfileData) || {}).availability || [])}
                             </p>
                           </div>
                         )}
 
                         {/* Bio */}
-                        {referee.profile_data?.bio && (
+                        {((referee.profile_data as RefereeProfileData) || {}).bio && (
                           <div>
                             <p className="text-sm text-muted-foreground">
-                              {referee.profile_data.bio.length > 150 
-                                ? `${referee.profile_data.bio.substring(0, 150)}...`
-                                : referee.profile_data.bio
+                              {(((referee.profile_data as RefereeProfileData) || {}).bio || '').length > 150 
+                                ? `${(((referee.profile_data as RefereeProfileData) || {}).bio || '').substring(0, 150)}...`
+                                : ((referee.profile_data as RefereeProfileData) || {}).bio
                               }
                             </p>
                           </div>
                         )}
 
                         {/* Certifications */}
-                        {referee.profile_data?.certifications && (
+                        {((referee.profile_data as RefereeProfileData) || {}).certifications && (
                           <div>
                             <div className="flex items-center gap-2 mb-1">
                               <CreditCard className="w-4 h-4 text-muted-foreground" />
                               <span className="text-sm font-medium">Certificaciones:</span>
                             </div>
                             <p className="text-sm text-muted-foreground ml-6">
-                              {referee.profile_data.certifications}
+                              {((referee.profile_data as RefereeProfileData) || {}).certifications}
                             </p>
                           </div>
                         )}

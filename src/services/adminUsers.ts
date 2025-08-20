@@ -40,19 +40,25 @@ export const useCreateUser = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ email, password, full_name, roles }: { 
+    mutationFn: async ({ email, password, full_name, roles, city, country }: { 
       email: string; 
       password: string; 
       full_name: string; 
-      roles: string[]; 
+      roles: string[];
+      city?: string;
+      country?: string;
     }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      console.log('Calling admin-create-user with:', { email, full_name, roles });
+      console.log('Calling admin-create-user with:', { email, full_name, roles, city, country });
+      
+      const requestBody: any = { email, password, full_name, roles };
+      if (city) requestBody.city = city;
+      if (country) requestBody.country = country;
       
       const { data, error } = await supabase.functions.invoke('admin-create-user', {
-        body: { email, password, full_name, roles }
+        body: requestBody
       });
 
       if (error) {

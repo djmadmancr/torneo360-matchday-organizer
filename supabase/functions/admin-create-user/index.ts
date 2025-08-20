@@ -12,7 +12,9 @@ const CreateUserSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6), // Cambiado de 8 a 6 para coincidir con los logs
   full_name: z.string().min(1),
-  roles: z.array(z.enum(['admin', 'organizer', 'referee', 'team_admin'])).min(1)
+  roles: z.array(z.enum(['admin', 'organizer', 'referee', 'team_admin'])).min(1),
+  city: z.string().optional(),
+  country: z.string().optional()
 });
 
 serve(async (req) => {
@@ -63,8 +65,8 @@ serve(async (req) => {
       throw new Error('At least one role must be specified');
     }
     
-    const { email, password, full_name, roles } = CreateUserSchema.parse(body);
-    console.log('Validation successful for:', { email, full_name, roles });
+    const { email, password, full_name, roles, city, country } = CreateUserSchema.parse(body);
+    console.log('Validation successful for:', { email, full_name, roles, city, country });
 
     // Check if email already exists in auth.users
     console.log('Checking if email exists in auth.users:', email);
@@ -111,15 +113,21 @@ serve(async (req) => {
                     roles.includes('organizer') ? 'organizer' :
                     roles.includes('referee') ? 'referee' : 'team_admin';
                     
+    const userData: any = {
+      auth_user_id: authUser.user.id,
+      email,
+      full_name,
+      roles: roles, // Store as JSON array
+      role: userRole
+    };
+
+    // Add city and country for referee profiles
+    if (city) userData.city = city;
+    if (country) userData.country = country;
+
     const { error: dbError } = await supabaseAdmin
       .from('users')
-      .insert({
-        auth_user_id: authUser.user.id,
-        email,
-        full_name,
-        roles: roles, // Store as JSON array
-        role: userRole
-      });
+      .insert(userData);
 
     if (dbError) {
       console.error('Database error:', dbError);

@@ -16,6 +16,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { hasRole } from "@/utils/roleUtils";
+
+// Types for referee profile data
+interface RefereeProfileData {
+  phone?: string;
+  experience?: string;
+  certifications?: string;
+  availability?: string[];
+  bio?: string;
+  updated_at?: string;
+}
 
 interface Fixture {
   id: string;
@@ -101,17 +112,18 @@ const Arbitro = () => {
       
       // Update local profile data when fetched
       if (data) {
+        const profileData = (data.profile_data as RefereeProfileData) || {};
         setProfileData({
           full_name: data.full_name || '',
           email: data.email || '',
           referee_credential: data.referee_credential || '',
           city: data.city || '',
           country: data.country || '',
-          phone: data.profile_data?.phone || '',
-          experience: data.profile_data?.experience || '',
-          certifications: data.profile_data?.certifications || '',
-          availability: data.profile_data?.availability || [],
-          bio: data.profile_data?.bio || ''
+          phone: profileData.phone || '',
+          experience: profileData.experience || '',
+          certifications: profileData.certifications || '',
+          availability: profileData.availability || [],
+          bio: profileData.bio || ''
         });
       }
       
@@ -696,17 +708,18 @@ const Arbitro = () => {
                           setEditingProfile(false);
                           // Reset form data
                           if (refereeProfile) {
+                            const resetProfileData = (refereeProfile.profile_data as RefereeProfileData) || {};
                             setProfileData({
                               full_name: refereeProfile.full_name || '',
                               email: refereeProfile.email || '',
                               referee_credential: refereeProfile.referee_credential || '',
                               city: refereeProfile.city || '',
                               country: refereeProfile.country || '',
-                              phone: refereeProfile.profile_data?.phone || '',
-                              experience: refereeProfile.profile_data?.experience || '',
-                              certifications: refereeProfile.profile_data?.certifications || '',
-                              availability: refereeProfile.profile_data?.availability || [],
-                              bio: refereeProfile.profile_data?.bio || ''
+                              phone: resetProfileData.phone || '',
+                              experience: resetProfileData.experience || '',
+                              certifications: resetProfileData.certifications || '',
+                              availability: resetProfileData.availability || [],
+                              bio: resetProfileData.bio || ''
                             });
                           }
                         }}
