@@ -35,7 +35,12 @@ const AdminUsers = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[image:var(--admin-gradient)] p-6">
+      <div className="min-h-screen relative p-6" style={{ 
+        backgroundImage: `var(--admin-overlay), var(--admin-gradient)`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}>
         <div className="container mx-auto">
           <div className="flex items-center justify-center h-64">
             <div className="text-lg text-white">Cargando usuarios...</div>
@@ -47,7 +52,12 @@ const AdminUsers = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[image:var(--admin-gradient)] p-6">
+      <div className="min-h-screen relative p-6" style={{ 
+        backgroundImage: `var(--admin-overlay), var(--admin-gradient)`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}>
         <div className="container mx-auto">
           <div className="flex items-center justify-center h-64">
             <div className="text-lg text-red-200">Error al cargar usuarios: {error.message}</div>
@@ -58,8 +68,13 @@ const AdminUsers = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[image:var(--admin-gradient)] p-6">
-      <div className="container mx-auto max-w-7xl">
+    <div className="min-h-screen relative p-6" style={{ 
+      backgroundImage: `var(--admin-overlay), var(--admin-gradient)`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundAttachment: 'fixed'
+    }}>
+      <div className="container mx-auto max-w-7xl relative z-10">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
           <div className="flex items-center gap-4 mb-6">

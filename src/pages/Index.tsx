@@ -71,7 +71,12 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[image:var(--admin-gradient)]">
+    <div className="min-h-screen relative" style={{ 
+      backgroundImage: `var(--admin-overlay), var(--admin-gradient)`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundAttachment: 'fixed'
+    }}>
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-6">

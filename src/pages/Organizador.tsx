@@ -69,7 +69,12 @@ const Organizador = () => {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-[image:var(--admin-gradient)] flex items-center justify-center">
+      <div className="min-h-screen relative flex items-center justify-center" style={{ 
+        backgroundImage: `var(--admin-overlay), var(--admin-gradient)`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}>
         <Card className="w-full max-w-md">
           <CardContent className="text-center py-8">
             <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -84,7 +89,12 @@ const Organizador = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[image:var(--admin-gradient)]">
+    <div className="min-h-screen relative" style={{ 
+      backgroundImage: `var(--admin-overlay), var(--admin-gradient)`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundAttachment: 'fixed'
+    }}>
       <div className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">

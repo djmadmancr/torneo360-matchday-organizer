@@ -10,9 +10,9 @@ const corsHeaders = {
 // Validation schema
 const CreateUserSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8),
+  password: z.string().min(6), // Cambiado de 8 a 6 para coincidir con los logs
   full_name: z.string().min(1),
-  roles: z.array(z.enum(['admin', 'organizer', 'referee', 'team_admin']))
+  roles: z.array(z.enum(['admin', 'organizer', 'referee', 'team_admin'])).min(1)
 });
 
 serve(async (req) => {
@@ -46,9 +46,18 @@ serve(async (req) => {
 
     // Parse and validate request body
     const body = await req.json();
-    console.log('Request body received:', { ...body, password: '[REDACTED]' });
+    console.log('Request body received:', { ...body, password: body.password ? '[REDACTED]' : 'MISSING' });
     
-    // Validate that roles is not empty
+    // Validate that required fields exist
+    if (!body.email) {
+      throw new Error('Email is required');
+    }
+    if (!body.password) {
+      throw new Error('Password is required');
+    }
+    if (!body.full_name) {
+      throw new Error('Full name is required');
+    }
     if (!body.roles || !Array.isArray(body.roles) || body.roles.length === 0) {
       console.error('Invalid roles:', body.roles);
       throw new Error('At least one role must be specified');

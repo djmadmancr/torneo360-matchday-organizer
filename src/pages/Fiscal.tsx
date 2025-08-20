@@ -167,7 +167,12 @@ const Fiscal = () => {
   const puedeEnviarResultado = resultado.golesLocal && resultado.golesVisitante && informeArbitral;
 
   return (
-    <div className="min-h-screen bg-[image:var(--admin-gradient)]">
+    <div className="min-h-screen relative" style={{ 
+      backgroundImage: `var(--admin-overlay), var(--admin-gradient)`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundAttachment: 'fixed'
+    }}>
       <div className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">

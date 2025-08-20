@@ -36,10 +36,9 @@
 
     --radius: 0.5rem;
 
-    /* Modern dark green gradient for admin panels */
-    --admin-gradient-start: 142 73% 8%;
-    --admin-gradient-end: 140 100% 5%;
-    --admin-gradient: linear-gradient(135deg, hsl(var(--admin-gradient-start)), hsl(var(--admin-gradient-end)));
+    /* Custom background image with overlay */
+    --admin-gradient: url('/lovable-uploads/e9c75358-e535-4b61-9d55-5781bf2b2aab.png');
+    --admin-overlay: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5));
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
