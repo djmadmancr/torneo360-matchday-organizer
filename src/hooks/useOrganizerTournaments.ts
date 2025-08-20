@@ -26,7 +26,11 @@ export const useOrganizerTournaments = (organizerId?: string) => {
   return useQuery({
     queryKey: ['organizer-tournaments', organizerId],
     queryFn: async (): Promise<TournamentWithTeamCount[]> => {
-      if (!organizerId) return [];
+      console.log('🔍 useOrganizerTournaments executing for organizerId:', organizerId);
+      if (!organizerId) {
+        console.log('❌ No organizerId provided, returning empty array');
+        return [];
+      }
 
       // First get tournaments
       const { data: tournaments, error: tournamentsError } = await supabase
@@ -35,7 +39,14 @@ export const useOrganizerTournaments = (organizerId?: string) => {
         .eq('organizer_id', organizerId)
         .order('created_at', { ascending: false });
 
-      if (tournamentsError) throw tournamentsError;
+      console.log('📊 Tournaments query result:', { tournaments, tournamentsError, organizerId });
+
+      if (tournamentsError) {
+        console.error('❌ Error fetching tournaments:', tournamentsError);
+        throw tournamentsError;
+      }
+
+      console.log(`✅ Found ${tournaments?.length || 0} tournaments for organizer ${organizerId}`);
 
       // Then get team counts for each tournament
       const tournamentsWithCounts = await Promise.all(
@@ -61,6 +72,7 @@ export const useOrganizerTournaments = (organizerId?: string) => {
         })
       );
 
+      console.log(`🏆 Returning ${tournamentsWithCounts.length} tournaments with counts`);
       return tournamentsWithCounts;
     },
     enabled: !!organizerId,

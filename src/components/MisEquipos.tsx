@@ -30,8 +30,7 @@ const MisEquipos = () => {
   }
 
   // Forzar mostrar el estado de "no teams" para debugging
-  if (!teams || teams.length === 0 || true) { // Temporalmente forzado para debugging
-    console.log('🎯 MOSTRANDO: Mensaje de "No tienes equipos creados"');
+  if (!teams || teams.length === 0) {
     return (
       <div className="space-y-6">
         <Card>
@@ -43,11 +42,7 @@ const MisEquipos = () => {
             </p>
             <Button 
               className="w-auto" 
-              onClick={() => {
-                console.log('🚀 BOTÓN CLICKEADO: "Crear primer equipo"');
-                console.log('🔄 Cambiando showCreateTeam de', showCreateTeam, 'a true');
-                setShowCreateTeam(true);
-              }}
+              onClick={() => setShowCreateTeam(true)}
             >
               <Plus className="w-4 h-4 mr-2" />
               Crear primer equipo
@@ -55,13 +50,9 @@ const MisEquipos = () => {
           </CardContent>
         </Card>
         
-        {/* Modal DEBUG - Siempre visible para testing */}
         <CreateTeamModal
           open={showCreateTeam}
-          onOpenChange={(open) => {
-            console.log('🔄 Modal estado cambiando a:', open);
-            setShowCreateTeam(open);
-          }}
+          onOpenChange={setShowCreateTeam}
         />
       </div>
     );
@@ -187,10 +178,7 @@ const MisEquipos = () => {
       {/* Modals */}
       <CreateTeamModal
         open={showCreateTeam}
-        onOpenChange={(open) => {
-          console.log('Modal estado cambiando a:', open);
-          setShowCreateTeam(open);
-        }}
+        onOpenChange={setShowCreateTeam}
       />
 
       {editingTeam && (
@@ -208,7 +196,10 @@ const MisEquipos = () => {
                   principal: "#1e40af",
                   secundario: "#3b82f6"
                 },
-                team_data: teams?.find(t => t.id === editingTeam)?.team_data as any
+                team_data: {
+                  ...(teams?.find(t => t.id === editingTeam)?.team_data as any || {}),
+                  country: teams?.find(t => t.id === editingTeam)?.country // Incluir el país del nivel superior
+                }
               }}
               onSuccess={() => setEditingTeam(null)}
               onDelete={() => setEditingTeam(null)}

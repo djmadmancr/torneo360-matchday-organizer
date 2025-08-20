@@ -111,10 +111,10 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
         name: data.name,
         logo_url: data.logo_url,
         colors: data.colors,
+        country: data.country, // Ahora se guarda en la tabla teams, no en team_data
         team_data: {
           phone: data.phone,
           address: data.address,
-          country: data.country
         }
       });
       toast.success("Equipo actualizado correctamente");
@@ -245,11 +245,37 @@ export const EditTeamProfile: React.FC<EditTeamProfileProps> = ({
         </div>
         <div className="space-y-2">
           <Label htmlFor="country">País</Label>
-          <Input
-            id="country"
-            {...register("country")}
-            placeholder="Ej: España"
-          />
+          <Select 
+            value={watch("country") || ''} 
+            onValueChange={(value) => setValue("country", value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecciona el país" />
+            </SelectTrigger>
+            <SelectContent className="max-h-60">
+              <SelectItem value="Argentina">Argentina</SelectItem>
+              <SelectItem value="Bolivia">Bolivia</SelectItem>
+              <SelectItem value="Brasil">Brasil</SelectItem>
+              <SelectItem value="Chile">Chile</SelectItem>
+              <SelectItem value="Colombia">Colombia</SelectItem>
+              <SelectItem value="Costa Rica">Costa Rica</SelectItem>
+              <SelectItem value="Ecuador">Ecuador</SelectItem>
+              <SelectItem value="El Salvador">El Salvador</SelectItem>
+              <SelectItem value="España">España</SelectItem>
+              <SelectItem value="Estados Unidos">Estados Unidos</SelectItem>
+              <SelectItem value="Guatemala">Guatemala</SelectItem>
+              <SelectItem value="Honduras">Honduras</SelectItem>
+              <SelectItem value="México">México</SelectItem>
+              <SelectItem value="Nicaragua">Nicaragua</SelectItem>
+              <SelectItem value="Panamá">Panamá</SelectItem>
+              <SelectItem value="Paraguay">Paraguay</SelectItem>
+              <SelectItem value="Perú">Perú</SelectItem>
+              <SelectItem value="República Dominicana">República Dominicana</SelectItem>
+              <SelectItem value="Uruguay">Uruguay</SelectItem>
+              <SelectItem value="Venezuela">Venezuela</SelectItem>
+              <SelectItem value="Otro">Otro</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
