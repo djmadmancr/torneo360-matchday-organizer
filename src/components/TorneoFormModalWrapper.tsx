@@ -49,7 +49,9 @@ const TorneoFormModalWrapper: React.FC<TorneoFormModalWrapperProps> = ({ open, o
           edadMinima: torneoData.edadMinima,
           edadMaxima: torneoData.edadMaxima,
           ubicacion: torneoData.ubicacion
-        }
+        },
+        restrict_by_country: torneoData.restrictByCountry || false,
+        allowed_countries: torneoData.allowedCountries || []
       };
 
       console.log('Datos del torneo a crear:', tournamentData);

@@ -37,15 +37,16 @@ export const usePublicTournaments = () => {
     queryFn: async () => {
       if (!currentUser) return [];
 
-      // Primero obtenemos los equipos del usuario
+      // Primero obtenemos los equipos del usuario para obtener su país
       const { data: userTeams, error: teamsError } = await supabase
         .from('teams')
-        .select('id')
+        .select('id, country')
         .eq('admin_user_id', currentUser.id);
 
       if (teamsError) throw teamsError;
 
       const teamIds = userTeams?.map(team => team.id) || [];
+      const userCountry = userTeams?.[0]?.country; // Usar el país del primer equipo del usuario
 
       // Luego obtenemos las inscripciones existentes
       const { data: existingRegistrations, error: regError } = await supabase
@@ -57,7 +58,7 @@ export const usePublicTournaments = () => {
 
       const registeredTournamentIds = existingRegistrations?.map(reg => reg.tournament_id) || [];
 
-      // Finalmente obtenemos torneos públicos excluyendo los ya registrados
+      // Finalmente obtenemos torneos públicos
       let query = supabase
         .from('tournaments')
         .select(`
@@ -71,6 +72,8 @@ export const usePublicTournaments = () => {
           max_teams,
           visibility,
           organizer_id,
+          restrict_by_country,
+          allowed_countries,
           users!tournaments_organizer_id_fkey(full_name)
         `)
         .eq('visibility', 'public')
@@ -83,9 +86,25 @@ export const usePublicTournaments = () => {
       }
 
       const { data, error } = await query;
-
       if (error) throw error;
-      return data;
+
+      // Filtrar torneos según restricción por país
+      const filteredTournaments = data?.filter(tournament => {
+        // Si el torneo no tiene restricción por país, mostrar siempre
+        if (!tournament.restrict_by_country || !tournament.allowed_countries) {
+          return true;
+        }
+
+        // Si el usuario no tiene país especificado, no mostrar torneos restringidos
+        if (!userCountry) {
+          return false;
+        }
+
+        // Verificar si el país del usuario está en la lista de países permitidos
+        return tournament.allowed_countries.includes(userCountry);
+      });
+
+      return filteredTournaments || [];
     },
     enabled: !!currentUser,
   });

@@ -14,6 +14,7 @@ export interface Team {
   team_data?: any;
   created_at: string;
   updated_at: string;
+  country?: string;
 }
 
 export interface TeamCreate {
@@ -22,6 +23,7 @@ export interface TeamCreate {
   colors?: any;
   tournament_id?: string;
   team_data?: any;
+  country?: string;
 }
 
 export const useSupabaseTeams = () => {

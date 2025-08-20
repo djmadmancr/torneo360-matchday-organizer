@@ -36,6 +36,8 @@ interface TorneoFormData {
   descripcion?: string;
   ubicacion?: string;
   equiposInvitados?: string[];
+  restrictByCountry?: boolean;
+  allowedCountries?: string[];
 }
 
 interface TorneoFormModalProps {
@@ -77,7 +79,9 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
     edadMaxima: undefined,
     descripcion: '',
     ubicacion: '',
-    equiposInvitados: []
+    equiposInvitados: [],
+    restrictByCountry: false,
+    allowedCountries: []
   });
 
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -136,7 +140,9 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
           edadMaxima: torneoEditando.edadMaxima,
           descripcion: torneoEditando.descripcion || '',
           ubicacion: torneoEditando.ubicacion || '',
-          equiposInvitados: torneoEditando.equiposInvitados || []
+          equiposInvitados: torneoEditando.equiposInvitados || [],
+          restrictByCountry: torneoEditando.restrictByCountry || false,
+          allowedCountries: torneoEditando.allowedCountries || []
         };
         setFormData(editData);
         if (torneoEditando.logo) {
@@ -168,7 +174,9 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
           edadMaxima: undefined,
           descripcion: '',
           ubicacion: '',
-          equiposInvitados: []
+          equiposInvitados: [],
+          restrictByCountry: false,
+          allowedCountries: []
         });
         setLogoFile(null);
         setLogoPreview('');
@@ -221,6 +229,22 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
     setFormData(prev => ({
       ...prev,
       equiposInvitados: prev.equiposInvitados?.filter(id => id !== teamId) || []
+    }));
+  };
+
+  const addAllowedCountry = (country: string) => {
+    if (country.trim() && !formData.allowedCountries?.includes(country.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        allowedCountries: [...(prev.allowedCountries || []), country.trim()]
+      }));
+    }
+  };
+
+  const removeAllowedCountry = (country: string) => {
+    setFormData(prev => ({
+      ...prev,
+      allowedCountries: prev.allowedCountries?.filter(c => c !== country) || []
     }));
   };
 
@@ -407,6 +431,80 @@ const TorneoFormModal: React.FC<TorneoFormModalProps> = ({
               onChange={(e) => setFormData(prev => ({ ...prev, ubicacion: e.target.value }))}
               placeholder="Ej: Argentina, Buenos Aires, Capital Federal"
             />
+          </div>
+
+          {/* Restricción por País */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="restrictByCountry"
+                checked={formData.restrictByCountry}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, restrictByCountry: !!checked }))}
+              />
+              <Label htmlFor="restrictByCountry" className="text-base font-semibold">
+                Restringir por País
+              </Label>
+            </div>
+            
+            {formData.restrictByCountry && (
+              <div className="space-y-3 pl-6 border-l-2 border-primary/20">
+                <p className="text-sm text-muted-foreground">
+                  Solo los equipos de los países seleccionados podrán ver este torneo en el pool público.
+                </p>
+                
+                <div className="space-y-2">
+                  <Label>Países Permitidos</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Agregar país (ej: Argentina)"
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const target = e.target as HTMLInputElement;
+                          addAllowedCountry(target.value);
+                          target.value = '';
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={(e) => {
+                        const input = (e.target as HTMLElement).parentElement?.querySelector('input') as HTMLInputElement;
+                        if (input?.value) {
+                          addAllowedCountry(input.value);
+                          input.value = '';
+                        }
+                      }}
+                    >
+                      Agregar
+                    </Button>
+                  </div>
+                </div>
+                
+                {formData.allowedCountries && formData.allowedCountries.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm">Países seleccionados:</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {formData.allowedCountries.map((country) => (
+                        <Badge key={country} variant="secondary" className="flex items-center gap-1">
+                          {country}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-auto p-0 w-4 h-4"
+                            onClick={() => removeAllowedCountry(country)}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">

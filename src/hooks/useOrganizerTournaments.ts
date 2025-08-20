@@ -17,6 +17,8 @@ export interface TournamentWithTeamCount {
   updated_at: string;
   coverage: 'international' | 'regional' | 'national' | 'state' | 'local';
   invite_codes: string[] | null;
+  restrict_by_country: boolean | null;
+  allowed_countries: string[] | null;
   approved_teams_count: number;
 }
 

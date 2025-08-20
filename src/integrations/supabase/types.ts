@@ -271,6 +271,7 @@ export type Database = {
           admin_user_id: string | null
           city: string | null
           colors: Json | null
+          country: string | null
           created_at: string | null
           enrollment_status: string | null
           id: string
@@ -286,6 +287,7 @@ export type Database = {
           admin_user_id?: string | null
           city?: string | null
           colors?: Json | null
+          country?: string | null
           created_at?: string | null
           enrollment_status?: string | null
           id?: string
@@ -301,6 +303,7 @@ export type Database = {
           admin_user_id?: string | null
           city?: string | null
           colors?: Json | null
+          country?: string | null
           created_at?: string | null
           enrollment_status?: string | null
           id?: string
@@ -331,6 +334,7 @@ export type Database = {
       }
       tournaments: {
         Row: {
+          allowed_countries: string[] | null
           coverage: Database["public"]["Enums"]["coverage_type"] | null
           created_at: string | null
           description: string | null
@@ -341,6 +345,7 @@ export type Database = {
           max_teams: number | null
           name: string
           organizer_id: string | null
+          restrict_by_country: boolean | null
           start_date: string | null
           status: string | null
           tournament_data: Json | null
@@ -348,6 +353,7 @@ export type Database = {
           visibility: string | null
         }
         Insert: {
+          allowed_countries?: string[] | null
           coverage?: Database["public"]["Enums"]["coverage_type"] | null
           created_at?: string | null
           description?: string | null
@@ -358,6 +364,7 @@ export type Database = {
           max_teams?: number | null
           name: string
           organizer_id?: string | null
+          restrict_by_country?: boolean | null
           start_date?: string | null
           status?: string | null
           tournament_data?: Json | null
@@ -365,6 +372,7 @@ export type Database = {
           visibility?: string | null
         }
         Update: {
+          allowed_countries?: string[] | null
           coverage?: Database["public"]["Enums"]["coverage_type"] | null
           created_at?: string | null
           description?: string | null
@@ -375,6 +383,7 @@ export type Database = {
           max_teams?: number | null
           name?: string
           organizer_id?: string | null
+          restrict_by_country?: boolean | null
           start_date?: string | null
           status?: string | null
           tournament_data?: Json | null

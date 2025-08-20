@@ -34,6 +34,7 @@ interface PerfilEquipo {
   jugadores: Jugador[];
   coaches: Coach[];
   torneos: string[];
+  pais?: string;
 }
 
 interface EditarPerfilEquipoProps {
@@ -183,6 +184,42 @@ const EditarPerfilEquipo: React.FC<EditarPerfilEquipoProps> = ({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* País del Equipo */}
+          <div className="space-y-2">
+            <Label htmlFor="pais">País del Equipo</Label>
+            <Select 
+              value={perfil.pais || ''} 
+              onValueChange={(value) => setPerfil({ ...perfil, pais: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona el país" />
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                <SelectItem value="Argentina">Argentina</SelectItem>
+                <SelectItem value="Bolivia">Bolivia</SelectItem>
+                <SelectItem value="Brasil">Brasil</SelectItem>
+                <SelectItem value="Chile">Chile</SelectItem>
+                <SelectItem value="Colombia">Colombia</SelectItem>
+                <SelectItem value="Costa Rica">Costa Rica</SelectItem>
+                <SelectItem value="Ecuador">Ecuador</SelectItem>
+                <SelectItem value="El Salvador">El Salvador</SelectItem>
+                <SelectItem value="España">España</SelectItem>
+                <SelectItem value="Estados Unidos">Estados Unidos</SelectItem>
+                <SelectItem value="Guatemala">Guatemala</SelectItem>
+                <SelectItem value="Honduras">Honduras</SelectItem>
+                <SelectItem value="México">México</SelectItem>
+                <SelectItem value="Nicaragua">Nicaragua</SelectItem>
+                <SelectItem value="Panamá">Panamá</SelectItem>
+                <SelectItem value="Paraguay">Paraguay</SelectItem>
+                <SelectItem value="Perú">Perú</SelectItem>
+                <SelectItem value="República Dominicana">República Dominicana</SelectItem>
+                <SelectItem value="Uruguay">Uruguay</SelectItem>
+                <SelectItem value="Venezuela">Venezuela</SelectItem>
+                <SelectItem value="Otro">Otro</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Logo */}
