@@ -78,6 +78,20 @@ serve(async (req) => {
     const userRole = roles.includes('admin') ? 'admin' : 
                     roles.includes('organizer') ? 'organizer' :
                     roles.includes('referee') ? 'referee' : 'team_admin';
+
+    // Check if email already exists in users table
+    const { data: existingUser } = await supabaseAdmin
+      .from('users')
+      .select('id, auth_user_id')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (existingUser) {
+      console.error('Email already exists in users table:', email);
+      // Clean up auth user since we can't proceed
+      await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
+      throw new Error(`Este correo electrónico ya está registrado`);
+    }
                     
     const { error: dbError } = await supabaseAdmin
       .from('users')
