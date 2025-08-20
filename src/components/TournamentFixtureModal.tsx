@@ -183,15 +183,24 @@ export const TournamentFixtureModal: React.FC<TournamentFixtureModalProps> = ({
 
             <TabsContent value="fixtures" className="space-y-6">
               {!fixtures || fixtures.length === 0 ? (
-                <Card>
-                  <CardContent className="text-center py-12">
-                    <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Fixture no disponible</h3>
-                    <p className="text-muted-foreground">
-                      El fixture aún no ha sido generado para este torneo
-                    </p>
-                  </CardContent>
-                </Card>
+                <div className="space-y-6">
+                  <Card>
+                    <CardContent className="text-center py-12">
+                      <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">Fixture no disponible</h3>
+                      <p className="text-muted-foreground">
+                        El fixture aún no ha sido generado para este torneo
+                      </p>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Show elimination bracket placeholder */}
+                  <TournamentBracketPlaceholder 
+                    tournamentType="elimination"
+                    teamsCount={8}
+                    showEliminationBracket={true}
+                  />
+                </div>
               ) : (
                 <>
                   {/* Resumen del torneo */}

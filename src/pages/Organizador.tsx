@@ -20,6 +20,7 @@ import { useTournaments, Tournament } from '@/hooks/useTournaments';
 import { useOrganizerTournaments } from '@/hooks/useOrganizerTournaments';
 import { AllOrganizerRequests } from '@/components/tournaments/AllOrganizerRequests';
 import RefereeSearchModal from '@/components/RefereeSearchModal';
+import RefereePoolModal from '@/components/RefereePoolModal';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -35,6 +36,7 @@ const Organizador = () => {
   const [showEditTournament, setShowEditTournament] = useState(false);
   const [showFixtureModal, setShowFixtureModal] = useState(false);
   const [showRefereeModal, setShowRefereeModal] = useState(false);
+  const [showRefereePool, setShowRefereePool] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const { data: organizerTournaments, isLoading: torneosLoading } = useOrganizerTournaments(currentUser?.id);
   const { deleteTournament } = useTournaments();
@@ -139,6 +141,16 @@ const Organizador = () => {
             </div>
             
             <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button
+                onClick={() => setShowRefereePool(true)}
+                variant="outline"
+                className="flex-1 sm:flex-none"
+                size="sm"
+              >
+                <User className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Pool de Árbitros</span>
+                <span className="sm:hidden">Árbitros</span>
+              </Button>
               <Button
                 onClick={() => setShowCreateTorneo(true)}
                 className="bg-blue-600 hover:bg-blue-700 flex-1 sm:flex-none"
@@ -348,6 +360,11 @@ const Organizador = () => {
             }}
           />
         )}
+
+        <RefereePoolModal
+          isOpen={showRefereePool}
+          onClose={() => setShowRefereePool(false)}
+        />
         </div>
       </div>
     </div>
