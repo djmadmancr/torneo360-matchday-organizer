@@ -5,6 +5,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trophy, Target, Shield, Clock, Calendar, TrendingUp, Users, Award } from "lucide-react";
 import { obtenerEquipoIdDeUsuario } from '../utils/equipoMigration';
 import { supabase } from '@/integrations/supabase/client';
+import TournamentTable from './TournamentTable';
+import UpcomingMatches from './UpcomingMatches';
 
 interface EstadisticasEquipoProps {
   equipoId: string; // Este es el userId, pero internamente usaremos equipoId numérico
@@ -42,6 +44,8 @@ const EstadisticasEquipo: React.FC<EstadisticasEquipoProps> = ({ equipoId: userI
   const [filtroAnio, setFiltroAnio] = useState<string>('todos');
   const [filtroTorneo, setFiltroTorneo] = useState<string>('todos');
   const [equipoIdNumerico, setEquipoIdNumerico] = useState<number | null>(null);
+  const [tournamentPositions, setTournamentPositions] = useState<any[]>([]);
+  const [upcomingMatches, setUpcomingMatches] = useState<any[]>([]);
 
   useEffect(() => {
     cargarEstadisticas();
@@ -75,6 +79,9 @@ const EstadisticasEquipo: React.FC<EstadisticasEquipoProps> = ({ equipoId: userI
     
     // Cargar estadísticas reales de jugadores desde Supabase
     await cargarEstadisticasJugadores(equipoId);
+    
+    // Cargar tabla de posiciones y próximos partidos desde Supabase
+    await cargarDatosSupabase(equipoId);
   };
 
   const cargarEstadisticasJugadores = async (equipoId: number) => {
@@ -85,6 +92,27 @@ const EstadisticasEquipo: React.FC<EstadisticasEquipoProps> = ({ equipoId: userI
         console.log('❌ No se encontró ID de equipo en Supabase');
         return;
       }
+      
+      // Obtener jugadores del equipo para correlacionar nombres
+      const { data: teamMembers, error: membersError } = await supabase
+        .from('team_members')
+        .select('id, name, position, jersey_number')
+        .eq('team_id', equipoData.id);
+
+      if (membersError) {
+        console.error('Error cargando miembros del equipo:', membersError);
+      }
+
+      // Crear mapa de jugadores para correlacionar nombres
+      const playersMap = new Map();
+      teamMembers?.forEach((member: any) => {
+        playersMap.set(member.name.toLowerCase().trim(), member);
+        // También agregar por número de camiseta si existe
+        if (member.jersey_number) {
+          playersMap.set(`#${member.jersey_number}`, member);
+          playersMap.set(member.jersey_number.toString(), member);
+        }
+      });
       
       // Buscar partidos completados donde participe el equipo
       const { data: fixtures, error } = await supabase
@@ -98,7 +126,6 @@ const EstadisticasEquipo: React.FC<EstadisticasEquipoProps> = ({ equipoId: userI
         return;
       }
 
-      const jugadoresEstadisticas: EstadisticasJugador[] = [];
       const playerStatsMap: { [key: string]: EstadisticasJugador } = {};
 
       fixtures?.forEach((fixture: any) => {
@@ -109,11 +136,28 @@ const EstadisticasEquipo: React.FC<EstadisticasEquipoProps> = ({ equipoId: userI
         goals.forEach((goal: any) => {
           // Solo procesar jugadores de nuestro equipo
           if (goal.team_id === equipoData.id) {
-            const playerKey = goal.player_name;
+            // Intentar correlacionar con jugador real
+            const playerName = goal.player_name?.toLowerCase().trim() || '';
+            let realPlayer = playersMap.get(playerName);
+            
+            // Si no se encontró, buscar por coincidencia parcial
+            if (!realPlayer && playerName) {
+              for (const [key, player] of playersMap.entries()) {
+                if (typeof key === 'string' && 
+                    (key.includes(playerName) || playerName.includes(key))) {
+                  realPlayer = player;
+                  break;
+                }
+              }
+            }
+
+            const playerKey = realPlayer ? realPlayer.id : goal.player_name;
+            const displayName = realPlayer ? realPlayer.name : goal.player_name;
+            
             if (!playerStatsMap[playerKey]) {
               playerStatsMap[playerKey] = {
-                jugadorId: goal.player_name,
-                jugadorNombre: goal.player_name,
+                jugadorId: playerKey,
+                jugadorNombre: displayName,
                 minutosJugados: 90, // Asumimos 90 minutos por partido
                 goles: 0,
                 asistencias: 0,
@@ -122,6 +166,8 @@ const EstadisticasEquipo: React.FC<EstadisticasEquipoProps> = ({ equipoId: userI
               };
             }
             playerStatsMap[playerKey].goles++;
+            
+            console.log(`⚽ Gol registrado: ${displayName} (original: ${goal.player_name})`);
           }
         });
 
@@ -130,11 +176,28 @@ const EstadisticasEquipo: React.FC<EstadisticasEquipoProps> = ({ equipoId: userI
         cards.forEach((card: any) => {
           // Solo procesar jugadores de nuestro equipo
           if (card.team_id === equipoData.id) {
-            const playerKey = card.player_name;
+            // Intentar correlacionar con jugador real
+            const playerName = card.player_name?.toLowerCase().trim() || '';
+            let realPlayer = playersMap.get(playerName);
+            
+            // Si no se encontró, buscar por coincidencia parcial
+            if (!realPlayer && playerName) {
+              for (const [key, player] of playersMap.entries()) {
+                if (typeof key === 'string' && 
+                    (key.includes(playerName) || playerName.includes(key))) {
+                  realPlayer = player;
+                  break;
+                }
+              }
+            }
+
+            const playerKey = realPlayer ? realPlayer.id : card.player_name;
+            const displayName = realPlayer ? realPlayer.name : card.player_name;
+            
             if (!playerStatsMap[playerKey]) {
               playerStatsMap[playerKey] = {
-                jugadorId: card.player_name,
-                jugadorNombre: card.player_name,
+                jugadorId: playerKey,
+                jugadorNombre: displayName,
                 minutosJugados: 90,
                 goles: 0,
                 asistencias: 0,
@@ -147,6 +210,8 @@ const EstadisticasEquipo: React.FC<EstadisticasEquipoProps> = ({ equipoId: userI
             } else if (card.card_type === 'red') {
               playerStatsMap[playerKey].tarjetasRojas++;
             }
+            
+            console.log(`🟨 Tarjeta ${card.card_type} registrada: ${displayName} (original: ${card.player_name})`);
           }
         });
       });
@@ -160,6 +225,72 @@ const EstadisticasEquipo: React.FC<EstadisticasEquipoProps> = ({ equipoId: userI
       // Fallback a datos locales
       const historialJugadores = JSON.parse(localStorage.getItem(`historialJugadores_${equipoId}`) || '[]');
       setEstadisticasJugadores(historialJugadores);
+    }
+  };
+
+  const cargarDatosSupabase = async (equipoId: number) => {
+    try {
+      // Obtener el ID del equipo en Supabase
+      const equipoData = JSON.parse(localStorage.getItem(`equipo_${equipoId}`) || '{}');
+      if (!equipoData.id) {
+        console.log('❌ No se encontró ID de equipo en Supabase para datos adicionales');
+        return;
+      }
+
+      // Cargar próximos partidos
+      const { data: upcomingFixtures, error: upcomingError } = await supabase
+        .from('fixtures')
+        .select(`
+          id,
+          kickoff,
+          venue,
+          match_day,
+          status,
+          tournaments!inner(name),
+          home_teams:teams!home_team_id(id, name, logo_url),
+          away_teams:teams!away_team_id(id, name, logo_url)
+        `)
+        .or(`home_team_id.eq.${equipoData.id},away_team_id.eq.${equipoData.id}`)
+        .in('status', ['scheduled', 'postponed'])
+        .order('kickoff', { ascending: true })
+        .limit(5);
+
+      if (!upcomingError && upcomingFixtures) {
+        const formattedMatches = upcomingFixtures.map((fixture: any) => ({
+          id: fixture.id,
+          tournament_name: fixture.tournaments?.name || 'Torneo',
+          home_team: fixture.home_teams,
+          away_team: fixture.away_teams,
+          kickoff: fixture.kickoff,
+          venue: fixture.venue,
+          match_day: fixture.match_day,
+          status: fixture.status
+        }));
+        setUpcomingMatches(formattedMatches);
+        console.log('📅 Próximos partidos cargados:', formattedMatches);
+      }
+
+      // TODO: Cargar tabla de posiciones real desde Supabase
+      // Por ahora usar datos mock basados en historial local
+      const mockPositions = [
+        {
+          position: 1,
+          team: { id: equipoData.id, name: equipoNombre, logo_url: equipoData.logo_url },
+          matches_played: 8,
+          wins: 6,
+          draws: 1,
+          losses: 1,
+          goals_for: 18,
+          goals_against: 8,
+          goal_difference: 10,
+          points: 19,
+          form: ['W', 'W', 'D', 'W', 'W']
+        }
+      ];
+      setTournamentPositions(mockPositions);
+
+    } catch (error) {
+      console.error('Error cargando datos adicionales desde Supabase:', error);
     }
   };
 
@@ -305,6 +436,26 @@ const EstadisticasEquipo: React.FC<EstadisticasEquipoProps> = ({ equipoId: userI
             <div className="text-sm text-muted-foreground">% Arcos en Cero</div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Tabla de Posiciones y Próximos Partidos - Nuevo formato */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Tabla de Posiciones */}
+        {tournamentPositions.length > 0 && (
+          <TournamentTable 
+            positions={tournamentPositions}
+            currentTeamId={equipoIdNumerico?.toString()}
+            title="Posición Actual"
+          />
+        )}
+        
+        {/* Próximos Partidos */}
+        <UpcomingMatches
+          matches={upcomingMatches}
+          currentTeamId={equipoIdNumerico?.toString()}
+          title="Próximos Partidos"
+          showTournamentName={true}
+        />
       </div>
 
       {/* Detalle por Torneo */}
