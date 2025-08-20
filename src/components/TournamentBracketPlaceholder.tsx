@@ -31,33 +31,51 @@ const TournamentBracketPlaceholder: React.FC<TournamentBracketPlaceholderProps> 
 
     // If no team is assigned, generate placeholder based on stage and match day
     if (stage === "knockout" || matchDay > 10) {
-      // Knockout stage placeholders
-      const knockoutPlaceholders = {
-        'home': [
-          'Ganador SF-A', 'Ganador SF-B', 'Ganador QF-A', 'Ganador QF-B', 
-          'Ganador QF-C', 'Ganador QF-D', '1° Grupo A', '2° Grupo B',
-          '1° Grupo C', '2° Grupo D', '3° Grupo A', '3° Grupo B'
-        ],
-        'away': [
-          'Ganador SF-C', 'Ganador SF-D', 'Ganador QF-E', 'Ganador QF-F',
-          'Ganador QF-G', 'Ganador QF-H', '2° Grupo A', '1° Grupo B', 
-          '2° Grupo C', '1° Grupo D', '3° Grupo C', '3° Grupo D'
-        ]
+      // Knockout stage placeholders - more realistic progression
+      const knockoutRounds = {
+        11: { home: '1° Grupo A', away: '2° Grupo B' },
+        12: { home: '1° Grupo B', away: '2° Grupo A' },
+        13: { home: '1° Grupo C', away: '2° Grupo D' },
+        14: { home: '1° Grupo D', away: '2° Grupo C' },
+        15: { home: '1° Grupo E', away: '2° Grupo F' },
+        16: { home: '1° Grupo F', away: '2° Grupo E' },
+        17: { home: '1° Grupo G', away: '2° Grupo H' },
+        18: { home: '1° Grupo H', away: '2° Grupo G' },
+        // Quarterfinals
+        19: { home: 'Ganador R16-1', away: 'Ganador R16-2' },
+        20: { home: 'Ganador R16-3', away: 'Ganador R16-4' },
+        21: { home: 'Ganador R16-5', away: 'Ganador R16-6' },
+        22: { home: 'Ganador R16-7', away: 'Ganador R16-8' },
+        // Semifinals
+        23: { home: 'Ganador QF-1', away: 'Ganador QF-2' },
+        24: { home: 'Ganador QF-3', away: 'Ganador QF-4' },
+        // Final
+        25: { home: 'Ganador SF-1', away: 'Ganador SF-2' }
       };
       
-      const index = Math.min(matchDay - 11, knockoutPlaceholders[position].length - 1);
-      return knockoutPlaceholders[position][index] || `${position === 'home' ? 'Equipo A' : 'Equipo B'}`;
+      const round = knockoutRounds[matchDay as keyof typeof knockoutRounds];
+      return round ? round[position] : `${position === 'home' ? 'Clasificado A' : 'Clasificado B'}`;
     }
 
-    // Group stage placeholders
+    // Group stage placeholders - better distribution
     const groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
     const positions = ['1°', '2°', '3°', '4°'];
     
-    // Calculate group and position based on match day and team position
-    const groupIndex = Math.floor((matchDay - 1) / 2) % groups.length;
-    const positionIndex = position === 'home' ? 0 : 1;
+    // More realistic group stage distribution
+    const groupIndex = Math.floor((matchDay - 1) / 3) % groups.length;
+    const matchInGroup = (matchDay - 1) % 3;
     
-    return `${positions[positionIndex]} ${groups[groupIndex]}`;
+    // Different position combinations for variety
+    const positionCombos = [
+      [0, 1], // 1° vs 2°
+      [2, 3], // 3° vs 4°
+      [0, 3]  // 1° vs 4°
+    ];
+    
+    const combo = positionCombos[matchInGroup] || [0, 1];
+    const positionIndex = position === 'home' ? combo[0] : combo[1];
+    
+    return `${positions[positionIndex]} Grupo ${groups[groupIndex]}`;
   };
 
   const homePlaceholder = getPlaceholderName(homeTeam, 'home');

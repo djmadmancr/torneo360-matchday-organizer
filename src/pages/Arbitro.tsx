@@ -1,32 +1,51 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, FileText, Calendar, Clock, MapPin, Upload } from "lucide-react";
+import { ArrowLeft, FileText, Calendar, Clock, MapPin, Upload, User, CreditCard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
-interface Partido {
+interface Fixture {
   id: string;
-  equipoLocal: string;
-  equipoVisitante: string;
-  fecha: string;
-  hora: string;
-  cancha: string;
-  logoLocal: string;
-  logoVisitante: string;
-  torneo: string;
-  categoria: string;
-  estado: "programado" | "en_curso" | "finalizado";
+  tournament_id: string;
+  home_team_id: string;
+  away_team_id: string;
+  home_score: number;
+  away_score: number;
+  status: string;
+  kickoff: string | null;
+  venue: string | null;
+  match_day: number;
+  home_teams: {
+    id: string;
+    name: string;
+    logo_url: string | null;
+  } | null;
+  away_teams: {
+    id: string;
+    name: string;
+    logo_url: string | null;
+  } | null;
+  tournaments: {
+    id: string;
+    name: string;
+  } | null;
 }
 
 const Arbitro = () => {
   const navigate = useNavigate();
-  const [partidoSeleccionado, setPartidoSeleccionado] = useState<Partido | null>(null);
+  const { currentUser } = useAuth();
+  const [fixtureSeleccionado, setFixtureSeleccionado] = useState<Fixture | null>(null);
   const [mostrarFormularioResultado, setMostrarFormularioResultado] = useState(false);
   const [informeArbitral, setInformeArbitral] = useState<File | null>(null);
   
@@ -39,54 +58,95 @@ const Arbitro = () => {
     jugadorDestacado: ""
   });
 
-  const [partidos] = useState<Partido[]>([
-    {
-      id: "P001",
-      equipoLocal: "Águilas FC",
-      equipoVisitante: "Tigres SC",
-      fecha: "2024-06-20",
-      hora: "16:00",
-      cancha: "Cancha Principal",
-      logoLocal: "🦅",
-      logoVisitante: "🐅",
-      torneo: "Copa Primavera 2024",
-      categoria: "U20",
-      estado: "programado"
-    },
-    {
-      id: "P002",
-      equipoLocal: "Leones United",
-      equipoVisitante: "Pumas FC",
-      fecha: "2024-06-20",
-      hora: "18:00",
-      cancha: "Cancha 2",
-      logoLocal: "🦁",
-      logoVisitante: "🐆",
-      torneo: "Liga Municipal Otoño",
-      categoria: "Libre",
-      estado: "en_curso"
-    },
-    {
-      id: "P003",
-      equipoLocal: "Halcones FC",
-      equipoVisitante: "Lobos SC",
-      fecha: "2024-06-21",
-      hora: "15:00",
-      cancha: "Cancha Principal",
-      logoLocal: "🦅",
-      logoVisitante: "🐺",
-      torneo: "Torneo Relámpago Verano",
-      categoria: "U17",
-      estado: "programado"
-    }
-  ]);
+  // Fetch referee profile
+  const { data: refereeProfile } = useQuery({
+    queryKey: ['referee-profile', currentUser?.id],
+    queryFn: async () => {
+      console.log('🔍 Fetching referee profile for user:', currentUser?.id);
+      
+      if (!currentUser?.id) {
+        console.log('❌ No current user ID found');
+        return null;
+      }
 
-  const seleccionarPartido = (partido: Partido) => {
-    setPartidoSeleccionado(partido);
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, full_name, email, referee_credential, profile_data')
+        .eq('auth_user_id', currentUser.id)
+        .eq('role', 'referee')
+        .single();
+
+      if (error) {
+        console.error('❌ Error fetching referee profile:', error);
+        throw error;
+      }
+
+      console.log('✅ Referee profile loaded:', data);
+      return data;
+    },
+    enabled: !!currentUser?.id
+  });
+
+  // Fetch fixtures assigned to this referee
+  const { data: fixtures = [] } = useQuery({
+    queryKey: ['referee-fixtures', currentUser?.id],
+    queryFn: async () => {
+      console.log('🔍 Fetching fixtures for referee:', currentUser?.id);
+      
+      if (!currentUser?.id) {
+        console.log('❌ No current user ID found');
+        return [];
+      }
+
+      const { data, error } = await supabase
+        .from('fixtures')
+        .select(`
+          id,
+          tournament_id,
+          home_team_id,
+          away_team_id,
+          home_score,
+          away_score,
+          status,
+          kickoff,
+          venue,
+          match_day,
+          home_teams:teams!fixtures_home_team_id_fkey(
+            id,
+            name,
+            logo_url
+          ),
+          away_teams:teams!fixtures_away_team_id_fkey(
+            id,
+            name,
+            logo_url
+          ),
+          tournaments(
+            id,
+            name
+          )
+        `)
+        .eq('referee_id', currentUser.id)
+        .order('kickoff', { ascending: true });
+
+      if (error) {
+        console.error('❌ Error fetching referee fixtures:', error);
+        throw error;
+      }
+
+      console.log('✅ Referee fixtures loaded:', data?.length || 0, 'fixtures');
+      return data || [];
+    },
+    enabled: !!currentUser?.id
+  });
+
+  const seleccionarFixture = (fixture: Fixture) => {
+    console.log('🎯 Referee selected fixture for result entry:', fixture.id);
+    setFixtureSeleccionado(fixture);
     setMostrarFormularioResultado(true);
     setResultado({
-      golesLocal: "",
-      golesVisitante: "",
+      golesLocal: fixture.home_score?.toString() || "",
+      golesVisitante: fixture.away_score?.toString() || "",
       observaciones: "",
       tarjetasAmarillas: "",
       tarjetasRojas: "",
@@ -103,8 +163,8 @@ const Arbitro = () => {
     }
   };
 
-  const enviarResultado = () => {
-    if (!partidoSeleccionado) return;
+  const enviarResultado = async () => {
+    if (!fixtureSeleccionado) return;
     
     if (!resultado.golesLocal || !resultado.golesVisitante) {
       toast.error("Por favor ingresa el resultado del partido");
@@ -116,30 +176,50 @@ const Arbitro = () => {
       return;
     }
 
-    const resultadoFinal = {
-      partidoId: partidoSeleccionado.id,
-      equipoLocal: partidoSeleccionado.equipoLocal,
-      equipoVisitante: partidoSeleccionado.equipoVisitante,
-      golesLocal: parseInt(resultado.golesLocal),
-      golesVisitante: parseInt(resultado.golesVisitante),
-      observaciones: resultado.observaciones,
-      tarjetasAmarillas: resultado.tarjetasAmarillas,
-      tarjetasRojas: resultado.tarjetasRojas,
-      jugadorDestacado: resultado.jugadorDestacado,
-      informeArbitral: informeArbitral.name,
-      fecha: new Date().toISOString()
-    };
+    try {
+      console.log('📤 Referee submitting match result:', {
+        fixtureId: fixtureSeleccionado.id,
+        homeScore: resultado.golesLocal,
+        awayScore: resultado.golesVisitante
+      });
 
-    console.log("Resultado enviado:", resultadoFinal);
-    toast.success(`Resultado enviado: ${partidoSeleccionado.equipoLocal} ${resultado.golesLocal} - ${resultado.golesVisitante} ${partidoSeleccionado.equipoVisitante}`);
-    
-    setMostrarFormularioResultado(false);
-    setPartidoSeleccionado(null);
+      const { error } = await supabase
+        .from('fixtures')
+        .update({
+          home_score: parseInt(resultado.golesLocal),
+          away_score: parseInt(resultado.golesVisitante),
+          status: 'finished',
+          match_data: {
+            observations: resultado.observaciones,
+            yellow_cards: resultado.tarjetasAmarillas,
+            red_cards: resultado.tarjetasRojas,
+            mvp: resultado.jugadorDestacado,
+            referee_report: informeArbitral.name,
+            completed_by_referee: currentUser?.id,
+            completed_at: new Date().toISOString()
+          }
+        })
+        .eq('id', fixtureSeleccionado.id);
+
+      if (error) {
+        console.error('❌ Error updating match result:', error);
+        throw error;
+      }
+
+      console.log('✅ Match result updated successfully');
+      toast.success(`Resultado enviado: ${fixtureSeleccionado.home_teams?.name} ${resultado.golesLocal} - ${resultado.golesVisitante} ${fixtureSeleccionado.away_teams?.name}`);
+      
+      setMostrarFormularioResultado(false);
+      setFixtureSeleccionado(null);
+    } catch (error) {
+      console.error('❌ Error submitting result:', error);
+      toast.error('Error al enviar el resultado');
+    }
   };
 
   const cerrarModal = () => {
     setMostrarFormularioResultado(false);
-    setPartidoSeleccionado(null);
+    setFixtureSeleccionado(null);
     setResultado({
       golesLocal: "",
       golesVisitante: "",
@@ -184,10 +264,24 @@ const Arbitro = () => {
               <ArrowLeft className="w-4 h-4" />
               Volver
             </Button>
-            <div>
+            <div className="flex-1">
               <h1 className="text-xl md:text-2xl font-bold text-primary">🟠 Panel de Árbitro</h1>
               <p className="text-sm text-muted-foreground">Registra los resultados de los partidos</p>
             </div>
+            {refereeProfile && (
+              <div className="bg-primary/10 rounded-lg p-3 border border-primary/20">
+                <div className="flex items-center gap-2 text-sm">
+                  <User className="w-4 h-4 text-primary" />
+                  <span className="font-medium">{refereeProfile.full_name}</span>
+                </div>
+                {refereeProfile.referee_credential && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                    <CreditCard className="w-3 h-3" />
+                    <span>ID: {refereeProfile.referee_credential}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -195,86 +289,126 @@ const Arbitro = () => {
       <div className="container mx-auto px-4 py-4 md:py-8">
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <h2 className="text-xl md:text-2xl font-bold">Partidos Disponibles</h2>
+            <h2 className="text-xl md:text-2xl font-bold">Mis Partidos Asignados</h2>
             <Badge variant="outline" className="text-sm">
-              {partidos.filter(p => p.estado !== "finalizado").length} partidos pendientes
+              {fixtures.filter(f => f.status !== "finished").length} partidos pendientes
             </Badge>
           </div>
 
-          <div className="grid gap-6">
-            {partidos.map((partido) => (
-              <Card key={partido.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                    <div>
-                      <CardTitle className="text-lg">{partido.torneo}</CardTitle>
-                      <p className="text-sm text-muted-foreground">Categoría: {partido.categoria}</p>
+          {fixtures.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-12">
+                <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No hay partidos asignados</h3>
+                <p className="text-muted-foreground">
+                  Aún no tienes partidos asignados como árbitro
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-6">
+              {fixtures.map((fixture) => (
+                <Card key={fixture.id} className="hover:shadow-md transition-shadow">
+                  <CardHeader>
+                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                      <div>
+                        <CardTitle className="text-lg">{fixture.tournaments?.name}</CardTitle>
+                        <p className="text-sm text-muted-foreground">Jornada: {fixture.match_day}</p>
+                      </div>
+                      {getEstadoBadge(fixture.status)}
                     </div>
-                    {getEstadoBadge(partido.estado)}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {/* Equipos */}
-                    <div className="flex items-center justify-center gap-4 p-4 bg-gray-50 rounded-lg">
-                      <div className="text-center flex-1">
-                        <div className="flex items-center justify-center gap-2 mb-2">
-                          <span className="text-2xl">{partido.logoLocal}</span>
-                          <span className="font-semibold text-lg">{partido.equipoLocal}</span>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {/* Equipos */}
+                      <div className="flex items-center justify-center gap-4 p-4 bg-gray-50 rounded-lg">
+                        <div className="text-center flex-1">
+                          <div className="flex items-center justify-center gap-2 mb-2">
+                            {fixture.home_teams?.logo_url ? (
+                              <img 
+                                src={fixture.home_teams.logo_url} 
+                                alt={`Logo ${fixture.home_teams.name}`}
+                                className="w-8 h-8 object-cover rounded-full"
+                              />
+                            ) : (
+                              <span className="text-2xl">🏠</span>
+                            )}
+                            <span className="font-semibold text-lg">{fixture.home_teams?.name || 'TBD'}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="text-center px-4">
+                          {fixture.status === 'finished' ? (
+                            <div className="text-xl font-bold">
+                              {fixture.home_score} - {fixture.away_score}
+                            </div>
+                          ) : (
+                            <span className="text-2xl font-bold text-gray-500">VS</span>
+                          )}
+                        </div>
+                        
+                        <div className="text-center flex-1">
+                          <div className="flex items-center justify-center gap-2 mb-2">
+                            <span className="font-semibold text-lg">{fixture.away_teams?.name || 'TBD'}</span>
+                            {fixture.away_teams?.logo_url ? (
+                              <img 
+                                src={fixture.away_teams.logo_url} 
+                                alt={`Logo ${fixture.away_teams.name}`}
+                                className="w-8 h-8 object-cover rounded-full"
+                              />
+                            ) : (
+                              <span className="text-2xl">✈️</span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      
-                      <div className="text-center px-4">
-                        <span className="text-2xl font-bold text-gray-500">VS</span>
-                      </div>
-                      
-                      <div className="text-center flex-1">
-                        <div className="flex items-center justify-center gap-2 mb-2">
-                          <span className="font-semibold text-lg">{partido.equipoVisitante}</span>
-                          <span className="text-2xl">{partido.logoVisitante}</span>
-                        </div>
-                      </div>
-                    </div>
 
-                    {/* Información del partido */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-muted-foreground" />
-                        <span>{partido.fecha}</span>
+                      {/* Información del partido */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        {fixture.kickoff && (
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            <span>{format(new Date(fixture.kickoff), 'dd/MM/yyyy', { locale: es })}</span>
+                          </div>
+                        )}
+                        {fixture.kickoff && (
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                            <span>{format(new Date(fixture.kickoff), 'HH:mm', { locale: es })}</span>
+                          </div>
+                        )}
+                        {fixture.venue && (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-muted-foreground" />
+                            <span>{fixture.venue}</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-muted-foreground" />
-                        <span>{partido.hora}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-muted-foreground" />
-                        <span>{partido.cancha}</span>
-                      </div>
-                    </div>
 
-                    {/* ID del partido */}
-                    <div className="bg-blue-50 p-3 rounded-lg">
-                      <p className="text-sm">
-                        <span className="font-medium">ID del Partido:</span> {partido.id}
-                      </p>
-                    </div>
+                      {/* ID del partido */}
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <p className="text-sm">
+                          <span className="font-medium">ID del Partido:</span> {fixture.id}
+                        </p>
+                      </div>
 
-                    {/* Botón de acción */}
-                    <div className="flex justify-end">
-                      <Button 
-                        onClick={() => seleccionarPartido(partido)}
-                        className="bg-orange-600 hover:bg-orange-700 flex items-center gap-2"
-                        disabled={partido.estado === "finalizado"}
-                      >
-                        <FileText className="w-4 h-4" />
-                        {partido.estado === "finalizado" ? "Finalizado" : "Registrar Resultado"}
-                      </Button>
+                      {/* Botón de acción */}
+                      <div className="flex justify-end">
+                        <Button 
+                          onClick={() => seleccionarFixture(fixture)}
+                          className="bg-orange-600 hover:bg-orange-700 flex items-center gap-2"
+                          disabled={fixture.status === "finished"}
+                        >
+                          <FileText className="w-4 h-4" />
+                          {fixture.status === "finished" ? "Finalizado" : "Registrar Resultado"}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -288,29 +422,47 @@ const Arbitro = () => {
             </DialogTitle>
           </DialogHeader>
           
-          {partidoSeleccionado && (
+          {fixtureSeleccionado && (
             <div className="space-y-6">
               {/* Información del partido */}
               <div className="bg-gray-50 p-4 rounded-lg space-y-2">
                 <div className="flex items-center justify-center gap-4">
                   <div className="text-center">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xl">{partidoSeleccionado.logoLocal}</span>
-                      <span className="font-semibold">{partidoSeleccionado.equipoLocal}</span>
+                      {fixtureSeleccionado.home_teams?.logo_url ? (
+                        <img 
+                          src={fixtureSeleccionado.home_teams.logo_url} 
+                          alt={`Logo ${fixtureSeleccionado.home_teams.name}`}
+                          className="w-6 h-6 object-cover rounded-full"
+                        />
+                      ) : (
+                        <span className="text-xl">🏠</span>
+                      )}
+                      <span className="font-semibold">{fixtureSeleccionado.home_teams?.name}</span>
                     </div>
                   </div>
                   <span className="text-lg font-bold">VS</span>
                   <div className="text-center">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold">{partidoSeleccionado.equipoVisitante}</span>
-                      <span className="text-xl">{partidoSeleccionado.logoVisitante}</span>
+                      <span className="font-semibold">{fixtureSeleccionado.away_teams?.name}</span>
+                      {fixtureSeleccionado.away_teams?.logo_url ? (
+                        <img 
+                          src={fixtureSeleccionado.away_teams.logo_url} 
+                          alt={`Logo ${fixtureSeleccionado.away_teams.name}`}
+                          className="w-6 h-6 object-cover rounded-full"
+                        />
+                      ) : (
+                        <span className="text-xl">✈️</span>
+                      )}
                     </div>
                   </div>
                 </div>
                 <div className="text-center text-sm text-muted-foreground">
-                  <p><strong>ID:</strong> {partidoSeleccionado.id}</p>
-                  <p>{partidoSeleccionado.fecha} - {partidoSeleccionado.hora} - {partidoSeleccionado.cancha}</p>
-                  <p>{partidoSeleccionado.torneo} ({partidoSeleccionado.categoria})</p>
+                  <p><strong>ID:</strong> {fixtureSeleccionado.id}</p>
+                  {fixtureSeleccionado.kickoff && (
+                    <p>{format(new Date(fixtureSeleccionado.kickoff), 'dd/MM/yyyy HH:mm', { locale: es })} - {fixtureSeleccionado.venue}</p>
+                  )}
+                  <p>{fixtureSeleccionado.tournaments?.name} (Jornada {fixtureSeleccionado.match_day})</p>
                 </div>
               </div>
 
@@ -318,7 +470,7 @@ const Arbitro = () => {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Goles {partidoSeleccionado.equipoLocal} *</Label>
+                    <Label>Goles {fixtureSeleccionado.home_teams?.name} *</Label>
                     <Input
                       type="number"
                       value={resultado.golesLocal}
@@ -329,7 +481,7 @@ const Arbitro = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Goles {partidoSeleccionado.equipoVisitante} *</Label>
+                    <Label>Goles {fixtureSeleccionado.away_teams?.name} *</Label>
                     <Input
                       type="number"
                       value={resultado.golesVisitante}
@@ -415,7 +567,7 @@ const Arbitro = () => {
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <h4 className="font-medium mb-2">Vista previa del resultado:</h4>
                   <p className="text-lg font-bold text-center">
-                    {partidoSeleccionado.equipoLocal} {resultado.golesLocal} - {resultado.golesVisitante} {partidoSeleccionado.equipoVisitante}
+                    {fixtureSeleccionado.home_teams?.name} {resultado.golesLocal} - {resultado.golesVisitante} {fixtureSeleccionado.away_teams?.name}
                   </p>
                   {informeArbitral && (
                     <p className="text-sm text-center text-green-600 mt-2">

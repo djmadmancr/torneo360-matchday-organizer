@@ -7,10 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Minus, AlertTriangle, Clock, Trophy, UserX, ArrowUpDown } from "lucide-react";
+import { Plus, Minus, AlertTriangle, Clock, Trophy, UserX, ArrowUpDown, Search } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 
 interface FixtureMatchEditorProps {
   match: {
@@ -21,6 +21,8 @@ interface FixtureMatchEditorProps {
     away_score: number;
     status: string;
     match_data: any;
+    referee_id?: string;
+    tournament_id: string;
     home_teams: { id: string; name: string; logo_url?: string };
     away_teams: { id: string; name: string; logo_url?: string };
   };
@@ -45,6 +47,9 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
   const [awayScore, setAwayScore] = useState(match.away_score);
   const [matchStatus, setMatchStatus] = useState(match.status);
   const [notes, setNotes] = useState(match.match_data?.notes || '');
+  const [refereeId, setRefereeId] = useState(match.referee_id || '');
+  const [refereeSearchTerm, setRefereeSearchTerm] = useState('');
+  const [showRefereeSearch, setShowRefereeSearch] = useState(false);
   const [homePlayerStats, setHomePlayerStats] = useState<PlayerStats[]>(
     match.match_data?.home_player_stats || []
   );
@@ -56,6 +61,56 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
 
   const queryClient = useQueryClient();
 
+  // Search for referees
+  const { data: availableReferees = [] } = useQuery({
+    queryKey: ['available-referees', refereeSearchTerm],
+    queryFn: async () => {
+      console.log('🔍 Searching referees with term:', refereeSearchTerm);
+      
+      let query = supabase
+        .from('users')
+        .select('id, full_name, email, referee_credential')
+        .eq('role', 'referee');
+
+      if (refereeSearchTerm.trim()) {
+        query = query.or(`full_name.ilike.%${refereeSearchTerm}%,email.ilike.%${refereeSearchTerm}%,referee_credential.ilike.%${refereeSearchTerm}%`);
+      }
+
+      const { data, error } = await query.order('full_name').limit(10);
+
+      if (error) {
+        console.error('❌ Error fetching referees:', error);
+        throw error;
+      }
+
+      console.log('✅ Found referees:', data?.length || 0);
+      return data || [];
+    },
+    enabled: showRefereeSearch
+  });
+
+  // Get current referee data
+  const { data: currentReferee } = useQuery({
+    queryKey: ['referee', refereeId],
+    queryFn: async () => {
+      if (!refereeId) return null;
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, full_name, email, referee_credential')
+        .eq('id', refereeId)
+        .single();
+
+      if (error) {
+        console.error('❌ Error fetching current referee:', error);
+        return null;
+      }
+
+      return data;
+    },
+    enabled: !!refereeId
+  });
+
   const updateMatchMutation = useMutation({
     mutationFn: async (updateData: any) => {
       const { error } = await supabase
@@ -66,6 +121,7 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
           home_score: homeScore,
           away_score: awayScore,
           status: matchStatus,
+          referee_id: refereeId || null,
           match_data: {
             ...match.match_data,
             notes,
@@ -80,10 +136,12 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
       if (error) throw error;
     },
     onSuccess: () => {
+      console.log('✅ Match updated successfully with referee assignment');
       toast.success('Partido actualizado correctamente');
       queryClient.invalidateQueries({ queryKey: ['fixtures'] });
       queryClient.invalidateQueries({ queryKey: ['tournament-fixtures'] });
       queryClient.invalidateQueries({ queryKey: ['tournament-statistics'] });
+      queryClient.invalidateQueries({ queryKey: ['referee-fixtures'] });
       onClose();
     },
     onError: (error) => {
@@ -142,7 +200,16 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
   };
 
   const handleSave = () => {
+    console.log('💾 Saving match changes with referee:', refereeId);
     updateMatchMutation.mutate({});
+  };
+
+  const selectReferee = (referee: any) => {
+    console.log('👨‍⚖️ Referee selected for match:', referee.full_name);
+    setRefereeId(referee.id);
+    setShowRefereeSearch(false);
+    setRefereeSearchTerm('');
+    toast.success(`Árbitro asignado: ${referee.full_name}`);
   };
 
   const swapTeams = () => {
@@ -399,6 +466,83 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
                   <SelectItem value="postponed">Pospuesto</SelectItem>
                 </SelectContent>
               </Select>
+            </CardContent>
+          </Card>
+
+          {/* Asignación de Árbitro */}
+          <Card>
+            <CardContent className="p-4">
+              <Label className="text-sm font-medium mb-2 block flex items-center gap-2">
+                <UserX className="w-4 h-4" />
+                Árbitro Asignado
+              </Label>
+              
+              {currentReferee ? (
+                <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div>
+                    <p className="font-medium text-green-800">{currentReferee.full_name}</p>
+                    <p className="text-sm text-green-600">{currentReferee.email}</p>
+                    {currentReferee.referee_credential && (
+                      <p className="text-xs text-green-500">ID: {currentReferee.referee_credential}</p>
+                    )}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setRefereeId('');
+                      toast.success('Árbitro removido del partido');
+                    }}
+                  >
+                    Remover
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowRefereeSearch(!showRefereeSearch)}
+                    className="w-full flex items-center gap-2"
+                  >
+                    <Search className="w-4 h-4" />
+                    {showRefereeSearch ? 'Ocultar búsqueda' : 'Buscar árbitro'}
+                  </Button>
+                  
+                  {showRefereeSearch && (
+                    <div className="space-y-2">
+                      <Input
+                        placeholder="Buscar por nombre, email o ID..."
+                        value={refereeSearchTerm}
+                        onChange={(e) => setRefereeSearchTerm(e.target.value)}
+                      />
+                      
+                      {availableReferees.length > 0 && (
+                        <div className="max-h-40 overflow-y-auto border rounded-lg">
+                          {availableReferees.map((referee) => (
+                            <div
+                              key={referee.id}
+                              className="p-2 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                              onClick={() => selectReferee(referee)}
+                            >
+                              <p className="font-medium text-sm">{referee.full_name}</p>
+                              <p className="text-xs text-gray-500">{referee.email}</p>
+                              {referee.referee_credential && (
+                                <p className="text-xs text-blue-600">ID: {referee.referee_credential}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {refereeSearchTerm && availableReferees.length === 0 && (
+                        <p className="text-sm text-gray-500 text-center p-2">
+                          No se encontraron árbitros
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
