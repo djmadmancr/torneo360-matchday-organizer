@@ -35,10 +35,10 @@ const AdminUsers = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
+      <div className="min-h-screen bg-[image:var(--admin-gradient)] p-6">
         <div className="container mx-auto">
           <div className="flex items-center justify-center h-64">
-            <div className="text-lg">Cargando usuarios...</div>
+            <div className="text-lg text-white">Cargando usuarios...</div>
           </div>
         </div>
       </div>
@@ -47,10 +47,10 @@ const AdminUsers = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
+      <div className="min-h-screen bg-[image:var(--admin-gradient)] p-6">
         <div className="container mx-auto">
           <div className="flex items-center justify-center h-64">
-            <div className="text-lg text-red-600">Error al cargar usuarios: {error.message}</div>
+            <div className="text-lg text-red-200">Error al cargar usuarios: {error.message}</div>
           </div>
         </div>
       </div>
@@ -58,7 +58,7 @@ const AdminUsers = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
+    <div className="min-h-screen bg-[image:var(--admin-gradient)] p-6">
       <div className="container mx-auto max-w-7xl">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
@@ -109,7 +109,7 @@ const AdminUsers = () => {
                   <SelectItem value="admin">Administrador</SelectItem>
                   <SelectItem value="organizer">Organizador</SelectItem>
                   <SelectItem value="referee">Árbitro</SelectItem>
-                  <SelectItem value="team_admin">Admin de Equipo</SelectItem>
+                  <SelectItem value="team_admin">Equipo</SelectItem>
                 </SelectContent>
               </Select>
             </div>

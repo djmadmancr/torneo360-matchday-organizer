@@ -199,7 +199,7 @@ export const CreateEditUserModal: React.FC<CreateEditUserModalProps> = ({
                   onCheckedChange={(checked) => handleRoleChange('team_admin', checked as boolean)}
                 />
                 <Label htmlFor="team_admin" className="text-sm font-medium">
-                  Admin de Equipo
+                  Equipo
                 </Label>
               </div>
             </div>

@@ -57,6 +57,16 @@ serve(async (req) => {
     const { email, password, full_name, roles } = CreateUserSchema.parse(body);
     console.log('Validation successful for:', { email, full_name, roles });
 
+    // Check if email already exists in auth.users
+    console.log('Checking if email exists in auth.users:', email);
+    const { data: existingAuthUser } = await supabaseAdmin.auth.admin.listUsers();
+    const emailExists = existingAuthUser.users.some(user => user.email === email);
+    
+    if (emailExists) {
+      console.error('Email already exists in auth.users:', email);
+      throw new Error(`Este correo electrónico ya está registrado en el sistema de autenticación`);
+    }
+
     // Create user in auth
     console.log('Creating user in auth:', email);
     const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
