@@ -135,7 +135,7 @@ export const useToggleUserActive = () => {
   });
 };
 
-// Reset user password
+// Reset user password via email
 export const useResetPassword = () => {
   return useMutation({
     mutationFn: async (email: string) => {
@@ -148,6 +148,26 @@ export const useResetPassword = () => {
 
       if (error) {
         throw new Error(error.message || 'Failed to reset password');
+      }
+
+      return data;
+    }
+  });
+};
+
+// Set user password directly
+export const useSetUserPassword = () => {
+  return useMutation({
+    mutationFn: async ({ userId, password }: { userId: string; password: string }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase.functions.invoke('admin-set-password', {
+        body: { userId, password }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to set password');
       }
 
       return data;

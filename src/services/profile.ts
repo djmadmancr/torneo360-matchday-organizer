@@ -32,3 +32,32 @@ export const useUpdateMyProfile = () => {
     },
   });
 };
+
+// Change user password
+export const useChangePassword = () => {
+  return useMutation({
+    mutationFn: async ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuario no autenticado");
+
+      // First verify current password by attempting to sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email!,
+        password: currentPassword
+      });
+
+      if (signInError) {
+        throw new Error("La contraseña actual es incorrecta");
+      }
+
+      // Update password
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) throw new Error(error.message || "Error al cambiar la contraseña");
+      
+      return { success: true };
+    }
+  });
+};

@@ -10,9 +10,10 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AdminUser, useToggleUserActive, useResetPassword } from '@/services/adminUsers';
+import { AdminUser, useToggleUserActive } from '@/services/adminUsers';
 import { Edit, RotateCcw, Ban, CheckCircle } from 'lucide-react';
 import { CreateEditUserModal } from './CreateEditUserModal';
+import { ResetPasswordModal } from './ResetPasswordModal';
 import { toast } from 'sonner';
 
 interface UsersTableProps {
@@ -21,8 +22,8 @@ interface UsersTableProps {
 
 export const UsersTable: React.FC<UsersTableProps> = ({ users }) => {
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
+  const [resetPasswordUser, setResetPasswordUser] = useState<AdminUser | null>(null);
   const toggleActiveMutation = useToggleUserActive();
-  const resetPasswordMutation = useResetPassword();
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
@@ -77,13 +78,8 @@ export const UsersTable: React.FC<UsersTableProps> = ({ users }) => {
     }
   };
 
-  const handleResetPassword = async (user: AdminUser) => {
-    try {
-      await resetPasswordMutation.mutateAsync(user.email);
-      toast.success('Email de reseteo de contraseña enviado');
-    } catch (error) {
-      toast.error('Error al enviar email de reseteo');
-    }
+  const handleResetPassword = (user: AdminUser) => {
+    setResetPasswordUser(user);
   };
 
   return (
@@ -131,7 +127,6 @@ export const UsersTable: React.FC<UsersTableProps> = ({ users }) => {
                       variant="outline"
                       size="sm"
                       onClick={() => handleResetPassword(user)}
-                      disabled={resetPasswordMutation.isPending}
                     >
                       <RotateCcw className="w-4 h-4" />
                     </Button>
@@ -163,6 +158,14 @@ export const UsersTable: React.FC<UsersTableProps> = ({ users }) => {
         onOpenChange={(open) => !open && setEditingUser(null)}
         user={editingUser}
       />
+
+      {resetPasswordUser && (
+        <ResetPasswordModal
+          open={!!resetPasswordUser}
+          onOpenChange={(open) => !open && setResetPasswordUser(null)}
+          user={resetPasswordUser}
+        />
+      )}
     </>
   );
 };
