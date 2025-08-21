@@ -90,6 +90,7 @@ export const useAssignReferee = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fixtures'] });
+      queryClient.invalidateQueries({ queryKey: ['referee-fixtures'] });
       toast.success('Fiscal asignado exitosamente');
     },
     onError: (error: any) => {

@@ -7,8 +7,8 @@ export const useReferees = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('id, full_name, email')
-        .eq('role', 'referee')
+        .select('id, full_name, email, referee_credential, city, country, profile_data')
+        .or('role.eq.referee,roles.cs.["referee"]')
         .order('full_name');
       
       if (error) throw error;

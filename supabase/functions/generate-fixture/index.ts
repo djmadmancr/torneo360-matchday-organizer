@@ -176,17 +176,51 @@ serve(async (req) => {
 
     console.log(`Generated ${fixtures.length} fixtures`);
 
-    // Insert fixtures into database
-    const { error: fixtureError } = await supabase
-      .from('fixtures')
-      .insert(fixtures);
+    // Get available referees for auto-assignment
+    const { data: referees } = await supabase
+      .from('users')
+      .select('id')
+      .or('role.eq.referee,roles.cs.["referee"]')
+      .order('full_name');
 
-    if (fixtureError) {
-      console.error('Error inserting fixtures:', fixtureError);
-      return new Response(
-        JSON.stringify({ error: 'Error creating fixtures' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Auto-assign referees if available
+    if (referees && referees.length > 0) {
+      console.log(`Found ${referees.length} available referees for auto-assignment`);
+      
+      const fixturesWithReferees = fixtures.map((fixture, index) => ({
+        ...fixture,
+        referee_id: referees[index % referees.length].id // Round-robin assignment
+      }));
+      
+      // Insert fixtures with referee assignments
+      const { error: fixtureError } = await supabase
+        .from('fixtures')
+        .insert(fixturesWithReferees);
+
+      if (fixtureError) {
+        console.error('Error inserting fixtures:', fixtureError);
+        return new Response(
+          JSON.stringify({ error: 'Error creating fixtures' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      console.log(`Auto-assigned referees to ${fixtures.length} fixtures`);
+    } else {
+      // Insert fixtures without referee assignments
+      const { error: fixtureError } = await supabase
+        .from('fixtures')
+        .insert(fixtures);
+
+      if (fixtureError) {
+        console.error('Error inserting fixtures:', fixtureError);
+        return new Response(
+          JSON.stringify({ error: 'Error creating fixtures' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      console.log('No referees available for auto-assignment');
     }
 
     // Update tournament status to scheduled

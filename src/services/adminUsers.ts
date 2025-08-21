@@ -10,6 +10,8 @@ export interface AdminUser {
   roles?: string[]; // New field for multiple roles
   created_at?: string;
   auth_user_id?: string;
+  city?: string;
+  country?: string;
 }
 
 // Fetch all users

@@ -29,7 +29,9 @@ export const CreateEditUserModal: React.FC<CreateEditUserModalProps> = ({
     email: '',
     password: '',
     full_name: '',
-    roles: ['team_admin'] as string[]
+    roles: ['team_admin'] as string[],
+    city: '',
+    country: ''
   });
 
   const createUserMutation = useCreateUser();
@@ -43,14 +45,18 @@ export const CreateEditUserModal: React.FC<CreateEditUserModalProps> = ({
         email: user.email,
         password: '',
         full_name: user.full_name || '',
-        roles: user.roles || [user.role || 'team_admin']
+        roles: user.roles || [user.role || 'team_admin'],
+        city: user.city || '',
+        country: user.country || ''
       });
     } else {
       setFormData({
         email: '',
         password: '',
         full_name: '',
-        roles: ['team_admin']
+        roles: ['team_admin'],
+        city: '',
+        country: ''
       });
     }
   }, [user]);
@@ -71,8 +77,8 @@ export const CreateEditUserModal: React.FC<CreateEditUserModalProps> = ({
           toast.error('La contraseña es requerida para nuevos usuarios');
           return;
         }
-        if (formData.password.length < 8) {
-          toast.error('La contraseña debe tener al menos 8 caracteres');
+        if (formData.password.length < 6) {
+          toast.error('La contraseña debe tener al menos 6 caracteres');
           return;
         }
         if (formData.roles.length === 0) {
@@ -140,7 +146,7 @@ export const CreateEditUserModal: React.FC<CreateEditUserModalProps> = ({
                 value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
                 required
-                minLength={8}
+                minLength={6}
               />
             </div>
           )}
@@ -207,6 +213,32 @@ export const CreateEditUserModal: React.FC<CreateEditUserModalProps> = ({
               Selecciona uno o más roles para el usuario
             </p>
           </div>
+
+          {formData.roles.includes('referee') && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="city">Ciudad (requerido para árbitros)</Label>
+                <Input
+                  id="city"
+                  type="text"
+                  value={formData.city}
+                  onChange={(e) => handleInputChange('city', e.target.value)}
+                  placeholder="Ingresa la ciudad"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="country">País (requerido para árbitros)</Label>
+                <Input
+                  id="country"
+                  type="text"
+                  value={formData.country}
+                  onChange={(e) => handleInputChange('country', e.target.value)}
+                  placeholder="Ingresa el país"
+                />
+              </div>
+            </>
+          )}
 
           <div className="flex justify-end space-x-2 pt-4">
             <Button
