@@ -68,30 +68,7 @@ serve(async (req) => {
     const { email, password, full_name, roles, city, country } = CreateUserSchema.parse(body);
     console.log('Validation successful for:', { email, full_name, roles, city, country });
 
-    // Check if email already exists in auth.users
-    console.log('Checking if email exists in auth.users:', email);
-    const { data: existingAuthUser } = await supabaseAdmin.auth.admin.listUsers();
-    const emailExists = existingAuthUser.users.some(user => user.email === email);
-    
-    if (emailExists) {
-      console.error('Email already exists in auth.users:', email);
-      throw new Error(`Este correo electrónico ya está registrado en el sistema de autenticación`);
-    }
-
-    // Check if email already exists in users table BEFORE creating auth user
-    console.log('Checking if email exists in users table:', email);
-    const { data: existingUser } = await supabaseAdmin
-      .from('users')
-      .select('id, auth_user_id')
-      .eq('email', email)
-      .maybeSingle();
-
-    if (existingUser) {
-      console.error('Email already exists in users table:', email);
-      throw new Error(`Este correo electrónico ya está registrado`);
-    }
-
-    // Create user in auth
+    // Create user in auth (let Supabase handle duplicates naturally)
     console.log('Creating user in auth:', email);
     const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
