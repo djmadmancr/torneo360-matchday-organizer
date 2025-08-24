@@ -141,9 +141,9 @@ const TorneosActivos = () => {
     return (
       <div className="text-center py-12">
         <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay torneos activos</h3>
+        <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay partidos</h3>
         <p className="text-gray-500">
-          Tu equipo no está registrado en ningún torneo activo. 
+          No tienes partidos programados o finalizados.
           Ve a "Buscar Torneos" para encontrar torneos disponibles.
         </p>
       </div>
@@ -166,7 +166,7 @@ const TorneosActivos = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Torneos Activos</h2>
+        <h2 className="text-2xl font-bold">Partidos</h2>
         <Badge variant="secondary">{activeTournaments.length} torneo(s)</Badge>
       </div>
 

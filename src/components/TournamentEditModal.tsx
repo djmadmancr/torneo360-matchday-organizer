@@ -31,6 +31,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
     coverage: tournament.coverage || 'local' as CoverageType,
     visibility: tournament.visibility || 'public',
     invite_codes: tournament.invite_codes || [],
+    tournament_data: tournament.tournament_data || {},
   });
   
   const [newInviteCode, setNewInviteCode] = useState('');
@@ -243,6 +244,36 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                     onChange={(e) => setFormData({ ...formData, max_teams: parseInt(e.target.value) })}
                     data-testid="max-teams-input"
                   />
+                </div>
+              </div>
+
+              {/* Group Configuration */}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="group_size">Configuración de Grupos</Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Define el tamaño de los grupos para la fase de grupos (si aplica)
+                  </p>
+                  <Select
+                    value={((formData.tournament_data as any)?.group_size?.toString()) || '4'}
+                    onValueChange={(value) => setFormData({ 
+                      ...formData, 
+                      tournament_data: { 
+                        ...(typeof formData.tournament_data === 'object' && formData.tournament_data !== null ? formData.tournament_data : {}), 
+                        group_size: parseInt(value) 
+                      } 
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Equipos por grupo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="3">3 equipos por grupo</SelectItem>
+                      <SelectItem value="4">4 equipos por grupo</SelectItem>
+                      <SelectItem value="5">5 equipos por grupo</SelectItem>
+                      <SelectItem value="6">6 equipos por grupo</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

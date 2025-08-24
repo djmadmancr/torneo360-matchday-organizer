@@ -180,7 +180,7 @@ const Equipo = () => {
             <TabsTrigger value="mis-equipos">Mis Equipos</TabsTrigger>
             <TabsTrigger value="invitaciones">Invitaciones</TabsTrigger>
             <TabsTrigger value="torneos-publicos">Buscar Torneos</TabsTrigger>
-            <TabsTrigger value="torneos-activos">Torneos Activos</TabsTrigger>
+            <TabsTrigger value="torneos-activos">Partidos</TabsTrigger>
           </TabsList>
 
           {/* Mobile Collapsible Navigation */}
@@ -189,7 +189,7 @@ const Equipo = () => {
               { key: 'mis-equipos', label: '👥 Mis Equipos', icon: Users },
               { key: 'invitaciones', label: '📨 Invitaciones', icon: Bell },
               { key: 'torneos-publicos', label: '🔍 Buscar Torneos', icon: Trophy },
-              { key: 'torneos-activos', label: '🏆 Torneos Activos', icon: Calendar }
+              { key: 'torneos-activos', label: '⚽ Partidos', icon: Calendar }
             ].map(({ key, label, icon: Icon }) => (
               <Collapsible key={key} open={activeTab === key} onOpenChange={() => setActiveTab(key)}>
                 <CollapsibleTrigger className="w-full">

@@ -3,13 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Trophy, MapPin, Clock, Users, Edit, Settings, Zap } from 'lucide-react';
+import { Calendar, Trophy, MapPin, Clock, Users, Edit, Settings, Zap, Eye } from 'lucide-react';
 import { useTournamentFixtures } from '@/hooks/useTournamentRegistrations';
+import { useRegisteredTeams } from '@/hooks/useTeamDetails';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuth } from '@/contexts/AuthContext';
 import FixtureMatchEditor from '../FixtureMatchEditor';
 import { TournamentBracket } from './TournamentBracket';
+import { TeamDetailsModal } from './TeamDetailsModal';
 
 interface FixturePageProps {
   tournamentId: string;
@@ -22,8 +24,11 @@ export const FixturePage: React.FC<FixturePageProps> = ({
 }) => {
   const { currentUser } = useAuth();
   const { data: fixtures, isLoading } = useTournamentFixtures(tournamentId);
+  const { data: registeredTeams } = useRegisteredTeams(tournamentId);
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState(null);
+  const [showTeamModal, setShowTeamModal] = useState(false);
   
   // Por ahora, asumimos que el componente se usa desde el panel de organizador
   // Si se necesita verificación adicional, se puede obtener el torneo por separado
@@ -55,6 +60,7 @@ export const FixturePage: React.FC<FixturePageProps> = ({
   // Separar fixtures entre fase de grupos y eliminación
   const groupStageFixtures = fixtures.filter(f => f.match_day <= 10); // Asumiendo que las primeras 10 jornadas son fase de grupos
   const eliminationFixtures = fixtures.filter(f => f.match_day > 10);
+  const hasEliminationPhase = eliminationFixtures.length > 0;
 
   // Agrupar fixtures de fase de grupos por jornada
   const fixturesByMatchDay = groupStageFixtures.reduce((acc, fixture) => {
@@ -131,15 +137,21 @@ export const FixturePage: React.FC<FixturePageProps> = ({
       </Card>
 
       <Tabs defaultValue="groups" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className={`grid w-full ${hasEliminationPhase ? 'grid-cols-3' : 'grid-cols-2'}`}>
           <TabsTrigger value="groups" className="flex items-center gap-2">
             <Calendar className="w-4 h-4" />
             Fase de Grupos
           </TabsTrigger>
-          <TabsTrigger value="elimination" className="flex items-center gap-2">
-            <Zap className="w-4 h-4" />
-            Eliminación Directa
+          <TabsTrigger value="teams" className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Equipos ({registeredTeams?.length || 0})
           </TabsTrigger>
+          {hasEliminationPhase && (
+            <TabsTrigger value="elimination" className="flex items-center gap-2">
+              <Zap className="w-4 h-4" />
+              Fase Eliminatoria
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="groups" className="space-y-6">
@@ -256,20 +268,95 @@ export const FixturePage: React.FC<FixturePageProps> = ({
         ))}
         </TabsContent>
 
-        <TabsContent value="elimination" className="space-y-6">
-          <TournamentBracket 
-            matches={bracketMatches}
-            isOrganizer={isOrganizer}
-            onEditMatch={(match) => {
-              // Convertir el match del bracket de vuelta al formato de fixture
-              const fixtureMatch = fixtures.find(f => f.id === match.id);
-              if (fixtureMatch) {
-                setSelectedMatch(fixtureMatch);
-                setShowEditModal(true);
-              }
-            }}
-          />
+        <TabsContent value="teams" className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {registeredTeams?.map((team) => (
+              <Card key={team.id} className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-3">
+                    {team.logo_url ? (
+                      <img 
+                        src={team.logo_url} 
+                        alt={`Logo ${team.name}`}
+                        className="w-12 h-12 object-cover rounded-full"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center">
+                        <Trophy className="w-6 h-6 text-primary" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold truncate">{team.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {team.city && team.country ? `${team.city}, ${team.country}` : 
+                         team.city || team.country || 'Sin ubicación'}
+                      </p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Jugadores:</span>
+                    <Badge variant="outline">
+                      {team.team_members.filter(m => m.member_type === 'player').length}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Canchas:</span>
+                    <Badge variant="outline">{team.home_fields.length}</Badge>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Código:</span>
+                    <Badge variant="secondary">{team.team_code}</Badge>
+                  </div>
+                  {isOrganizer && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        setSelectedTeam(team);
+                        setShowTeamModal(true);
+                      }}
+                    >
+                      <Eye className="w-3 h-3 mr-1" />
+                      Ver Detalles
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          
+          {(!registeredTeams || registeredTeams.length === 0) && (
+            <Card>
+              <CardContent className="text-center py-12">
+                <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No hay equipos registrados</h3>
+                <p className="text-muted-foreground">
+                  Aún no hay equipos aprobados para este torneo
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
+
+        {hasEliminationPhase && (
+          <TabsContent value="elimination" className="space-y-6">
+            <TournamentBracket 
+              matches={bracketMatches}
+              isOrganizer={isOrganizer}
+              onEditMatch={(match) => {
+                // Convertir el match del bracket de vuelta al formato de fixture
+                const fixtureMatch = fixtures.find(f => f.id === match.id);
+                if (fixtureMatch) {
+                  setSelectedMatch(fixtureMatch);
+                  setShowEditModal(true);
+                }
+              }}
+            />
+          </TabsContent>
+        )}
       </Tabs>
         
       {/* Modal de edición para organizadores */}
@@ -283,6 +370,16 @@ export const FixturePage: React.FC<FixturePageProps> = ({
           }}
         />
       )}
+
+      {/* Modal de detalles del equipo */}
+      <TeamDetailsModal
+        team={selectedTeam}
+        open={showTeamModal}
+        onOpenChange={(open) => {
+          setShowTeamModal(open);
+          if (!open) setSelectedTeam(null);
+        }}
+      />
     </div>
   );
 };

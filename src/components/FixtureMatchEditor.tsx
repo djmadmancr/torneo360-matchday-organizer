@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,8 @@ import { Plus, Minus, AlertTriangle, Clock, Trophy, UserX, ArrowUpDown, Search, 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { VenueSelector } from './VenueSelector';
+import { HomeField } from '@/hooks/useTeamCards';
 
 interface FixtureMatchEditorProps {
   match: {
@@ -62,8 +64,31 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
   const [selectedTeam, setSelectedTeam] = useState<'home' | 'away'>('home');
   const [kickoff, setKickoff] = useState(match.kickoff ? new Date(match.kickoff).toISOString().slice(0, 16) : '');
   const [venue, setVenue] = useState(match.venue || '');
+  const [homeTeamFields, setHomeTeamFields] = useState<HomeField[]>([]);
 
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    // Fetch home team fields
+    if (match.home_teams?.id) {
+      fetchHomeTeamFields(match.home_teams.id);
+    }
+  }, [match.home_teams?.id]);
+
+  const fetchHomeTeamFields = async (teamId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('home_fields')
+        .select('*')
+        .eq('team_id', teamId);
+      
+      if (error) throw error;
+      setHomeTeamFields(data || []);
+    } catch (error) {
+      console.error('Error fetching home team fields:', error);
+      setHomeTeamFields([]);
+    }
+  };
 
   // Search for referees
   const { data: availableReferees = [] } = useQuery({
@@ -476,12 +501,11 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
                   <MapPin className="w-4 h-4" />
                   Venue / Estadio
                 </Label>
-                <Input
-                  type="text"
-                  value={venue}
-                  onChange={(e) => setVenue(e.target.value)}
-                  placeholder="Ingresa el venue del partido"
-                  className="w-full"
+                <VenueSelector
+                  matchId={match.id}
+                  currentVenue={venue}
+                  homeFields={homeTeamFields}
+                  disabled={false}
                 />
               </CardContent>
             </Card>
