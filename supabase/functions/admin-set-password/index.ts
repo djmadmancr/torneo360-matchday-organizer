@@ -35,9 +35,11 @@ serve(async (req) => {
       throw new Error('Password must be at least 6 characters long');
     }
 
-    // Update user password directly
+    // Update user password directly using admin API
     const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-      password: password
+      password: password,
+      // Force email confirmation to false so the user can login immediately
+      email_confirm: true
     });
 
     if (error) {

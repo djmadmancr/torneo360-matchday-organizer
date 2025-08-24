@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Trophy, MapPin, Clock, Users, Edit, Settings } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Calendar, Trophy, MapPin, Clock, Users, Edit, Settings, Zap } from 'lucide-react';
 import { useTournamentFixtures } from '@/hooks/useTournamentRegistrations';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuth } from '@/contexts/AuthContext';
 import FixtureMatchEditor from '../FixtureMatchEditor';
+import { TournamentBracket } from './TournamentBracket';
 
 interface FixturePageProps {
   tournamentId: string;
@@ -50,14 +52,37 @@ export const FixturePage: React.FC<FixturePageProps> = ({
     );
   }
 
-  // Agrupar fixtures por jornada
-  const fixturesByMatchDay = fixtures.reduce((acc, fixture) => {
+  // Separar fixtures entre fase de grupos y eliminación
+  const groupStageFixtures = fixtures.filter(f => f.match_day <= 10); // Asumiendo que las primeras 10 jornadas son fase de grupos
+  const eliminationFixtures = fixtures.filter(f => f.match_day > 10);
+
+  // Agrupar fixtures de fase de grupos por jornada
+  const fixturesByMatchDay = groupStageFixtures.reduce((acc, fixture) => {
     if (!acc[fixture.match_day]) {
       acc[fixture.match_day] = [];
     }
     acc[fixture.match_day].push(fixture);
     return acc;
   }, {} as Record<number, typeof fixtures>);
+
+  // Preparar datos para el bracket de eliminación
+  const bracketMatches = eliminationFixtures.map(fixture => ({
+    id: fixture.id,
+    round: fixture.match_day - 10, // Ajustar para que las rondas de eliminación empiecen en 1
+    position: 1, // Podrías calcular esto basado en el orden
+    home_team: fixture.home_teams,
+    away_team: fixture.away_teams,
+    home_score: fixture.home_score,
+    away_score: fixture.away_score,
+    status: fixture.status,
+    kickoff: fixture.kickoff,
+    venue: fixture.venue,
+    winner_team_id: fixture.status === 'finished' && fixture.home_score > fixture.away_score 
+      ? fixture.home_teams?.id 
+      : fixture.status === 'finished' && fixture.away_score > fixture.home_score
+      ? fixture.away_teams?.id
+      : undefined
+  }));
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -91,7 +116,11 @@ export const FixturePage: React.FC<FixturePageProps> = ({
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
               <Calendar className="w-4 h-4" />
-              {Object.keys(fixturesByMatchDay).length} jornadas
+              {Object.keys(fixturesByMatchDay).length} jornadas de grupos
+            </div>
+            <div className="flex items-center gap-1">
+              <Zap className="w-4 h-4" />
+              {eliminationFixtures.length} partidos de eliminación
             </div>
             <div className="flex items-center gap-1">
               <Users className="w-4 h-4" />
@@ -100,6 +129,20 @@ export const FixturePage: React.FC<FixturePageProps> = ({
           </div>
         </CardContent>
       </Card>
+
+      <Tabs defaultValue="groups" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="groups" className="flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
+            Fase de Grupos
+          </TabsTrigger>
+          <TabsTrigger value="elimination" className="flex items-center gap-2">
+            <Zap className="w-4 h-4" />
+            Eliminación Directa
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="groups" className="space-y-6">
 
       {/* Fixture por jornadas */}
       {Object.keys(fixturesByMatchDay)
@@ -211,6 +254,23 @@ export const FixturePage: React.FC<FixturePageProps> = ({
             </CardContent>
           </Card>
         ))}
+        </TabsContent>
+
+        <TabsContent value="elimination" className="space-y-6">
+          <TournamentBracket 
+            matches={bracketMatches}
+            isOrganizer={isOrganizer}
+            onEditMatch={(match) => {
+              // Convertir el match del bracket de vuelta al formato de fixture
+              const fixtureMatch = fixtures.find(f => f.id === match.id);
+              if (fixtureMatch) {
+                setSelectedMatch(fixtureMatch);
+                setShowEditModal(true);
+              }
+            }}
+          />
+        </TabsContent>
+      </Tabs>
         
       {/* Modal de edición para organizadores */}
       {selectedMatch && showEditModal && (

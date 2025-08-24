@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Minus, AlertTriangle, Clock, Trophy, UserX, ArrowUpDown, Search } from "lucide-react";
+import { Plus, Minus, AlertTriangle, Clock, Trophy, UserX, ArrowUpDown, Search, Calendar, MapPin } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
@@ -23,6 +23,8 @@ interface FixtureMatchEditorProps {
     match_data: any;
     referee_id?: string;
     tournament_id: string;
+    kickoff?: string | null;
+    venue?: string | null;
     home_teams: { id: string; name: string; logo_url?: string };
     away_teams: { id: string; name: string; logo_url?: string };
   };
@@ -58,6 +60,8 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
   );
   const [newPlayerName, setNewPlayerName] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<'home' | 'away'>('home');
+  const [kickoff, setKickoff] = useState(match.kickoff ? new Date(match.kickoff).toISOString().slice(0, 16) : '');
+  const [venue, setVenue] = useState(match.venue || '');
 
   const queryClient = useQueryClient();
 
@@ -122,6 +126,8 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
           away_score: awayScore,
           status: matchStatus,
           referee_id: refereeId || null,
+          kickoff: kickoff ? new Date(kickoff).toISOString() : null,
+          venue: venue || null,
           match_data: {
             ...match.match_data,
             notes,
@@ -446,6 +452,40 @@ const FixtureMatchEditor = ({ match, isOpen, onClose }: FixtureMatchEditorProps)
               </div>
             </CardContent>
           </Card>
+
+          {/* Fecha, Hora y Venue */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                <Label className="text-sm font-medium mb-2 block flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Fecha y Hora del Partido
+                </Label>
+                <Input
+                  type="datetime-local"
+                  value={kickoff}
+                  onChange={(e) => setKickoff(e.target.value)}
+                  className="w-full"
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4">
+                <Label className="text-sm font-medium mb-2 block flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  Venue / Estadio
+                </Label>
+                <Input
+                  type="text"
+                  value={venue}
+                  onChange={(e) => setVenue(e.target.value)}
+                  placeholder="Ingresa el venue del partido"
+                  className="w-full"
+                />
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Estado del partido */}
           <Card>
